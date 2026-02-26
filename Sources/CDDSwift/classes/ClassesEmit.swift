@@ -22,7 +22,7 @@ public func emitModel(name: String, schema: Schema) -> String {
         if let enumValues = schema.enum_values {
             for val in enumValues {
                 if let strVal = val.value as? String {
-                    output += "    case \(strVal.replacingOccurrences(of: \"-\", with: \"_\").lowercased()) = \"\(strVal)\"\n"
+                    output += "    case \(strVal.replacingOccurrences(of: "-", with: "_").lowercased()) = \"\(strVal)\"\n"
                 }
             }
         }
@@ -31,7 +31,7 @@ public func emitModel(name: String, schema: Schema) -> String {
     }
     
     if schema.anyOf != nil || schema.oneOf != nil {
-         output += "public enum \\(name): Codable, Equatable {\n"
+         output += "public enum \(name): Codable, Equatable {\n"
          let options = schema.anyOf ?? schema.oneOf!
          var i = 1
          
@@ -40,22 +40,22 @@ public func emitModel(name: String, schema: Schema) -> String {
              let propName = discriminator.propertyName
              for option in options {
                  let typeName = mapType(schema: option)
-                 output += "    case \\(typeName.lowercased())(\\(typeName))\n"
+                 output += "    case \(typeName.lowercased())(\(typeName))\n"
              }
              
              output += "\n    public init(from decoder: Decoder) throws {\n"
              output += "        let container = try decoder.container(keyedBy: CodingKeys.self)\n"
-             output += "        let type = try container.decode(String.self, forKey: .\\(propName))\n"
+             output += "        let type = try container.decode(String.self, forKey: .\(propName))\n"
              output += "        switch type {\n"
              for option in options {
                  let typeName = mapType(schema: option)
-                 let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\\(typeName)" })?.key ?? typeName
-                 output += "        case \"\\(mappingKey)\":\n"
+                 let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" })?.key ?? typeName
+                 output += "        case \"\(mappingKey)\":\n"
                  output += "            let singleContainer = try decoder.singleValueContainer()\n"
-                 output += "            self = .\\(typeName.lowercased())(try singleContainer.decode(\\(typeName).self))\n"
+                 output += "            self = .\(typeName.lowercased())(try singleContainer.decode(\(typeName).self))\n"
              }
              output += "        default:\n"
-             output += "            throw DecodingError.dataCorruptedError(forKey: .\\(propName), in: container, debugDescription: \"Unknown discriminator value: \\(type)\")\n"
+             output += "            throw DecodingError.dataCorruptedError(forKey: .\(propName), in: container, debugDescription: \"Unknown discriminator value: \\(type)\")\n"
              output += "        }\n"
              output += "    }\n"
              
@@ -64,19 +64,19 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "        switch self {\n"
              for option in options {
                  let typeName = mapType(schema: option)
-                 output += "        case .\\(typeName.lowercased())(let value):\n"
+                 output += "        case .\(typeName.lowercased())(let value):\n"
                  output += "            try container.encode(value)\n"
              }
              output += "        }\n"
              output += "    }\n"
              
              output += "\n    private enum CodingKeys: String, CodingKey {\n"
-             output += "        case \\(propName)\n"
+             output += "        case \(propName)\n"
              output += "    }\n"
          } else {
              for option in options {
                  let typeName = mapType(schema: option)
-                 output += "    case option\\(i)(\\(typeName))\n"
+                 output += "    case option\(i)(\(typeName))\n"
                  i += 1
              }
              
@@ -85,13 +85,13 @@ public func emitModel(name: String, schema: Schema) -> String {
              i = 1
              for option in options {
                  let typeName = mapType(schema: option)
-                 output += "        if let value = try? container.decode(\\(typeName).self) {\n"
-                 output += "            self = .option\\(i)(value)\n"
+                 output += "        if let value = try? container.decode(\(typeName).self) {\n"
+                 output += "            self = .option\(i)(value)\n"
                  output += "            return\n"
                  output += "        }\n"
                  i += 1
              }
-             output += "        throw DecodingError.typeMismatch(\\(name).self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: \"Failed to decode \\(name) anyOf/oneOf\"))\n"
+             output += "        throw DecodingError.typeMismatch(\(name).self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: \"Failed to decode \(name) anyOf/oneOf\"))\n"
              output += "    }\n"
              
              output += "\n    public func encode(to encoder: Encoder) throws {\n"
@@ -99,7 +99,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "        switch self {\n"
              i = 1
              for option in options {
-                 output += "        case .option\\(i)(let value):\n"
+                 output += "        case .option\(i)(let value):\n"
                  output += "            try container.encode(value)\n"
                  i += 1
              }
@@ -159,17 +159,17 @@ public func emitModel(name: String, schema: Schema) -> String {
         let optionalSuffix = isRequired ? "" : "?"
         
         var propertyWrappers: [String] = []
-        if let min = propSchema.minimum { propertyWrappers.append("@Minimum(\\(min))") }
-        if let max = propSchema.maximum { propertyWrappers.append("@Maximum(\\(max))") }
-        if let minLen = propSchema.minLength { propertyWrappers.append("@MinLength(\\(minLen))") }
-        if let maxLen = propSchema.maxLength { propertyWrappers.append("@MaxLength(\\(maxLen))") }
-        if let pattern = propSchema.pattern { propertyWrappers.append("@Pattern(\"\\(pattern)\")") }
+        if let min = propSchema.minimum { propertyWrappers.append("@Minimum(\(min))") }
+        if let max = propSchema.maximum { propertyWrappers.append("@Maximum(\(max))") }
+        if let minLen = propSchema.minLength { propertyWrappers.append("@MinLength(\(minLen))") }
+        if let maxLen = propSchema.maxLength { propertyWrappers.append("@MaxLength(\(maxLen))") }
+        if let pattern = propSchema.pattern { propertyWrappers.append("@Pattern(\"\(pattern)\")") }
         
         for pw in propertyWrappers {
-            output += "    \\(pw)\n"
+            output += "    \(pw)\n"
         }
         
-        output += "    public var \\(propName): \\(swiftType)\\(optionalSuffix)\n"
+        output += "    public var \(propName): \(swiftType)\(optionalSuffix)\n"
     }
     
     if !sortedProps.isEmpty {
@@ -178,7 +178,7 @@ public func emitModel(name: String, schema: Schema) -> String {
             let swiftType = mapType(schema: propData.0)
             let isRequired = propData.1
             let optionalSuffix = isRequired ? "" : "?"
-            return "\(propName): \(swiftType)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")"
+            return "\(propName): \(swiftType)\(optionalSuffix)\(isRequired ? "" : " = nil")"
         }.joined(separator: ", ")
         
         output += "    public init(\(params)) {\n"
@@ -215,7 +215,7 @@ public func mapType(schema: Schema) -> String {
         }
         if let items = schema.items {
             if let ref = items.ref {
-                return "[\(ref.components(separatedBy: \"/\").last ?? \"Unknown\")]"
+                return "[\(ref.components(separatedBy: "/").last ?? "Unknown")]"
             } else if let type = items.type {
                 let primitive = Schema(type: type)
                 return "[\(mapType(schema: primitive))]"

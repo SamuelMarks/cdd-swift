@@ -13,5 +13,5 @@ public func emitDocstring(_ description: String?, indent: Int = 0) -> String {
     var sanitized = desc.replacingOccurrences(of: "*/", with: "*\\/")
     
     let lines = sanitized.split(separator: "\n")
-    return lines.map { "\\(prefix)/// \\($0)" }.joined(separator: "\n") + "\n"
+    return lines.map { "\(prefix)/// \($0)" }.joined(separator: "\n") + "\n"
 }

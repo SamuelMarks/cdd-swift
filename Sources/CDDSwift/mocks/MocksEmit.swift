@@ -14,7 +14,7 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {
-                    let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: \"/\", with: \"_\").replacingOccurrences(of: \"{\", with: \"\").replacingOccurrences(of: \"}\", with: \"\"))"
+                    let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
                     var returnType = "Void"
                     if let responses = op.responses {
                         if let okResponse = responses["200"] ?? responses["201"] ?? responses["default"], let content = okResponse.content, let jsonContent = content["application/json"], let schema = jsonContent.schema {
@@ -29,24 +29,24 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
                             let isRequired = param.required ?? false
                             let optionalSuffix = isRequired ? "" : "?"
-                            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+                            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                         }
                     }
                     if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
                         let type = mapType(schema: schema)
                         let isRequired = reqBody.required ?? false
                         let optionalSuffix = isRequired ? "" : "?"
-                        args.append("body: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+                        args.append("body: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     } else if let formContent = op.requestBody?.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
                         let type = mapType(schema: schema)
                         let isRequired = op.requestBody?.required ?? false
                         let optionalSuffix = isRequired ? "" : "?"
-                        args.append("formData: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+                        args.append("formData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     } else if let multiContent = op.requestBody?.content?["multipart/form-data"], let schema = multiContent.schema {
                         let type = mapType(schema: schema)
                         let isRequired = op.requestBody?.required ?? false
                         let optionalSuffix = isRequired ? "" : "?"
-                        args.append("multipartData: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+                        args.append("multipartData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     }
                     
                     let argsString = args.joined(separator: ", ")
