@@ -14,7 +14,7 @@ public func emitTests(paths: [String: PathItem]?) -> String {
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {
-                    let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: \"/\", with: \"_\").replacingOccurrences(of: \"{\", with: \"\").replacingOccurrences(of: \"}\", with: \"\"))"
+                    let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
                     output += "    func test\(funcName.prefix(1).uppercased())\(funcName.dropFirst())() async throws {\n"
                     output += "        // let client = MockAPIClient()\n"
                     output += "        // let result = try await client.\(funcName)(...)\n"

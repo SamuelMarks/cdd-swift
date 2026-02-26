@@ -153,13 +153,13 @@ public struct PathItem: Codable, Equatable {
     public let ref: String?
     public let summary: String?
     public let description: String?
-    public let get: Operation?
-    public let put: Operation?
-    public let post: Operation?
-    public let delete: Operation?
+    public var get: Operation?
+    public var put: Operation?
+    public var post: Operation?
+    public var delete: Operation?
     public let options: Operation?
     public let head: Operation?
-    public let patch: Operation?
+    public var patch: Operation?
     public let trace: Operation?
     public let query: Operation?
     public let additionalOperations: [String: Operation]?

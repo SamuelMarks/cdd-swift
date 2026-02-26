@@ -2,7 +2,7 @@ import Foundation
 
 /// Emits Swift methods for an API Client from OpenAPI paths.
 public func emitMethod(path: String, method: String, operation: Operation, documentSecurity: [SecurityRequirement]?, securitySchemes: [String: SecurityScheme]) -> String {
-    let funcName = operation.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: \"/\", with: \"_\").replacingOccurrences(of: \"{\", with: \"\").replacingOccurrences(of: \"}\", with: \"\"))"
+    let funcName = operation.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
     
     var args: [String] = []
     var pathInterpolation = path
@@ -26,7 +26,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
             let isRequired = param.required ?? false
             let optionalSuffix = isRequired ? "" : "?"
-            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
             
             let style = param.style ?? (pIn == "query" || pIn == "cookie" ? "form" : "simple")
             let explode = param.explode ?? (style == "form")
@@ -36,19 +36,19 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             if pIn == "path" {
                 if style == "simple" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? \"\" : \"?\").map { String(describing: $0) }.joined(separator: \",\") \(isRequired ? \"\" : \"?? \\\"\\\"\"))")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").map { String(describing: $0) }.joined(separator: \",\") \(isRequired ? "" : "?? \\\"\\\""))")
                     } else {
                         pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName))")
                     }
                 } else if style == "label" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? \"\" : \"?\").isEmpty == false ? \".\" + \(pName)\(isRequired ? \"\" : \"?!\").map { String(describing: $0) }.joined(separator: \"\(explode ? \".\" : \",\)\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").isEmpty == false ? \".\" + \(pName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? "." : ",")\") : \"\")")
                     } else {
                         pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ".\\(\(pName))")
                     }
                 } else if style == "matrix" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? \"\" : \"?\").isEmpty == false ? \";\(pName)=\" + \(pName)\(isRequired ? \"\" : \"?!\").map { String(describing: $0) }.joined(separator: \"\(explode ? \";\(pName)=\" : \",\)\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").isEmpty == false ? \";\(pName)=\" + \(pName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? ";\(pName)=" : ",")\") : \"\")")
                     } else {
                         pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ";\(pName)=\\(\(pName))")
                     }
@@ -74,7 +74,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             let isRequired = reqBody.required ?? false
             let optionalSuffix = isRequired ? "" : "?"
             bodyParamName = "body"
-            args.append("body: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+            args.append("body: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         } else if let formContent = reqBody.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
             let type = mapType(schema: schema)
             let isRequired = reqBody.required ?? false
@@ -82,7 +82,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             bodyParamName = "formData"
             isFormUrlEncoded = true
             multipartEncodings = formContent.encoding
-            args.append("formData: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+            args.append("formData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         } else if let multiContent = reqBody.content?["multipart/form-data"], let schema = multiContent.schema {
             let type = mapType(schema: schema)
             let isRequired = reqBody.required ?? false
@@ -90,7 +90,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             bodyParamName = "multipartData"
             isMultipart = true
             multipartEncodings = multiContent.encoding
-            args.append("multipartData: \(type)\(optionalSuffix)\(isRequired ? \"\" : \" = nil\")")
+            args.append("multipartData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         }
     }
     
@@ -108,7 +108,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         output += "    /// \(summary)\n"
     }
     if let desc = operation.description {
-        output += "    /// \(desc.replacingOccurrences(of: \"\n\", with: \"\n    /// \"))\n"
+        output += "    /// \(desc.replacingOccurrences(of: "\n", with: "\n    /// "))\n"
     }
     output += "    public func \(funcName)(\(argsString)) async throws -> \(returnType) {\n"
     
@@ -198,12 +198,12 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "        request.setValue(\"application/x-www-form-urlencoded\", forHTTPHeaderField: \"Content-Type\")\n"
             output += "        if let data = try? JSONEncoder().encode(\(bodyParamName)), let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {\n"
             output += "            var formComponents: [String] = []\n"
-            output += "            let unreserved = CharacterSet(charactersIn: \\\"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~\\\")\n"
+            output += "            let unreserved = CharacterSet(charactersIn: \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~\")\n"
             output += "            for (key, value) in dict {\n"
             output += "                let valueStr = String(describing: value)\n"
-            output += "                if let encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \\\" \\\", with: \\\"+\\\"),\n"
-            output += "                   let encodedVal = valueStr.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \\\" \\\", with: \\\"+\\\") {\n"
-            output += "                    formComponents.append(\\\"\\\\(encodedKey)=\\\\(encodedVal)\\\")\n"
+            output += "                if let encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\"),\n"
+            output += "                   let encodedVal = valueStr.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\") {\n"
+            output += "                    formComponents.append(\"\\(encodedKey)=\\(encodedVal)\")\n"
             output += "                }\n"
             output += "            }\n"
             output += "            let formString = formComponents.joined(separator: \"&\")\n"
@@ -242,7 +242,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "                     bodyData.append(\"\\(value)\\r\\n\".data(using: .utf8)!)\n"
             output += "                 }\n"
             output += "             }\n"
-            output += "             bodyData.append("--\\(boundary)--\\r\\n\".data(using: .utf8)!)\n"
+            output += "             bodyData.append(\"--\\(boundary)--\\r\\n\".data(using: .utf8)!)\n"
             output += "        }\n"
             output += "        request.httpBody = bodyData\n"
         } else {

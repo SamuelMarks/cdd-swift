@@ -140,7 +140,7 @@ final class CDDSwiftTests: XCTestCase {
         
         // Assertions for generated API client
         XCTAssertTrue(swiftCode.contains("public struct APIClient {"))
-        XCTAssertTrue(swiftCode.contains("public let authToken: String?")) // Because of securitySchemes
+        XCTAssertTrue(swiftCode.contains("public let api_keyToken: String?")) // Because of securitySchemes
         XCTAssertTrue(swiftCode.contains("public func getPet(id: UUID, verbose: Bool? = nil) async throws -> AnyPet {"))
         XCTAssertTrue(swiftCode.contains("public func updatePetImage(multipartData: AnyCodable? = nil) async throws -> Void {"))
         XCTAssertTrue(swiftCode.contains("multipart/form-data; boundary="))

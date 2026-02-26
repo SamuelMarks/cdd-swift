@@ -11,7 +11,7 @@ final class DocstringsTests: XCTestCase {
         struct Example {}
         """
         let node = Parser.parse(source: source).statements.first!.item
-        let doc = parseDocstring(from: node)
+        let doc = parseDocstring(from: Syntax(node))
         XCTAssertEqual(doc, "This is a docstring.\nIt spans two lines.")
     }
     
