@@ -1,0 +1,28 @@
+name: Swift
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "5.10" # You can adjust this to your minimum supported Swift version (e.g. 5.9, 5.10, or 6.0)
+        
+    - name: Build
+      run: swift build
+      
+    - name: Run tests
+      run: swift test --enable-code-coverage
