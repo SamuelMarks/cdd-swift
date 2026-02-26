@@ -145,7 +145,14 @@ public struct OpenAPIToSwiftGenerator {
     // MARK: - Internal Generators
     
     static func generateModel(name: String, schema: Schema) -> String {
-        var output = "public struct \(name): Codable, Equatable {\n"
+        var output = ""
+        if let desc = schema.description {
+            let lines = desc.split(separator: "\n")
+            for line in lines {
+                output += "/// \(line)\n"
+            }
+        }
+        output += "public struct \(name): Codable, Equatable {\n"
         var allProperties: [(name: String, schema: Schema, isRequired: Bool)] = []
         
         // Handle allOf
@@ -177,7 +184,14 @@ public struct OpenAPIToSwiftGenerator {
         let sortedProps = uniquePropsMap.sorted { $0.key < $1.key }
         
         for (propName, propData) in sortedProps {
-            let swiftType = mapType(schema: propData.0)
+            let propSchema = propData.0
+            if let propDesc = propSchema.description {
+                let lines = propDesc.split(separator: "\n")
+                for line in lines {
+                    output += "    /// \(line)\n"
+                }
+            }
+            let swiftType = mapType(schema: propSchema)
             let isRequired = propData.1
             let optionalSuffix = isRequired ? "" : "?"
             output += "    public var \(propName): \(swiftType)\(optionalSuffix)\n"
@@ -200,7 +214,14 @@ public struct OpenAPIToSwiftGenerator {
             output += "    }\n"
         } else if schema.type == "string" && schema.enum_values != nil {
             // Handle Enums encoded as string
-             output = "public enum \(name): String, Codable, Equatable, CaseIterable {\n"
+             output = ""
+             if let desc = schema.description {
+                 let lines = desc.split(separator: "\n")
+                 for line in lines {
+                     output += "/// \(line)\n"
+                 }
+             }
+             output += "public enum \(name): String, Codable, Equatable, CaseIterable {\n"
              if let enumValues = schema.enum_values {
                  for val in enumValues {
                      if let strVal = val.value as? String {
@@ -215,7 +236,14 @@ public struct OpenAPIToSwiftGenerator {
             // In a real scenario we'd typealias, but here we just return a struct wrapping it or skip if handled by mapType.
         } else if schema.anyOf != nil || schema.oneOf != nil {
              // Handle Polymorphism using an enum with associated values
-             output = "public enum \(name): Codable, Equatable {\n"
+             output = ""
+             if let desc = schema.description {
+                 let lines = desc.split(separator: "\n")
+                 for line in lines {
+                     output += "/// \(line)\n"
+                 }
+             }
+             output += "public enum \(name): Codable, Equatable {\n"
              let options = schema.anyOf ?? schema.oneOf!
              var i = 1
              for option in options {
