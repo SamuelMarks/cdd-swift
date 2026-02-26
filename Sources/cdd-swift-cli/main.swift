@@ -26,7 +26,8 @@ struct MergeSwift: AsyncParsableCommand {
         let decoder = JSONDecoder()
         
         do {
-            let document = try decoder.decode(OpenAPIDocument.self, from: data)
+            let json = String(data: data, encoding: .utf8) ?? ""
+            let document = try OpenAPIParser.parse(json: json)
             let generatedCode = OpenAPIToSwiftGenerator.generate(from: document)
             
             let destURL = URL(fileURLWithPath: destinationPath)
@@ -91,7 +92,8 @@ struct GenerateSwift: AsyncParsableCommand {
         let decoder = JSONDecoder()
         
         do {
-            let document = try decoder.decode(OpenAPIDocument.self, from: data)
+            let json = String(data: data, encoding: .utf8) ?? ""
+            let document = try OpenAPIParser.parse(json: json)
             let swiftCode = OpenAPIToSwiftGenerator.generate(from: document)
             
             if let outputPath = outputPath {
