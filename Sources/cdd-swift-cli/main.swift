@@ -23,7 +23,6 @@ struct MergeSwift: AsyncParsableCommand {
     mutating func run() async throws {
         let inputURL = URL(fileURLWithPath: inputPath)
         let data = try Data(contentsOf: inputURL)
-        let decoder = JSONDecoder()
         
         do {
             let json = String(data: data, encoding: .utf8) ?? ""
@@ -89,7 +88,6 @@ struct GenerateSwift: AsyncParsableCommand {
     mutating func run() async throws {
         let inputURL = URL(fileURLWithPath: inputPath)
         let data = try Data(contentsOf: inputURL)
-        let decoder = JSONDecoder()
         
         do {
             let json = String(data: data, encoding: .utf8) ?? ""

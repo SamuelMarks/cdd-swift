@@ -38,7 +38,7 @@ public func emitModel(name: String, schema: Schema) -> String {
          if let discriminator = schema.discriminator {
              // Generate polymorphic enum based on discriminator
              let propName = discriminator.propertyName
-             for option in options {
+             for _ in options {
                  let typeName = mapType(schema: option)
                  output += "    case \(typeName.lowercased())(\(typeName))\n"
              }
@@ -47,7 +47,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "        let container = try decoder.container(keyedBy: CodingKeys.self)\n"
              output += "        let type = try container.decode(String.self, forKey: .\(propName))\n"
              output += "        switch type {\n"
-             for option in options {
+             for _ in options {
                  let typeName = mapType(schema: option)
                  let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" })?.key ?? typeName
                  output += "        case \"\(mappingKey)\":\n"
@@ -62,7 +62,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "\n    public func encode(to encoder: Encoder) throws {\n"
              output += "        var container = encoder.singleValueContainer()\n"
              output += "        switch self {\n"
-             for option in options {
+             for _ in options {
                  let typeName = mapType(schema: option)
                  output += "        case .\(typeName.lowercased())(let value):\n"
                  output += "            try container.encode(value)\n"
@@ -74,7 +74,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "        case \(propName)\n"
              output += "    }\n"
          } else {
-             for option in options {
+             for _ in options {
                  let typeName = mapType(schema: option)
                  output += "    case option\(i)(\(typeName))\n"
                  i += 1
@@ -83,7 +83,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "\n    public init(from decoder: Decoder) throws {\n"
              output += "        let container = try decoder.singleValueContainer()\n"
              i = 1
-             for option in options {
+             for _ in options {
                  let typeName = mapType(schema: option)
                  output += "        if let value = try? container.decode(\(typeName).self) {\n"
                  output += "            self = .option\(i)(value)\n"
@@ -98,7 +98,7 @@ public func emitModel(name: String, schema: Schema) -> String {
              output += "        var container = encoder.singleValueContainer()\n"
              output += "        switch self {\n"
              i = 1
-             for option in options {
+             for _ in options {
                  output += "        case .option\(i)(let value):\n"
                  output += "            try container.encode(value)\n"
                  i += 1
