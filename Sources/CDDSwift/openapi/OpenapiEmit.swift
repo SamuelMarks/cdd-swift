@@ -89,11 +89,11 @@ public struct OpenAPIToSwiftGenerator {
         output += "    public let session: URLSession\n"
         
         let securitySchemes = document.components?.securitySchemes ?? [:]
-        var hasGlobalAuth = false
+        
         
         if !securitySchemes.isEmpty {
             for (key, scheme) in securitySchemes {
-                if let type = scheme.type {
+                if scheme.type != nil {
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                     output += "    public let \(propName): String?\n"
                 }
@@ -101,7 +101,7 @@ public struct OpenAPIToSwiftGenerator {
             output += "\n"
             var initParams = "baseURL: URL, session: URLSession = .shared"
             for (key, scheme) in securitySchemes {
-                if let type = scheme.type {
+                if scheme.type != nil {
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                     initParams += ", \(propName): String? = nil"
                 }
@@ -110,7 +110,7 @@ public struct OpenAPIToSwiftGenerator {
             output += "        self.baseURL = baseURL\n"
             output += "        self.session = session\n"
             for (key, scheme) in securitySchemes {
-                if let type = scheme.type {
+                if scheme.type != nil {
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                     output += "        self.\(propName) = \(propName)\n"
                 }

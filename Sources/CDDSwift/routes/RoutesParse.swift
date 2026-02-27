@@ -13,7 +13,7 @@ public class RouteVisitor: SyntaxVisitor {
         
         // Simple heuristic: if it starts with get, post, put, delete, patch
         var method = ""
-        var pathName = "/" + name
+        let pathName = "/" + name
         if name.lowercased().hasPrefix("get") { method = "get" }
         else if name.lowercased().hasPrefix("post") { method = "post" }
         else if name.lowercased().hasPrefix("put") { method = "put" }
@@ -32,7 +32,7 @@ public class RouteVisitor: SyntaxVisitor {
             parameters.append(Parameter(name: pName, in: "query", schema: Schema(type: "string")))
         }
         
-        var operation = Operation(summary: description, description: description, operationId: operationId, parameters: parameters.isEmpty ? nil : parameters, responses: [:], security: nil)
+        let operation = Operation(summary: description, description: description, operationId: operationId, parameters: parameters.isEmpty ? nil : parameters, responses: [:], security: nil)
         
         var pathItem = paths[pathName] ?? PathItem()
         switch method {

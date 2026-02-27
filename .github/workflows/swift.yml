@@ -16,7 +16,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Swift
+    - name: Select Xcode 16 (macOS)
+      if: runner.os == 'macOS'
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '16.0'
+        
+    - name: Set up Swift (Linux)
+      if: runner.os == 'Linux'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: "6.0"

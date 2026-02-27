@@ -276,12 +276,12 @@ public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -
     
     let sortedCallbacks = callbacks.sorted { $0.key < $1.key }
     for (callbackName, callbackDict) in sortedCallbacks {
-        for (expression, pathItem) in callbackDict {
+        for (_, pathItem) in callbackDict {
             let methods: [(String, Operation?)] = [
                 ("GET", pathItem.get), ("POST", pathItem.post), ("PUT", pathItem.put),
                 ("DELETE", pathItem.delete), ("PATCH", pathItem.patch)
             ]
-            for (method, opOpt) in methods {
+            for (_, opOpt) in methods {
                 if let op = opOpt {
                     let funcName = op.operationId ?? "on\(callbackName.prefix(1).uppercased())\(callbackName.dropFirst())"
                     var args: [String] = []
