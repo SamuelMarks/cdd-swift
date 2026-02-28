@@ -1,126 +1,98 @@
-cdd-swift
+cdd_swift
 =========
 
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Swift](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml)
+[![CI/CD](https://github.com/offscale/cdd_swift/workflows/CI/badge.svg)](https://github.com/offscale/cdd_swift/actions)
 
-OpenAPI ↔ Swift. Welcome to **cdd-swift**, a code-generation and compilation tool bridging the gap between OpenAPI specifications and native `Swift` source code. 
+OpenAPI ↔ Swift. This is one compiler in a suite, all focussed on the same task: Compiler Driven Development (CDD).
 
-This toolset allows you to fluidly convert between your language's native constructs (like classes, structs, functions, routing, clients, and ORM models) and OpenAPI specifications, ensuring a single source of truth without sacrificing developer ergonomics.
+Each compiler is written in its target language, is whitespace and comment sensitive, and has both an SDK and CLI.
+
+The CLI—at a minimum—has:
+- `cdd_swift --help`
+- `cdd_swift --version`
+- `cdd_swift from_openapi -i spec.json`
+- `cdd_swift to_openapi -f path/to/code`
+- `cdd_swift to_docs_json --no-imports --no-wrapping -i spec.json`
+
+The goal of this project is to enable rapid application development without tradeoffs. Tradeoffs of Protocol Buffers / Thrift etc. are an untouchable "generated" directory and package, compile-time and/or runtime overhead. Tradeoffs of Java or JavaScript for everything are: overhead in hardware access, offline mode, ML inefficiency, and more. And neither of these alternative approaches are truly integrated into your target system, test frameworks, and bigger abstractions you build in your app. Tradeoffs in CDD are code duplication (but CDD handles the synchronisation for you).
 
 ## 🚀 Capabilities
 
-The `cdd-swift` compiler leverages a unified architecture to support various facets of API and code lifecycle management.
+The `cdd_swift` compiler leverages a unified architecture to support various facets of API and code lifecycle management.
 
 * **Compilation**:
   * **OpenAPI → `Swift`**: Generate idiomatic native models, network routes, client SDKs, database schemas, and boilerplate directly from OpenAPI (`.json` / `.yaml`) specifications.
   * **`Swift` → OpenAPI**: Statically parse existing `Swift` source code and emit compliant OpenAPI specifications.
-* **AST-Driven & Safe**: Employs static analysis (Abstract Syntax Trees) via SwiftSyntax instead of unsafe dynamic execution or reflection, allowing it to safely parse and emit code even for incomplete or un-compilable project states.
+* **AST-Driven & Safe**: Employs static analysis (Abstract Syntax Trees) instead of unsafe dynamic execution or reflection, allowing it to safely parse and emit code even for incomplete or un-compilable project states.
 * **Seamless Sync**: Keep your docs, tests, database, clients, and routing in perfect harmony. Update your code, and generate the docs; or update the docs, and generate the code.
 
 ## 📦 Installation
 
-To use `cdd-swift` as a command-line tool, you can build and run it from source. Ensure you have the [Swift Toolchain](https://www.swift.org/download/) (5.9+) installed.
+This project requires Swift 5.5+. 
 
+To build the CLI tool from source:
 ```bash
-git clone https://github.com/offscale/cdd-swift.git
-cd cdd-swift
+git clone https://github.com/offscale/cdd_swift.git
+cd cdd_swift
 swift build -c release
 ```
-
-The compiled binary will be located at `.build/release/cdd-swift`. You can run it directly:
-
-```bash
-.build/release/cdd-swift --help
-```
-
-To use it programmatically as a dependency in your Swift project, add it to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/offscale/cdd-swift.git", branch: "main")
-]
-```
+The compiled binary will be available at `.build/release/cdd_swift`.
 
 ## 🛠 Usage
 
 ### Command Line Interface
 
+Generate Swift code from an OpenAPI document:
 ```bash
-# Generate Swift models from an OpenAPI JSON document
-swift run cdd-swift generate-swift path/to/openapi.json -o OutputModels.swift
+.build/release/cdd_swift from_openapi -i openapi.json -o APIClient.swift
+```
 
-# Parse existing Swift models and extract them into an OpenAPI JSON document
-swift run cdd-swift parse-swift path/to/Models.swift -o generated-openapi.json
+Parse existing Swift models back into an OpenAPI document:
+```bash
+.build/release/cdd_swift to_openapi -f APIClient.swift -o openapi.json
+```
 
-# Merge generated Swift code from an OpenAPI definition into an existing Swift file
-swift run cdd-swift merge-swift path/to/openapi.json path/to/ExistingFile.swift
+Generate a docs JSON array from an OpenAPI document:
+```bash
+.build/release/cdd_swift to_docs_json -i openapi.json > docs.json
 ```
 
 ### Programmatic SDK / Library
 
+You can integrate CDDSwift directly into your Swift applications or scripts:
+
 ```swift
-import CDDSwift
 import Foundation
+import CDDSwift
 
-// 1. Parse OpenAPI JSON and generate Swift code
-let openapiJson = """
-{
-  "openapi": "3.0.0",
-  "info": {"title": "Sample API", "version": "1.0"},
-  "components": {
-    "schemas": {
-      "User": {
-        "type": "object",
-        "properties": {"id": {"type": "string"}, "name": {"type": "string"}},
-        "required": ["id", "name"]
-      }
-    }
-  }
-}
-"""
+// Parse OpenAPI to Swift code
+let json = try String(contentsOf: URL(fileURLWithPath: "openapi.json"), encoding: .utf8)
+let document = try OpenAPIParser.parse(json: json)
+let swiftCode = OpenAPIToSwiftGenerator.generate(from: document)
 
-do {
-    let document = try OpenAPIParser.parse(json: openapiJson)
-    let generatedSwiftCode = OpenAPIToSwiftGenerator.generate(from: document)
-    print(generatedSwiftCode)
-} catch {
-    print("Error parsing OpenAPI: \\(error)")
-}
-
-// 2. Parse existing Swift source and generate OpenAPI models
-let swiftSource = """
-struct User: Codable {
-    var id: String
-    var name: String
-}
-"""
-
-do {
-    let parser = SwiftASTParser()
-    let schemas = try parser.parseModels(from: swiftSource)
-    
-    let builder = OpenAPIDocumentBuilder(title: "Parsed API", version: "1.0")
-    for (name, schema) in schemas {
-        _ = builder.addSchema(name, schema: schema)
-    }
-    
-    let jsonString = try builder.serialize()
-    print(jsonString)
-} catch {
-    print("Error parsing Swift: \\(error)")
-}
+// Parse Swift code to OpenAPI Models
+let sourceCode = try String(contentsOf: URL(fileURLWithPath: "Models.swift"), encoding: .utf8)
+let parser = SwiftASTParser()
+let schemas = try parser.parseModels(from: sourceCode)
 ```
+
+## Design choices
+
+`cdd_swift` uses `SwiftSyntax` to perform safe, comprehensive static analysis of Swift source code without requiring the code to be compiled or executed. This guarantees that `cdd_swift` can parse and synchronize partially written code during rapid development phases. Unlike basic regex-based scaffolding, it builds a full AST (Abstract Syntax Tree) representation which is converted into our Intermediate Representation (IR).
 
 ## 🏗 Supported Conversions for Swift
 
-*(The boxes below reflect the features supported by this specific `cdd-swift` implementation)*
+*(The boxes below reflect the features supported by this specific `cdd_swift` implementation)*
 
 | Concept | Parse (From) | Emit (To) |
 |---------|--------------|-----------|
 | OpenAPI (JSON/YAML) | [✅] | [✅] |
 | `Swift` Models / Structs / Types | [✅] | [✅] |
 | `Swift` Server Routes / Endpoints | [✅] | [✅] |
+| `Swift` API Clients / SDKs | [ ] | [✅] |
+| `Swift` ORM / DB Schemas | [ ] | [ ] |
+| `Swift` CLI Argument Parsers | [ ] | [ ] |
 | `Swift` Docstrings / Comments | [✅] | [✅] |
 
 ---

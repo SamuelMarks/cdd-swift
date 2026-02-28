@@ -1,29 +1,29 @@
 # CDDSwift CLI Usage Guide
 
-The `cdd-swift` CLI provides several subcommands to facilitate Contract-Driven Development.
+The `cdd_swift` CLI provides several subcommands to facilitate Contract-Driven Development.
 
 ## Commands
 
-### `generate-swift`
+### `from_openapi`
 Generates Swift code from an OpenAPI document. This includes `Codable` data models, an async/await `URLSession` API Client, and Delegate protocols for Webhooks and Callbacks.
 
 **Usage:**
 ```bash
-cdd-swift generate-swift <input_openapi.json> [--output-path <output.swift>]
+cdd_swift from_openapi -i <input_openapi.json> [--output-path <output.swift>]
 ```
-- `<input_openapi.json>`: Path to the OpenAPI 3.2.0 JSON file.
+- `-i, --input`: Path to the OpenAPI 3.2.0 JSON file.
 - `-o, --output-path`: (Optional) Where to write the generated Swift code. If omitted, prints to standard output.
 
 ---
 
-### `parse-swift`
+### `to_openapi`
 Parses a Swift source file, extracts `Codable`, `Encodable`, and `Decodable` structs, and converts them into OpenAPI JSON Schema definitions wrapped in a valid OpenAPI Document.
 
 **Usage:**
 ```bash
-cdd-swift parse-swift <input.swift> [--output-path <output_openapi.json>]
+cdd_swift to_openapi -f <input.swift> [--output-path <output_openapi.json>]
 ```
-- `<input.swift>`: Path to the Swift file containing your models.
+- `-f, --file`: Path to the Swift file containing your models.
 - `-o, --output-path`: (Optional) Where to write the generated JSON. If omitted, prints to standard output.
 
 **Supported Swift Types:**
@@ -38,7 +38,7 @@ Safely injects generated Swift code into an existing Swift file without destroyi
 
 **Usage:**
 ```bash
-cdd-swift merge-swift <input_openapi.json> <destination.swift>
+cdd_swift merge-swift <input_openapi.json> <destination.swift>
 ```
 - `<input_openapi.json>`: Path to the OpenAPI JSON file.
 - `<destination.swift>`: Path to the existing Swift file.
@@ -57,7 +57,7 @@ extension Customer {
     func getFullName() -> String { return name }
 }
 ```
-When you run the command, `cdd-swift` replaces only the text between the markers. If the markers do not exist, it will append the generated code to the end of the file wrapped in the markers.
+When you run the command, `cdd_swift` replaces only the text between the markers. If the markers do not exist, it will append the generated code to the end of the file wrapped in the markers.
 
 ---
 
@@ -66,5 +66,5 @@ Generates an example OpenAPI 3.2.0 JSON document using the internal `OpenAPIDocu
 
 **Usage:**
 ```bash
-cdd-swift generate-open-api [--output-path <output.json>]
+cdd_swift generate-open-api [--output-path <output.json>]
 ```

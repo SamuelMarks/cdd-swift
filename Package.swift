@@ -13,7 +13,7 @@ let package = Package(
     ],
     products: [
         .library(name: "CDDSwift", targets: ["CDDSwift"]),
-        .executable(name: "cdd-swift", targets: ["cdd-swift-cli"]),
+        .executable(name: "cdd_swift", targets: ["cdd-swift-cli"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
