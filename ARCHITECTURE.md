@@ -7,9 +7,9 @@
 [![Coverage](https://codecov.io/gh/offscale/cdd-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/offscale/cdd-swift)
 <!-- BADGES_END -->
 
-The **cdd-swift** tool acts as a dedicated bidirectional compiler and transpiler. Its fundamental architecture follows standard compiler design principles, divided into three distinct phases: **Frontend (Parsing)**, **Intermediate Representation (IR)**, and **Backend (Emitting)**.
+The **cdd-swift** tool acts as a dedicated compiler and transpiler. Its fundamental architecture follows standard compiler design principles, divided into three distinct phases: **Frontend (Parsing)**, **Intermediate Representation (IR)**, and **Backend (Emitting)**.
 
-This decoupled design ensures that any format capable of being parsed into the IR can subsequently be emitted into any supported output format, whether that is a server-side route, a Swift model, or an OpenAPI specification.
+This decoupled design ensures that any format capable of being parsed into the IR can subsequently be emitted into any supported output format, whether that is a server-side route, a client-side SDK, a database ORM, or an OpenAPI specification.
 
 ## 🏗 High-Level Overview
 
@@ -58,7 +58,7 @@ graph TD
 
 The Frontend's responsibility is to read an input source and translate it into the universal CDD Intermediate Representation (IR).
 
-* **Static Analysis (AST-Driven)**: For `Swift` source code, the tool **does not** use dynamic reflection or execute the code. Instead, it leverages SwiftSyntax to generate an Abstract Syntax Tree (AST), and navigates the tree to extract classes, structs, functions, type signatures, API client definitions, server routes, and docstrings.
+* **Static Analysis (AST-Driven)**: For `Swift` source code, the tool **does not** use dynamic reflection or execute the code. Instead, it reads the source files, generates an Abstract Syntax Tree (AST) using SwiftSyntax, and navigates the tree to extract classes, structs, functions, type signatures, API client definitions, server routes, and docstrings.
 * **OpenAPI Parsing**: For OpenAPI and JSON Schema inputs, the parser normalizes the structure, resolving internal `$ref`s and extracting properties, endpoints (client or server perspectives), and metadata into the IR.
 
 ### 2. Intermediate Representation (IR)

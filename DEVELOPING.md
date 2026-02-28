@@ -9,7 +9,7 @@ Thank you for your interest in contributing to CDDSwift! This guide will help yo
 
 ## Project Structure
 - `Sources/CDDSwift/`: The core library. Contains the AST parser, OpenAPI models, Swift code generator, and merger.
-- `Sources/cdd-swift-cli/`: The executable target containing the `ArgumentParser` CLI definitions.
+- `Sources/cdd_swift-cli/`: The executable target containing the `ArgumentParser` CLI definitions.
 - `Tests/CDDSwiftTests/`: The XCTest suite verifying model encoding/decoding, generation, parsing, and merging logic.
 
 ## Building the Project
@@ -31,11 +31,11 @@ swift test --enable-code-coverage
 ## Running the CLI Locally
 You can run the CLI directly from the source using `swift run`:
 ```bash
-swift run cdd-swift --help
+swift run cdd_swift --help
 ```
 For example, to test parsing a file:
 ```bash
-swift run cdd-swift parse-swift path/to/your/File.swift
+swift run cdd_swift to_openapi -f path/to/your/File.swift
 ```
 
 ## Making Changes

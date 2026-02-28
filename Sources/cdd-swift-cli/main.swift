@@ -5,9 +5,10 @@ import CDDSwift
 @main
 struct CDDSwiftCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "cdd-swift",
+        commandName: "cdd_swift",
         abstract: "A utility to convert between OpenAPI and Swift.",
-        subcommands: [GenerateSwift.self, GenerateOpenAPI.self, ParseSwift.self, MergeSwift.self]
+        version: "1.0.0",
+        subcommands: [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self]
     )
 }
 
@@ -43,10 +44,10 @@ struct MergeSwift: AsyncParsableCommand {
     }
 }
 
-struct ParseSwift: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Parse a Swift file to extract Codable models and generate OpenAPI JSON.")
+struct ToOpenAPI: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(commandName: "to_openapi", abstract: "Parse a Swift file to extract Codable models and generate OpenAPI JSON.")
     
-    @Argument(help: "Path to the input Swift file.")
+    @Option(name: [.customShort("f"), .customLong("file")], help: "Path to the input Swift file.")
     var inputPath: String
     
     @Option(name: .shortAndLong, help: "Path to the output JSON file. Prints to stdout if not provided.")
@@ -76,10 +77,10 @@ struct ParseSwift: AsyncParsableCommand {
     }
 }
 
-struct GenerateSwift: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Generate Swift code from an OpenAPI document.")
+struct FromOpenAPI: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(commandName: "from_openapi", abstract: "Generate Swift code from an OpenAPI document.")
     
-    @Argument(help: "Path to the input OpenAPI JSON file.")
+    @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input OpenAPI JSON file.")
     var inputPath: String
     
     @Option(name: .shortAndLong, help: "Path to the output Swift file. Prints to stdout if not provided.")
