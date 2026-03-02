@@ -10,3 +10,18 @@ repos:
     rev: 0.53.5
     hooks:
     -   id: swiftformat
+-   repo: local
+    hooks:
+    -   id: update-shields
+        name: Update README shields
+        entry: python3 update_shields.py
+        language: python
+        pass_filenames: false
+        always_run: true
+-   repo: local
+    hooks:
+    -   id: run-tests
+        name: Run tests
+        entry: swift test
+        language: system
+        pass_filenames: false

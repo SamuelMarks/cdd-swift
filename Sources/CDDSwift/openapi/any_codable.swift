@@ -2,13 +2,17 @@ import Foundation
 
 /// A type-erased `Codable` value.
 public struct AnyCodable: Codable, Equatable {
+    /// Documentation for value
     public let value: Any
 
+    /// Documentation for initializer
     public init(_ value: Any) {
         self.value = value
     }
 
+    /// Documentation for initializer
     public init(from decoder: Decoder) throws {
+        /// Documentation for container
         let container = try decoder.singleValueContainer()
         if let bool = try? container.decode(Bool.self) {
             value = bool
@@ -29,7 +33,9 @@ public struct AnyCodable: Codable, Equatable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
+        /// Documentation for container
         var container = encoder.singleValueContainer()
         switch value {
         case let anyCodable as AnyCodable:
@@ -62,11 +68,15 @@ public struct AnyCodable: Codable, Equatable {
         case let (l as Double, r as Double): return l == r
         case let (l as String, r as String): return l == r
         case let (l as [Any], r as [Any]):
+            /// Documentation for lAny
             let lAny = l.map { AnyCodable($0) }
+            /// Documentation for rAny
             let rAny = r.map { AnyCodable($0) }
             return lAny == rAny
         case let (l as [String: Any], r as [String: Any]):
+            /// Documentation for lAny
             let lAny = l.mapValues { AnyCodable($0) }
+            /// Documentation for rAny
             let rAny = r.mapValues { AnyCodable($0) }
             return lAny == rAny
         case let (l as [AnyCodable], r as [AnyCodable]): return l == r

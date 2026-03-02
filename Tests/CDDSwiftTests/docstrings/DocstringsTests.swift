@@ -1,7 +1,7 @@
-import XCTest
-import SwiftSyntax
-import SwiftParser
 @testable import CDDSwift
+import SwiftParser
+import SwiftSyntax
+import XCTest
 
 final class DocstringsTests: XCTestCase {
     func testParseDocstring() {
@@ -14,19 +14,19 @@ final class DocstringsTests: XCTestCase {
         let doc = parseDocstring(from: Syntax(node))
         XCTAssertEqual(doc, "This is a docstring.\nIt spans two lines.")
     }
-    
+
     func testEmitDocstring() {
         let doc = "Line 1\nLine 2"
         let emitted = emitDocstring(doc, indent: 4)
         XCTAssertEqual(emitted, "    /// Line 1\n    /// Line 2\n")
     }
-    
+
     func testEmitDocstringSanitization() {
         let doc = "Some doc with */ inside it."
         let emitted = emitDocstring(doc, indent: 4)
         XCTAssertEqual(emitted, "    /// Some doc with *\\/ inside it.\n")
     }
-    
+
     func testEmitDocstringEmpty() {
         XCTAssertEqual(emitDocstring(nil), "")
         XCTAssertEqual(emitDocstring(""), "")

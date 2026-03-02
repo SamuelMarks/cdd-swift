@@ -1,5 +1,5 @@
-import XCTest
 @testable import CDDSwift
+import XCTest
 
 final class RoutesTests: XCTestCase {
     func testEmitMethod() {
@@ -20,7 +20,7 @@ final class RoutesTests: XCTestCase {
             operationId: "postForm",
             requestBody: RequestBody(
                 content: [
-                    "application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object"))
+                    "application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object")),
                 ]
             )
         )
@@ -30,4 +30,3 @@ final class RoutesTests: XCTestCase {
         XCTAssertTrue(emitted.contains("encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\")"))
     }
 }
-

@@ -1,5 +1,5 @@
-import XCTest
 @testable import CDDSwift
+import XCTest
 
 final class ClassesTests: XCTestCase {
     func testParseModel() throws {
@@ -17,12 +17,12 @@ final class ClassesTests: XCTestCase {
         XCTAssertEqual(models["TestModel"]?.properties?["aString"]?.type, "string")
         XCTAssertEqual(models["TestModel"]?.properties?["aString"]?.description, "A string property")
     }
-    
+
     func testEmitModel() {
         let schema = Schema(
             type: "object",
             properties: [
-                "aString": Schema(type: "string", description: "A string prop")
+                "aString": Schema(type: "string", description: "A string prop"),
             ],
             required: ["aString"],
             description: "Test schema"
@@ -33,7 +33,7 @@ final class ClassesTests: XCTestCase {
         XCTAssertTrue(emitted.contains("/// A string prop"))
         XCTAssertTrue(emitted.contains("public var aString: String\n"))
     }
-    
+
     func testMapType() {
         XCTAssertEqual(mapType(schema: Schema(type: "string")), "String")
         XCTAssertEqual(mapType(schema: Schema(type: "integer")), "Int")
@@ -45,11 +45,11 @@ final class ClassesTests: XCTestCase {
         let schema = Schema(
             oneOf: [
                 Schema(ref: "#/components/schemas/Dog"),
-                Schema(ref: "#/components/schemas/Cat")
+                Schema(ref: "#/components/schemas/Cat"),
             ],
             discriminator: Discriminator(propertyName: "petType", mapping: [
                 "dog": "#/components/schemas/Dog",
-                "cat": "#/components/schemas/Cat"
+                "cat": "#/components/schemas/Cat",
             ])
         )
         let emitted = emitModel(name: "Pet", schema: schema)
@@ -67,7 +67,7 @@ final class ClassesTests: XCTestCase {
             @Minimum(10)
             @Maximum(100)
             let age: Int
-            
+
             @MinLength(5)
             @MaxLength(20)
             @Pattern("^[a-zA-Z]+$")
@@ -76,15 +76,14 @@ final class ClassesTests: XCTestCase {
         """
         let parser = SwiftASTParser()
         let models = try parser.parseModels(from: source)
-        
+
         let ageSchema = models["ValidationModel"]?.properties?["age"]
         XCTAssertEqual(ageSchema?.minimum, 10)
         XCTAssertEqual(ageSchema?.maximum, 100)
-        
+
         let usernameSchema = models["ValidationModel"]?.properties?["username"]
         XCTAssertEqual(usernameSchema?.minLength, 5)
         XCTAssertEqual(usernameSchema?.maxLength, 20)
         XCTAssertEqual(usernameSchema?.pattern, "^[a-zA-Z]+$")
     }
 }
-
