@@ -1,0 +1,30 @@
+{
+  "openapi" : "3.2.0",
+  "components" : {
+    "schemas" : {
+      "Customer" : {
+        "required" : [
+          "id",
+          "name"
+        ],
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "age" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "version" : "1.0.0",
+    "title" : "Parsed API"
+  }
+}

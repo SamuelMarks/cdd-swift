@@ -1,5 +1,9 @@
+test_cli*
 .build/
 .swiftpm/
 *.xcodeproj
 *.xcworkspace
 .DS_Store
+build-my/
+.build-cdd/
+.build/

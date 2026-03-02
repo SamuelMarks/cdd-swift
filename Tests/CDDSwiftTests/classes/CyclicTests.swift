@@ -1,5 +1,5 @@
-import XCTest
 @testable import CDDSwift
+import XCTest
 
 final class CyclicTests: XCTestCase {
     func testCyclicModels() throws {
@@ -11,7 +11,7 @@ final class CyclicTests: XCTestCase {
         """
         let parser = SwiftASTParser()
         let models = try parser.parseModels(from: source)
-        
+
         let schema = models["Node"]
         XCTAssertEqual(schema?.type, "object")
         XCTAssertEqual(schema?.properties?["next"]?.ref, "#/components/schemas/Node")
