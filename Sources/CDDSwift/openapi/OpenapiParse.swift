@@ -60,11 +60,17 @@ public class SwiftASTParser {
         /// Documentation for functionVisitor
         let functionVisitor = FunctionVisitor(viewMode: .sourceAccurate)
         functionVisitor.walk(sourceFile)
+        
+        let cliVisitor = CliVisitor(viewMode: .sourceAccurate)
+        cliVisitor.walk(sourceFile)
 
         // Combine into one document
         // Merge `mockVisitor.inferredPaths` and `routeVisitor.paths`
         /// Documentation for finalPaths
         var finalPaths = routeVisitor.paths
+        for (path, cliItem) in cliVisitor.paths {
+            finalPaths[path] = cliItem
+        }
         for (path, mockItem) in mockVisitor.inferredPaths {
             if let existing = finalPaths[path] {
                 // Merge operations

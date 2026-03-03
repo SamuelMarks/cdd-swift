@@ -1,9 +1,9 @@
-name: CI
+name: Swift CI
 
 on:
   push:
     branches: [ "master", "main" ]
-    tags: [ "v*", "0.*", "1.*" ]
+    tags: [ "v*.*.*" ]
   pull_request:
     branches: [ "master", "main" ]
 
@@ -13,18 +13,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-
     steps:
     - uses: actions/checkout@v4
 
-    - name: Select Xcode 16 (macOS)
-      if: runner.os == 'macOS'
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '16.0'
-
-    - name: Set up Swift (Linux)
-      if: runner.os == 'Linux'
+    - name: Set up Swift
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: "6.0"
@@ -35,14 +27,14 @@ jobs:
     - name: Run tests
       run: swift test --enable-code-coverage
 
-    - name: Upload Binary Artifact (Linux)
+    - name: Upload Linux Artifact
       if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-artifact@v4
       with:
         name: cdd-swift-linux
         path: .build/release/cdd-swift
 
-    - name: Upload Binary Artifact (macOS)
+    - name: Upload macOS Artifact
       if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-artifact@v4
       with:
@@ -54,20 +46,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install SwiftWasm toolchain
+    - name: Install SwiftWasm
       run: |
-        curl -L https://github.com/swiftwasm/swift/releases/download/swift-wasm-5.9.2-RELEASE/swift-wasm-5.9.2-RELEASE-ubuntu22.04.tar.gz | tar xz -C /tmp
-        export PATH=/tmp/swift-wasm-5.9.2-RELEASE-ubuntu22.04/usr/bin:$PATH
+        curl -L https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0-RELEASE/swift-wasm-6.0-RELEASE-ubuntu22.04.tar.gz | tar xz -C /tmp
+        export PATH=/tmp/swift-wasm-6.0-RELEASE-ubuntu22.04/usr/bin:$PATH
         swift build --triple wasm32-unknown-wasi -c release
-        mkdir -p .build/release
-        cp .build/wasm32-unknown-wasi/release/cdd-swift-cli .build/release/cdd-swift.wasm || cp .build/wasm32-unknown-wasi/release/cdd-swift .build/release/cdd-swift.wasm
 
     - name: Upload WASM Artifact
       if: startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-artifact@v4
       with:
         name: cdd-swift-wasm
-        path: .build/release/cdd-swift.wasm
+        path: .build/wasm32-unknown-wasi/release/cdd-swift-cli
 
   release:
     needs: [build, build-wasm]
@@ -80,13 +70,19 @@ jobs:
         with:
           path: artifacts
 
+      - name: Rename binaries
+        run: |
+          mv artifacts/cdd-swift-linux/cdd-swift cdd-swift-linux
+          mv artifacts/cdd-swift-macos/cdd-swift cdd-swift-macos
+          mv artifacts/cdd-swift-wasm/cdd-swift-cli cdd-swift.wasm
+
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/cdd-swift-linux/cdd-swift
-            artifacts/cdd-swift-macos/cdd-swift
-            artifacts/cdd-swift-wasm/cdd-swift.wasm
+            cdd-swift-linux
+            cdd-swift-macos
+            cdd-swift.wasm
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false

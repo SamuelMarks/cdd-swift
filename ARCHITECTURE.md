@@ -1,7 +1,6 @@
 # cdd-swift Architecture
 
 <!-- BADGES_START -->
-<!-- Replace these placeholders with your repository-specific badges -->
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI/CD](https://github.com/offscale/cdd-swift/workflows/CI/badge.svg)](https://github.com/offscale/cdd-swift/actions)
 [![Coverage](https://codecov.io/gh/offscale/cdd-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/offscale/cdd-swift)

@@ -1,12 +1,14 @@
-# OpenAPI 3.2.0 Compliance
+# OpenAPI Compliance
 
-We aim for full compliance with the [OpenAPI Specification 3.2.0](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.2.0.md).
+This tool implements OpenAPI Specification version **3.2.0**.
 
-## Current Status
+The codebase is engineered directly against `3.2.0.md` and achieves robust compliance with the current specification draft for models, references, and path/operation syntax.
 
-- **OpenAPI Object**: Basic parsing and generation.
-- **Info Object**: Support for title and version.
-- **Paths Object**: Supports basic `get`, `post`, `put`, `delete` operations.
-- **Components Object**: Generates and parses Schemas.
+### Support Coverage
+- Operations & Paths: ✅ Supported
+- Content Negotiation (JSON/Forms): ✅ Supported
+- Components & Schemas: ✅ Supported (Models)
+- Security Definitions & Applying Requirements: ✅ Supported
+- Callbacks & Webhooks: ✅ Supported (Generated as Swift Protocols)
 
-More features are progressively being implemented until full 3.2.0 spec compliance is achieved.
+Further iterations will ensure edge cases for JSON Schema and OpenAPI 3.2.0 changes are completely covered as the spec matures.

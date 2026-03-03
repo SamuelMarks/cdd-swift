@@ -40,6 +40,33 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     }
 
     /// Resolves the output directory to be used.
+    
+    func getDocuments() throws -> [(name: String, document: OpenAPIDocument)] {
+        var results: [(String, OpenAPIDocument)] = []
+        if let inputPath = inputPath {
+            let url = URL(fileURLWithPath: inputPath)
+            let data = try Data(contentsOf: url)
+            let json = String(data: data, encoding: .utf8) ?? ""
+            let document = try OpenAPIParser.parse(json: json)
+            let name = url.deletingPathExtension().lastPathComponent
+            results.append((name, document))
+        } else if let inputDir = inputDir {
+            let fm = FileManager.default
+            let dirURL = URL(fileURLWithPath: inputDir)
+            let enumerator = fm.enumerator(at: dirURL, includingPropertiesForKeys: nil)
+            while let fileURL = enumerator?.nextObject() as? URL {
+                if fileURL.pathExtension == "json" {
+                    let data = try Data(contentsOf: fileURL)
+                    if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
+                        let name = fileURL.deletingPathExtension().lastPathComponent
+                        results.append((name, doc))
+                    }
+                }
+            }
+        }
+        return results
+    }
+
     func resolveOutputDir() -> String {
         return outputPath ?? FileManager.default.currentDirectoryPath
     }
@@ -116,11 +143,19 @@ struct ToSDK: AsyncParsableCommand {
     @OptionGroup var options: BaseFromOpenAPIOptions
 
     mutating func run() async throws {
-        /// Resolved output directory
         let outDir = options.resolveOutputDir()
         print("✅ Generating SDK into \(outDir)")
         try FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDK")
+        
+        let docs = try options.getDocuments()
+        let srcDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDK")
+        try FileManager.default.createDirectory(atPath: srcDir.path, withIntermediateDirectories: true)
+        for (name, doc) in docs {
+            let code = OpenAPIToSwiftGenerator.generate(from: doc)
+            let fileUrl = srcDir.appendingPathComponent("\(name).swift")
+            try code.write(to: fileUrl, atomically: true, encoding: .utf8)
+        }
     }
 }
 
@@ -130,33 +165,20 @@ struct ToSDKCLI: AsyncParsableCommand {
 
     @OptionGroup var options: BaseFromOpenAPIOptions
 
-    mutating func run() async throws {
-        /// Documentation for outDir
+        mutating func run() async throws {
         let outDir = options.resolveOutputDir()
         print("✅ Generating SDK CLI into \(outDir)")
         try FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDKCLI", isExecutable: true)
         
-        // Write the SDK CLI main
-        guard let inputPath = options.inputPath else { return }
-        /// Documentation for url
-        let url = URL(fileURLWithPath: inputPath)
-        /// Documentation for data
-        let data = try Data(contentsOf: url)
-        /// Documentation for json
-        let json = String(data: data, encoding: .utf8) ?? ""
-        /// Documentation for document
-        let document = try OpenAPIParser.parse(json: json)
-        
-        /// Documentation for srcDir
+        let docs = try options.getDocuments()
         let srcDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKCLI")
         try FileManager.default.createDirectory(atPath: srcDir.path, withIntermediateDirectories: true)
-        
-        /// Documentation for code
-        let code = emitSDKCLI(document: document)
-        /// Documentation for fileUrl
-        let fileUrl = srcDir.appendingPathComponent("main.swift")
-        try code.write(to: fileUrl, atomically: true, encoding: .utf8)
+        for (name, doc) in docs {
+            let code = emitSDKCLI(document: doc)
+            let fileUrl = srcDir.appendingPathComponent("\(name).swift") // using name instead of main if multiple
+            try code.write(to: fileUrl, atomically: true, encoding: .utf8)
+        }
     }
 }
 
@@ -166,11 +188,70 @@ struct ToServer: AsyncParsableCommand {
 
     @OptionGroup var options: BaseFromOpenAPIOptions
 
-    mutating func run() async throws {
-        /// Resolved output directory
+        mutating func run() async throws {
         let outDir = options.resolveOutputDir()
         print("✅ Generating Server into \(outDir)")
         try FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
-        try options.generateScaffolding(in: outDir, packageName: "GeneratedServer")
+        
+        let fm = FileManager.default
+        if !options.noInstallablePackage {
+            let packageSwift = """
+            // swift-tools-version: 5.9
+            import PackageDescription
+
+            let package = Package(
+                name: "GeneratedServer",
+                platforms: [
+                   .macOS(.v13)
+                ],
+                dependencies: [
+                    .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0")
+                ],
+                targets: [
+                    .executableTarget(
+                        name: "GeneratedServer",
+                        dependencies: [
+                            .product(name: "Vapor", package: "vapor")
+                        ]
+                    )
+                ]
+            )
+            """
+            let pkgUrl = URL(fileURLWithPath: outDir).appendingPathComponent("Package.swift")
+            try packageSwift.write(to: pkgUrl, atomically: true, encoding: .utf8)
+        }
+        
+        if !options.noGithubActions {
+            let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
+            try fm.createDirectory(atPath: workflowDir.path, withIntermediateDirectories: true)
+            let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
+            let workflow = """
+            name: Swift
+            on: [push, pull_request]
+            jobs:
+              build:
+                runs-on: ubuntu-latest
+                steps:
+                - uses: actions/checkout@v4
+                - name: Set up Swift
+                  uses: swift-actions/setup-swift@v2
+                  with:
+                    swift-version: "6.0"
+                - name: Build
+                  run: swift build
+                - name: Run tests
+                  run: swift test
+            """
+            try workflow.write(to: workflowUrl, atomically: true, encoding: .utf8)
+        }
+        
+        let docs = try options.getDocuments()
+        let srcDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedServer")
+        try fm.createDirectory(atPath: srcDir.path, withIntermediateDirectories: true)
+        for (name, doc) in docs {
+            let code = emitServer(document: doc)
+            let fileUrl = srcDir.appendingPathComponent("\(name).swift")
+            try code.write(to: fileUrl, atomically: true, encoding: .utf8)
+        }
     }
 }
