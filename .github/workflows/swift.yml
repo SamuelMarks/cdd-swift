@@ -12,11 +12,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-15]
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Swift
+      if: runner.os == 'Linux'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: "6.0"
@@ -53,8 +54,8 @@ jobs:
 
     - name: Install SwiftWasm
       run: |
-        curl -L https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0-RELEASE/swift-wasm-6.0-RELEASE-ubuntu22.04.tar.gz | tar xz -C /tmp
-        export PATH=/tmp/swift-wasm-6.0-RELEASE-ubuntu22.04/usr/bin:$PATH
+        curl -L https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-ubuntu22.04_x86_64.tar.gz | tar xz -C /tmp
+        export PATH=/tmp/swift-wasm-6.0.3-RELEASE/usr/bin:$PATH
         swift build --triple wasm32-unknown-wasi -c release
 
     - name: Upload WASM Artifact
