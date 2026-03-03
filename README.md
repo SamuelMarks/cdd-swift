@@ -2,10 +2,9 @@ cdd-Swift
 ============
 
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI/CD](https://github.com/offscale/cdd-swift/workflows/CI/badge.svg)](https://github.com/offscale/cdd-swift/actions)
+[![Swift CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml)
 [![Doc Coverage](https://img.shields.io/badge/doc_coverage-92.8%25-success)](https://github.com/offscale/cdd-swift)
 [![Test Coverage](https://img.shields.io/badge/test_coverage-100.0%25-success)](https://github.com/offscale/cdd-swift)
-<!-- REPLACE WITH separate test and doc coverage badges that you generate in pre-commit hook -->
 
 OpenAPI ↔ Swift. This is one compiler in a suite, all focussed on the same task: Compiler Driven Development (CDD).
 

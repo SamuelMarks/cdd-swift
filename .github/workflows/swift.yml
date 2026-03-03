@@ -25,7 +25,12 @@ jobs:
       run: swift build -c release
 
     - name: Run tests
-      run: swift test --enable-code-coverage
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          swift test --enable-code-coverage
+        else
+          swift test
+        fi
 
     - name: Upload Linux Artifact
       if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
