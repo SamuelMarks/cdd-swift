@@ -1,17 +1,44 @@
 # Usage
 
-`cdd-swift` provides a CLI to convert between OpenAPI JSON/YAML and Swift.
+## Core Usage
+The `cdd-swift` CLI generates Swift code from an OpenAPI specification, and OpenAPI specifications from Swift source code.
 
-## CLI Options
+### Getting Help
+```bash
+cdd-swift --help
+```
 
-- `cdd-swift --help`
-- `cdd-swift --version`
-- `cdd-swift to_openapi -f <file.swift> -o <openapi.json>`
-- `cdd-swift to_docs_json --no-imports --no-wrapping -i <openapi.json>`
-- `cdd-swift from_openapi to_sdk -i <openapi.json> -o <target_directory>`
-- `cdd-swift from_openapi to_sdk_cli -i <openapi.json> -o <target_directory>`
-- `cdd-swift from_openapi to_server -i <openapi.json> -o <target_directory>`
+### OpenAPI to Swift (Bidirectional)
+Generate a full Swift REST Client Library:
+```bash
+cdd-swift from_openapi to_sdk -i openapi.json -o ./MyClientSDK
+```
 
-## SDK
+Generate a typed CLI interface for calling an API:
+```bash
+cdd-swift from_openapi to_sdk_cli -i openapi.json -o ./MyCLI
+```
 
-You can use `CDDSwift` directly within your project. Ensure you add `.package(url: "https://github.com/offscale/cdd-swift.git", from: "0.0.1")` to your `Package.swift`.
+Generate a Vapor Web Server Stub from an OpenAPI Definition:
+```bash
+cdd-swift from_openapi to_server -i openapi.json -o ./MyServer
+```
+
+All `from_openapi` subcommands also support `--input-dir` to pass a directory of JSON specifications to compile multiple files at once.
+
+### Swift to OpenAPI
+Generate an OpenAPI specification from existing Swift models:
+```bash
+cdd-swift to_openapi -f Sources/MyModels.swift -o openapi.json
+```
+
+### Generating Documentation
+```bash
+cdd-swift to_docs_json --no-imports --no-wrapping -i spec.json -o docs.json
+```
+
+### Run as JSON-RPC Server
+Expose the CLI capabilities over an HTTP JSON RPC Interface:
+```bash
+cdd-swift serve_json_rpc --listen 0.0.0.0 --port 8082
+```

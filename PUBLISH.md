@@ -1,23 +1,23 @@
-# Publishing cdd-swift
+# Publishing
 
-For Swift, packages are distributed via Swift Package Manager directly from GitHub or published to the Swift Package Index.
+### Releasing `cdd-swift` CLI
+Since Swift tooling is distributed via GitHub Releases, to publish `cdd-swift` to the most popular location, simply create a new tag and push it:
 
-## Swift Package Index
+```bash
+git tag v0.0.1
+git push origin v0.0.1
+```
 
-1. Ensure your repository has a valid `Package.swift`.
-2. Tag your releases (e.g., `0.0.1`).
-3. Submit your GitHub repository URL to the [Swift Package Index](https://swiftpackageindex.com/). It will automatically build and publish your package documentation.
+The GitHub Actions CI pipeline will automatically compile for Ubuntu, macOS, and WebAssembly, and upload the binaries to a new GitHub Release.
 
-## Manual Documentation Publishing
+### Publishing Docs
+To build the API documentation for the CLI locally into a `docs/` folder:
 
-1. **Build Docs Locally**:
-   ```bash
-   make build_docs
-   ```
-   This will output static HTML files into the `docs/` directory.
+```bash
+make build_docs
+```
 
-2. **Upload to Server**:
-   You can copy the contents of `docs/` to any static server or GitHub pages.
-   ```bash
-   scp -r docs/* user@yourserver:/var/www/docs
-   ```
+Or deploy to GitHub Pages. `swift-docc-plugin` enables seamless publishing to GitHub pages.
+
+1. Ensure GitHub Actions has write access.
+2. The generated documentation can be uploaded as an artifact and deployed to GitHub pages via the `peaceiris/actions-gh-pages` action.
