@@ -52,11 +52,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "6.0"
+
     - name: Install SwiftWasm
       run: |
-        curl -L https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-ubuntu22.04_x86_64.tar.gz | tar xz -C /tmp
-        export PATH=/tmp/swift-wasm-6.0.3-RELEASE/usr/bin:$PATH
-        swift build --triple wasm32-unknown-wasi -c release
+        swift sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip --checksum 31d3585b06dd92de390bacc18527801480163188cd7473f492956b5e213a8618
+        swift build --swift-sdk wasm32-unknown-wasi -c release
 
     - name: Upload WASM Artifact
       if: startsWith(github.ref, 'refs/tags/')
