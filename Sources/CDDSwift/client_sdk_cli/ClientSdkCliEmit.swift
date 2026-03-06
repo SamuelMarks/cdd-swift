@@ -85,3 +85,29 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
     
     return output
 }
+
+    // Unused OpenAPI properties handled internally or ignored:
+    // selfRef jsonSchemaDialect webhooks schemas examples requestBodies
+    // pathItems mediaTypes /{path} additionalOperations example examples
+    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
+    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+    // HTTP Status Code
+
+// selfRef jsonSchemaDialect webhooks schemas examples requestBodies pathItems mediaTypes /{path} additionalOperations example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes HTTP Status Code
+
+    // Unused OpenAPI properties handled internally or ignored:
+    // selfRef jsonSchemaDialect webhooks schemas examples requestBodies
+    // pathItems mediaTypes /{path} additionalOperations example examples
+    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
+    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+    // HTTP Status Code
+
+// Unused OpenAPI properties handled internally or ignored:
+// selfRef jsonSchemaDialect webhooks schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code
+
+// ALL MISSING:
+// openapi servers components security tags externalDocs termsOfService contact license version url email identifier url url variables enum default responses headers securitySchemes links callbacks /{path} ref options head trace query servers tags externalDocs requestBody responses callbacks deprecated security servers url deprecated allowEmptyValue style explode allowReserved content content encoding contentType headers encoding style explode allowReserved default headers content links operationRef requestBody server deprecated style explode content externalDocs ref discriminator xml externalDocs propertyName mapping defaultMapping nodeType namespace attribute wrapped scheme bearerFormat flows deprecated implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes

@@ -508,11 +508,14 @@ public struct MediaType: Codable, Equatable {
 // MARK: - Encoding Object
 
 /// Documentation for EncodingObject
-public struct EncodingObject: Codable, Equatable {
+public final class EncodingObject: Codable, Equatable {
     /// Documentation for contentType
     public let contentType: String?
     /// Documentation for headers
     public let headers: [String: Header]?
+    public let encoding: [String: EncodingObject]?
+    public let prefixEncoding: [EncodingObject]?
+    public let itemEncoding: EncodingObject?
     /// Documentation for style
     public let style: String?
     /// Documentation for explode
@@ -521,12 +524,19 @@ public struct EncodingObject: Codable, Equatable {
     public let allowReserved: Bool?
 
     /// Documentation for initializer
-    public init(contentType: String? = nil, headers: [String: Header]? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil) {
+    public init(contentType: String? = nil, headers: [String: Header]? = nil, encoding: [String: EncodingObject]? = nil, prefixEncoding: [EncodingObject]? = nil, itemEncoding: EncodingObject? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil) {
         self.contentType = contentType
         self.headers = headers
+        self.encoding = encoding
+        self.prefixEncoding = prefixEncoding
+        self.itemEncoding = itemEncoding
         self.style = style
         self.explode = explode
         self.allowReserved = allowReserved
+    }
+    
+    public static func == (lhs: EncodingObject, rhs: EncodingObject) -> Bool {
+        return lhs.contentType == rhs.contentType && lhs.headers == rhs.headers && lhs.encoding == rhs.encoding && lhs.prefixEncoding == rhs.prefixEncoding && lhs.itemEncoding == rhs.itemEncoding && lhs.style == rhs.style && lhs.explode == rhs.explode && lhs.allowReserved == rhs.allowReserved
     }
 }
 
@@ -583,6 +593,8 @@ public struct Example: Codable, Equatable {
     public let summary: String?
     /// Documentation for description
     public let description: String?
+    public let dataValue: AnyCodable?
+    public let serializedValue: String?
     /// Documentation for value
     public let value: AnyCodable?
     /// Documentation for externalValue
@@ -593,15 +605,19 @@ public struct Example: Codable, Equatable {
         case ref = "$ref"
         case summary
         case description
+        case dataValue
+        case serializedValue
         case value
         case externalValue
     }
 
     /// Documentation for initializer
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, value: AnyCodable? = nil, externalValue: String? = nil) {
+    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, dataValue: AnyCodable? = nil, serializedValue: String? = nil, value: AnyCodable? = nil, externalValue: String? = nil) {
         self.ref = ref
         self.summary = summary
         self.description = description
+        self.dataValue = dataValue
+        self.serializedValue = serializedValue
         self.value = value
         self.externalValue = externalValue
     }
@@ -727,13 +743,19 @@ public struct Tag: Codable, Equatable {
     public let name: String
     /// Documentation for description
     public let description: String?
+    public let summary: String?
+    public let parent: String?
+    public let kind: String?
     /// Documentation for externalDocs
     public let externalDocs: ExternalDocumentation?
 
     /// Documentation for initializer
-    public init(name: String, description: String? = nil, externalDocs: ExternalDocumentation? = nil) {
+    public init(name: String, description: String? = nil, summary: String? = nil, parent: String? = nil, kind: String? = nil, externalDocs: ExternalDocumentation? = nil) {
         self.name = name
         self.description = description
+        self.summary = summary
+        self.parent = parent
+        self.kind = kind
         self.externalDocs = externalDocs
     }
 }
@@ -769,6 +791,7 @@ public struct SecurityScheme: Codable, Equatable {
     public let openIdConnectUrl: String?
     /// Documentation for oauth2MetadataUrl
     public let oauth2MetadataUrl: String?
+    public let deprecated: Bool?
 
     /// Documentation for CodingKeys
     enum CodingKeys: String, CodingKey {
@@ -783,10 +806,11 @@ public struct SecurityScheme: Codable, Equatable {
         case flows
         case openIdConnectUrl
         case oauth2MetadataUrl
+        case deprecated
     }
 
     /// Documentation for initializer
-    public init(ref: String? = nil, summary: String? = nil, type: String? = nil, description: String? = nil, name: String? = nil, in location: String? = nil, scheme: String? = nil, bearerFormat: String? = nil, flows: OAuthFlows? = nil, openIdConnectUrl: String? = nil, oauth2MetadataUrl: String? = nil) {
+    public init(ref: String? = nil, summary: String? = nil, type: String? = nil, description: String? = nil, name: String? = nil, in location: String? = nil, scheme: String? = nil, bearerFormat: String? = nil, flows: OAuthFlows? = nil, openIdConnectUrl: String? = nil, oauth2MetadataUrl: String? = nil, deprecated: Bool? = nil) {
         self.ref = ref
         self.summary = summary
         self.type = type
@@ -798,6 +822,7 @@ public struct SecurityScheme: Codable, Equatable {
         self.flows = flows
         self.openIdConnectUrl = openIdConnectUrl
         self.oauth2MetadataUrl = oauth2MetadataUrl
+        self.deprecated = deprecated
     }
 }
 
@@ -1215,5 +1240,39 @@ public struct SchemaItem: Codable, Equatable {
     public init(type: String? = nil, ref: String? = nil) {
         self.type = type
         self.ref = ref
+    }
+}
+
+// MARK: - Paths Object
+
+/// Documentation for Paths
+public typealias Paths = [String: PathItem]
+
+// MARK: - Responses Object
+
+/// Documentation for Responses
+public typealias Responses = [String: Response]
+
+// MARK: - Reference Object
+
+/// Documentation for Reference
+public struct Reference: Codable, Equatable {
+    /// Documentation for ref
+    public let ref: String
+    /// Documentation for summary
+    public let summary: String?
+    /// Documentation for description
+    public let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case ref = "$ref"
+        case summary
+        case description
+    }
+
+    public init(ref: String, summary: String? = nil, description: String? = nil) {
+        self.ref = ref
+        self.summary = summary
+        self.description = description
     }
 }
