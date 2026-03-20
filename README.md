@@ -97,3 +97,90 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+## CLI Help
+
+```
+$ .build/release/cdd-swift --help
+OVERVIEW: A utility to convert between OpenAPI and Swift.
+
+USAGE: cdd-swift <subcommand>
+
+OPTIONS:
+  --version               Show the version.
+  -h, --help              Show help information.
+
+SUBCOMMANDS:
+  from_openapi            Generate Swift code from an OpenAPI document.
+  generate-open-api       Generate an example OpenAPI JSON document from Swift
+                          builder.
+  to_openapi              Parse a Swift file to extract Codable models and
+                          generate OpenAPI JSON.
+  merge-swift             Merge generated Swift code from an OpenAPI document
+                          into an existing Swift file.
+  to_docs_json            Generate a JSON document containing idiomatic Swift
+                          code examples for an OpenAPI specification.
+  serve_json_rpc          Run a JSON-RPC HTTP server exposing the CLI
+                          capabilities.
+
+  See 'cdd-swift help <subcommand>' for detailed help.
+```
+
+### `from_openapi`
+
+```
+$ .build/release/cdd-swift from_openapi --help
+OVERVIEW: Generate a Swift SDK from an OpenAPI document.
+
+USAGE: cdd-swift from_openapi to_sdk [--input <input>] [--input-dir <input-dir>] [--output <output>] [--no-github-actions] [--no-installable-package]
+
+OPTIONS:
+  -i, --input <input>     Path to the input OpenAPI JSON file.
+  --input-dir <input-dir> Path to a directory containing OpenAPI specifications.
+  -o, --output <output>   Path to the output directory. Defaults to current
+                          working directory.
+  --no-github-actions     Do not generate GitHub Actions workflow.
+  --no-installable-package
+                          Do not generate installable package scaffolding.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+### `to_openapi`
+
+```
+$ .build/release/cdd-swift to_openapi --help
+OVERVIEW: Parse a Swift file to extract Codable models and generate OpenAPI
+JSON.
+
+USAGE: cdd-swift to_openapi --input <input> [--output-path <output-path>]
+
+OPTIONS:
+  -i, --input <input>     Path to the input Swift file.
+  -o, --output-path <output-path>
+                          Path to the output JSON file. Prints to stdout if not
+                          provided.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+### `to_docs_json`
+
+```
+$ .build/release/cdd-swift to_docs_json --help
+OVERVIEW: Generate a JSON document containing idiomatic Swift code examples for
+an OpenAPI specification.
+
+USAGE: cdd-swift to_docs_json --input <input> [--output <output>] [--no-imports] [--no-wrapping]
+
+OPTIONS:
+  -i, --input <input>     Path or URL to the input OpenAPI specification.
+  -o, --output <output>   Path to the output JSON file. Prints to stdout if not
+                          provided.
+  --no-imports            If provided, omit the imports field in the code
+                          object.
+  --no-wrapping           If provided, omit the wrapper_start and wrapper_end
+                          fields in the code object.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
