@@ -7,7 +7,8 @@ struct FromOpenAPI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "from_openapi",
         abstract: "Generate Swift code from an OpenAPI document.",
-        subcommands: [ToSDK.self, ToSDKCLI.self, ToServer.self]
+        subcommands: [ToSDK.self, ToSDKCLI.self, ToServer.self],
+        defaultSubcommand: ToSDK.self
     )
 }
 
