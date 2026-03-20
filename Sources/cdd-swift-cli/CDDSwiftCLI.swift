@@ -94,7 +94,7 @@ struct MergeSwift: AsyncParsableCommand {
 struct ToOpenAPI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "to_openapi", abstract: "Parse a Swift file to extract Codable models and generate OpenAPI JSON.")
 
-    @Option(name: [.customShort("f"), .customLong("file")], help: "Path to the input Swift file.")
+    @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input Swift file.")
     /// Documentation for inputPath
     var inputPath: String
 
@@ -110,17 +110,13 @@ struct ToOpenAPI: AsyncParsableCommand {
 
         /// Documentation for parser
         let parser = SwiftASTParser()
-        /// Documentation for schemas
-        let schemas = try parser.parseModels(from: sourceCode)
+        /// Documentation for document
+        let document = try parser.parseDocument(from: sourceCode)
 
-        /// Documentation for builder
-        let builder = OpenAPIDocumentBuilder(title: "Parsed API", version: "0.0.1")
-        for (name, schema) in schemas {
-            _ = builder.addSchema(name, schema: schema)
-        }
-
-        /// Documentation for jsonString
-        let jsonString = try builder.serialize()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        let data = try encoder.encode(document)
+        let jsonString = String(data: data, encoding: .utf8) ?? "{}"
 
         if let outputPath = outputPath {
             /// Documentation for outputURL
