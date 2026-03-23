@@ -3,7 +3,7 @@ name: Swift CI
 on:
   push:
     branches: [ "master", "main" ]
-    tags: [ "v*.*.*" ]
+    tags: [ "v*.*.*", "*.*.*" ]
   pull_request:
     branches: [ "master", "main" ]
 
@@ -60,14 +60,13 @@ jobs:
     - name: Install SwiftWasm
       run: |
         swift sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip --checksum 31d3585b06dd92de390bacc18527801480163188cd7473f492956b5e213a8618
-        swift build --swift-sdk wasm32-unknown-wasi -c release
+        bash scripts/build_wasm.sh
 
     - name: Upload WASM Artifact
-      
       uses: actions/upload-artifact@v4
       with:
         name: cdd-swift-wasm
-        path: .build/wasm32-unknown-wasi/release/cdd-swift.wasm
+        path: bin/cdd-swift.wasm
 
   release:
     needs: [build, build-wasm]
@@ -84,7 +83,7 @@ jobs:
         run: |
           mv artifacts/cdd-swift-linux/cdd-swift cdd-swift-linux
           mv artifacts/cdd-swift-macos/cdd-swift cdd-swift-macos
-          mv artifacts/cdd-swift-wasm/cdd-swift-cli cdd-swift.wasm
+          mv artifacts/cdd-swift-wasm/cdd-swift.wasm .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

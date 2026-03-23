@@ -2,6 +2,13 @@
 set -e
 mkdir -p bin
 echo "Building WASM binary for Swift..."
-# Fallback since we do not have swiftwasm toolchain installed globally
-echo -n -e '\x00\x61\x73\x6d\x01\x00\x00\x00' > bin/cdd-swift.wasm
-echo "Created dummy WASM payload for Swift due to missing swiftwasm toolchain."
+swift build --swift-sdk wasm32-unknown-wasi -c release
+
+if [ -f .build/wasm32-unknown-wasi/release/cdd-swift.wasm ]; then
+    cp .build/wasm32-unknown-wasi/release/cdd-swift.wasm bin/cdd-swift.wasm
+elif [ -f .build/wasm32-unknown-wasi/release/cdd-swift ]; then
+    cp .build/wasm32-unknown-wasi/release/cdd-swift bin/cdd-swift.wasm
+else
+    echo "Could not find the built WASM binary."
+    exit 1
+fi
