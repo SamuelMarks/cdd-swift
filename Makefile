@@ -20,8 +20,13 @@ build:
 	swift build -c release
 
 build_wasm:
+	@bash scripts/build_wasm.sh
+
+build_wasm_old:
 	@echo "Building WASM binary..."
 	swift build --triple wasm32-unknown-wasi -c release
+	mkdir -p bin
+	cp .build/release/cdd-swift.wasm bin/cdd-swift.wasm || true
 
 build_docker:
 	docker build -t cdd-swift -f alpine.Dockerfile .

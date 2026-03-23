@@ -39,8 +39,14 @@ swift build -c release
 goto :eof
 
 :build_wasm
+    call scripts\build_wasm.bat
+    goto end
+
+:build_wasm_old
 echo Building WASM binary...
 swift build --triple wasm32-unknown-wasi -c release
+    mkdir bin 2>nul
+    copy .build\release\cdd-swift.wasm bin\cdd-swift.wasm >nul
 goto :eof
 
 :build_docker
