@@ -7,3 +7,8 @@ test_cli*
 build-my/
 .build-cdd/
 .build/
+
+# WASM build artifacts
+bin/
+build_wasm/
+*.wasm
