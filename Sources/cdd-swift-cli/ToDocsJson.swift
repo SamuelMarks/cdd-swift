@@ -1,6 +1,9 @@
 import ArgumentParser
 import CDDSwift
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Documentation for ToDocsJson
 struct ToDocsJson: AsyncParsableCommand {
@@ -30,7 +33,7 @@ struct ToDocsJson: AsyncParsableCommand {
         let inputURL: URL
         if input.starts(with: "http://") || input.starts(with: "https://") {
             guard let url = URL(string: input) else {
-                fputs("❌ Invalid URL: \(input)\n", stderr)
+                print("❌ Invalid URL: \(input)")
                 throw ExitCode.failure
             }
             inputURL = url
@@ -62,7 +65,7 @@ struct ToDocsJson: AsyncParsableCommand {
                 print(resultJson)
             }
         } catch {
-            fputs("❌ Failed to process OpenAPI Document: \(error)\n", stderr)
+            print("❌ Failed to process OpenAPI Document: \(error)")
             throw error
         }
     }
