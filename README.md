@@ -3,7 +3,7 @@ cdd-Swift
 
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Swift CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions/workflows/swift.yml)
-[![Doc Coverage](https://img.shields.io/badge/doc_coverage-92.8%25-success)](https://github.com/offscale/cdd-swift)
+[![Doc Coverage](https://img.shields.io/badge/doc_coverage-100.0%25-success)](https://github.com/offscale/cdd-swift)
 [![Test Coverage](https://img.shields.io/badge/test_coverage-100.0%25-success)](https://github.com/offscale/cdd-swift)
 
 OpenAPI ↔ Swift. This is one compiler in a suite, all focussed on the same task: Compiler Driven Development (CDD).
@@ -65,7 +65,7 @@ let json = try builder.serialize()
 
 ## Design choices
 
-`swift-syntax` is used for robust, source-accurate AST parsing and manipulation. This ensures that whitespace and comments are preserved. `swift-argument-parser` is leveraged for the CLI, providing standard POSIX compliant arguments. 
+`swift-syntax` is used for robust, source-accurate AST parsing and manipulation. This ensures that whitespace and comments are preserved. `swift-argument-parser` is leveraged for the CLI, providing standard POSIX compliant arguments.
 
 ## 🏗 Supported Conversions for Swift
 

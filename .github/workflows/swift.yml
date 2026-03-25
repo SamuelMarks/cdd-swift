@@ -70,7 +70,7 @@ jobs:
 
   release:
     needs: [build, build-wasm]
-    
+
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -199,3 +199,4 @@ public enum OpenAPIToSwiftGenerator {
 
         return output
     }
+}

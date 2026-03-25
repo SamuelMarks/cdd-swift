@@ -73,7 +73,7 @@ By standardizing on a single IR (heavily inspired by OpenAPI / JSON Schema primi
 
 The Backend's responsibility is to take the universal IR and generate valid target output. Emitters can be written to support various environments (e.g., Client vs Server, Web vs CLI).
 
-* **Code Generation**: Emitters iterate over the IR and generate idiomatic `Swift` source code. 
+* **Code Generation**: Emitters iterate over the IR and generate idiomatic `Swift` source code.
   * A **Server Emitter** creates routing controllers and request-validation logic.
   * A **Client Emitter** creates API wrappers, fetch functions, and response-parsing logic.
 * **Database & CLI Generation**: Emitters can also target ORM models or command-line parsers by mapping IR properties to database columns or CLI arguments.

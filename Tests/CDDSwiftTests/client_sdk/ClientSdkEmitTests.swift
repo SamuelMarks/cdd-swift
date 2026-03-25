@@ -1,5 +1,5 @@
-import XCTest
 @testable import CDDSwift
+import XCTest
 
 final class ClientSdkEmitTests: XCTestCase {
     func testSdkEmit() {

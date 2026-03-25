@@ -10,6 +10,7 @@ public class FunctionVisitor: SyntaxVisitor {
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
+    /// Documentation for visit
     override public func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for name
         let name = node.name.text

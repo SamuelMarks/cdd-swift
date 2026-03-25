@@ -7,6 +7,7 @@ public class MockVisitor: SyntaxVisitor {
     public var inferredPaths: [String: PathItem] = [:]
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
+    /// Documentation for visit
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for name
         let name = node.name.text

@@ -9,6 +9,7 @@ public class ModelVisitor: SyntaxVisitor {
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
+    /// Documentation for visit
     override public func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for enumName
         let enumName = node.name.text
@@ -77,6 +78,7 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
+    /// Documentation for visit
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for structName
         let structName = node.name.text

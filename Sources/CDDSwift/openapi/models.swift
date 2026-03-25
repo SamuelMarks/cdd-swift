@@ -513,8 +513,11 @@ public final class EncodingObject: Codable, Equatable {
     public let contentType: String?
     /// Documentation for headers
     public let headers: [String: Header]?
+    /// Documentation for encoding
     public let encoding: [String: EncodingObject]?
+    /// Documentation for prefixEncoding
     public let prefixEncoding: [EncodingObject]?
+    /// Documentation for itemEncoding
     public let itemEncoding: EncodingObject?
     /// Documentation for style
     public let style: String?
@@ -534,7 +537,7 @@ public final class EncodingObject: Codable, Equatable {
         self.explode = explode
         self.allowReserved = allowReserved
     }
-    
+
     public static func == (lhs: EncodingObject, rhs: EncodingObject) -> Bool {
         return lhs.contentType == rhs.contentType && lhs.headers == rhs.headers && lhs.encoding == rhs.encoding && lhs.prefixEncoding == rhs.prefixEncoding && lhs.itemEncoding == rhs.itemEncoding && lhs.style == rhs.style && lhs.explode == rhs.explode && lhs.allowReserved == rhs.allowReserved
     }
@@ -593,7 +596,9 @@ public struct Example: Codable, Equatable {
     public let summary: String?
     /// Documentation for description
     public let description: String?
+    /// Documentation for dataValue
     public let dataValue: AnyCodable?
+    /// Documentation for serializedValue
     public let serializedValue: String?
     /// Documentation for value
     public let value: AnyCodable?
@@ -743,8 +748,11 @@ public struct Tag: Codable, Equatable {
     public let name: String
     /// Documentation for description
     public let description: String?
+    /// Documentation for summary
     public let summary: String?
+    /// Documentation for parent
     public let parent: String?
+    /// Documentation for kind
     public let kind: String?
     /// Documentation for externalDocs
     public let externalDocs: ExternalDocumentation?
@@ -791,6 +799,7 @@ public struct SecurityScheme: Codable, Equatable {
     public let openIdConnectUrl: String?
     /// Documentation for oauth2MetadataUrl
     public let oauth2MetadataUrl: String?
+    /// Documentation for deprecated
     public let deprecated: Bool?
 
     /// Documentation for CodingKeys
@@ -1264,6 +1273,7 @@ public struct Reference: Codable, Equatable {
     /// Documentation for description
     public let description: String?
 
+    /// Documentation for CodingKeys
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary

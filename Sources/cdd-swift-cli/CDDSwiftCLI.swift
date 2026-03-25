@@ -5,13 +5,12 @@ import Foundation
 @main
 /// Documentation for CDDSwiftCLI
 struct CDDSwiftCLI: AsyncParsableCommand {
-
     static func main() async {
         /// args
         var args = Array(CommandLine.arguments.dropFirst())
         /// env
         let env = ProcessInfo.processInfo.environment
-        
+
         // Map env vars like CDD_SWIFT_PORT to --port
         for (key, value) in env {
             if key.hasPrefix("CDD_SWIFT_") {
@@ -29,7 +28,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
                 }
             }
         }
-        
+
         await CDDSwiftCLI.main(args)
     }
 
@@ -38,12 +37,12 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         abstract: "A utility to convert between OpenAPI and Swift.",
         version: "0.0.1",
         subcommands: {
-        #if os(WASI)
-        return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self]
-        #else
-        return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServerJsonRpc.self]
-        #endif
-    }()
+            #if os(WASI)
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self]
+            #else
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServerJsonRpc.self]
+            #endif
+        }()
     )
 }
 
@@ -113,9 +112,12 @@ struct ToOpenAPI: AsyncParsableCommand {
         /// Documentation for document
         let document = try parser.parseDocument(from: sourceCode)
 
+        /// Documentation for encoder
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        /// Documentation for data
         let data = try encoder.encode(document)
+        /// Documentation for jsonString
         let jsonString = String(data: data, encoding: .utf8) ?? "{}"
 
         if let outputPath = outputPath {
