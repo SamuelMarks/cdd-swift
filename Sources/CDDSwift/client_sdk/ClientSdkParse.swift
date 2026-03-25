@@ -60,7 +60,8 @@ public class SwiftASTParser {
         /// Documentation for functionVisitor
         let functionVisitor = FunctionVisitor(viewMode: .sourceAccurate)
         functionVisitor.walk(sourceFile)
-        
+
+        /// Documentation for cliVisitor
         let cliVisitor = CliVisitor(viewMode: .sourceAccurate)
         cliVisitor.walk(sourceFile)
 

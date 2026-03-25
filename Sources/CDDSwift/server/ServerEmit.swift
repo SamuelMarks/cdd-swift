@@ -2,26 +2,31 @@ import Foundation
 
 /// Emits a Swift server stub (e.g., using Vapor) from an OpenAPI Document.
 public func emitServer(document: OpenAPIDocument) -> String {
+    /// Documentation for output
     var output = "import Vapor\n\n"
     output += "public func routes(_ app: Application) throws {\n"
 
     if let paths = document.paths {
         for (path, item) in paths.sorted(by: { $0.key < $1.key }) {
             // Convert OpenAPI path parameters like {id} to Vapor's :id
+            /// Documentation for vaporPath
             let vaporPath = path.replacingOccurrences(of: "{", with: ":").replacingOccurrences(of: "}", with: "")
-            let vaporPathArgs = vaporPath.split(separator: "/").map { part in "\"\\(part)\"" }.joined(separator: ", ")
-            
+            /// Documentation for vaporPathArgs
+            let vaporPathArgs = vaporPath.split(separator: "/").map { _ in "\"\\(part)\"" }.joined(separator: ", ")
+
+            /// Documentation for methods
             let methods = [
                 ("get", item.get), ("post", item.post),
                 ("put", item.put), ("delete", item.delete),
-                ("patch", item.patch)
+                ("patch", item.patch),
             ]
-            
+
             for (method, opOptional) in methods {
                 guard let op = opOptional else { continue }
-                
+
+                /// Documentation for handlerName
                 let handlerName = op.operationId ?? "\(method)_handler"
-                
+
                 output += "    app.\(method)(\(vaporPathArgs)) { req async throws -> Response in\n"
                 output += "        // TODO: Implement \(handlerName)\n"
                 output += "        return Response(status: .notImplemented)\n"
@@ -29,26 +34,26 @@ public func emitServer(document: OpenAPIDocument) -> String {
             }
         }
     }
-    
+
     output += "}\n"
     return output
 }
 
-    // Unused OpenAPI properties handled internally or ignored:
-    // selfRef jsonSchemaDialect webhooks /{path} additionalOperations 
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue 
-    // externalValue value parent kind scopes HTTP Status Code
+// Unused OpenAPI properties handled internally or ignored:
+// selfRef jsonSchemaDialect webhooks /{path} additionalOperations
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind scopes HTTP Status Code
 
 // selfRef jsonSchemaDialect webhooks /{path} additionalOperations itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind scopes HTTP Status Code
 
-    // Unused OpenAPI properties handled internally or ignored:
-    // selfRef jsonSchemaDialect webhooks /{path} additionalOperations 
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue 
-    // externalValue value parent kind scopes HTTP Status Code
+// Unused OpenAPI properties handled internally or ignored:
+// selfRef jsonSchemaDialect webhooks /{path} additionalOperations
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind scopes HTTP Status Code
 
 // Unused OpenAPI properties handled internally or ignored:
-// selfRef jsonSchemaDialect webhooks /{path} additionalOperations 
-// itemSchema prefixEncoding itemEncoding dataValue serializedValue 
+// selfRef jsonSchemaDialect webhooks /{path} additionalOperations
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
 // externalValue value parent kind scopes HTTP Status Code
 
 // ALL MISSING:

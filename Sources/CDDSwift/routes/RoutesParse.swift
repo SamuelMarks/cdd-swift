@@ -15,6 +15,7 @@ public class RouteVisitor: SyntaxVisitor {
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
+    /// Documentation for visit
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for name
         let name = node.name.text
@@ -50,6 +51,7 @@ public class RouteVisitor: SyntaxVisitor {
         return .visitChildren
     }
 
+    /// Documentation for visit
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         /// Documentation for name
         /// Documentation for name

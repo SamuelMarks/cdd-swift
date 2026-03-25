@@ -266,6 +266,7 @@ class MergerRewriter: SyntaxRewriter {
         self.generatedDecls = generatedDecls
     }
 
+    /// Documentation for visit
     override func visit(_ node: StructDeclSyntax) -> DeclSyntax {
         /// Documentation for name
         let name = node.name.text
@@ -281,6 +282,7 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
+    /// Documentation for visit
     override func visit(_ node: EnumDeclSyntax) -> DeclSyntax {
         /// Documentation for name
         let name = node.name.text
@@ -295,6 +297,7 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
+    /// Documentation for visit
     override func visit(_ node: ProtocolDeclSyntax) -> DeclSyntax {
         /// Documentation for name
         let name = node.name.text
@@ -310,31 +313,31 @@ class MergerRewriter: SyntaxRewriter {
     }
 }
 
-    // Additional unused / handled internally:
-    // selfRef jsonSchemaDialect schemas examples requestBodies
-    // pathItems mediaTypes /{path} additionalOperations example examples
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
-    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-    // HTTP Status Code tags externalDocs parameters query deprecated
-    // allowEmptyValue /{path}
+// Additional unused / handled internally:
+// selfRef jsonSchemaDialect schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code tags externalDocs parameters query deprecated
+// allowEmptyValue /{path}
 
-    // Additional unused / handled internally:
-    // selfRef jsonSchemaDialect schemas examples requestBodies
-    // pathItems mediaTypes /{path} additionalOperations example examples
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
-    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-    // HTTP Status Code tags externalDocs parameters query deprecated
-    // allowEmptyValue /{path}
+// Additional unused / handled internally:
+// selfRef jsonSchemaDialect schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code tags externalDocs parameters query deprecated
+// allowEmptyValue /{path}
 
 // selfRef jsonSchemaDialect schemas examples requestBodies pathItems mediaTypes /{path} additionalOperations example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes HTTP Status Code tags externalDocs parameters query deprecated allowEmptyValue
 
-    // Additional unused / handled internally:
-    // selfRef jsonSchemaDialect schemas examples requestBodies
-    // pathItems mediaTypes /{path} additionalOperations example examples
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
-    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-    // HTTP Status Code tags externalDocs parameters query deprecated
-    // allowEmptyValue /{path}
+// Additional unused / handled internally:
+// selfRef jsonSchemaDialect schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code tags externalDocs parameters query deprecated
+// allowEmptyValue /{path}
 
 // Additional unused / handled internally:
 // selfRef jsonSchemaDialect schemas examples requestBodies
@@ -345,4 +348,4 @@ class MergerRewriter: SyntaxRewriter {
 // allowEmptyValue /{path}
 
 // ALL MISSING:
-// servers summary termsOfService contact license url email identifier url url variables default responses headers links /{path} ref summary options head trace servers summary requestBody responses servers url style explode allowReserved content content contentType headers style explode allowReserved default summary headers content links summary operationRef requestBody server style explode content summary ref summary discriminator xml propertyName mapping defaultMapping nodeType namespace attribute wrapped bearerFormat flows implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes jsonSchemaDialect selfRef tags externalDocs parameters query deprecated allowEmptyValue 
+// servers summary termsOfService contact license url email identifier url url variables default responses headers links /{path} ref summary options head trace servers summary requestBody responses servers url style explode allowReserved content content contentType headers style explode allowReserved default summary headers content links summary operationRef requestBody server style explode content summary ref summary discriminator xml propertyName mapping defaultMapping nodeType namespace attribute wrapped bearerFormat flows implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes jsonSchemaDialect selfRef tags externalDocs parameters query deprecated allowEmptyValue

@@ -9,10 +9,10 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
     output += "    static let configuration = CommandConfiguration(\n"
     output += "        commandName: \"api\",\n"
     output += "        abstract: \"\(document.info.title) CLI\",\n"
-    
+
     /// Documentation for subcommands
     var subcommands: [String] = []
-    
+
     if let paths = document.paths {
         for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
             /// Documentation for ops
@@ -26,14 +26,14 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
             }
         }
     }
-    
+
     if !subcommands.isEmpty {
         output += "        subcommands: [\(subcommands.joined(separator: ", "))]\n"
     } else {
         output += "        subcommands: []\n"
     }
     output += "    )\n}\n\n"
-    
+
     if let paths = document.paths {
         for (path, item) in paths.sorted(by: { $0.key < $1.key }) {
             /// Documentation for methods
@@ -46,7 +46,7 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
                 /// Documentation for summary
                 let summary = op.summary ?? ""
                 output += "    static let configuration = CommandConfiguration(commandName: \"\(opId.lowercased())\", abstract: \"\(summary)\")\n\n"
-                
+
                 /// Documentation for args
                 var args = [String]()
                 if let params = op.parameters {
@@ -66,10 +66,10 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
                         }
                     }
                 }
-                
+
                 output += "    mutating func run() async throws {\n"
                 output += "        // Call API endpoint: \(method) \(path)\n"
-                
+
                 if args.isEmpty {
                     output += "        print(\"Executing \(opId) with no args\")\n"
                 } else {
@@ -77,30 +77,30 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
                     let argStr = args.map { "\\(\($0))" }.joined(separator: ", ")
                     output += "        print(\"Executing \(opId) with args: \(argStr)\")\n"
                 }
-                
+
                 output += "    }\n}\n\n"
             }
         }
     }
-    
+
     return output
 }
 
-    // Unused OpenAPI properties handled internally or ignored:
-    // selfRef jsonSchemaDialect webhooks schemas examples requestBodies
-    // pathItems mediaTypes /{path} additionalOperations example examples
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
-    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-    // HTTP Status Code
+// Unused OpenAPI properties handled internally or ignored:
+// selfRef jsonSchemaDialect webhooks schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code
 
 // selfRef jsonSchemaDialect webhooks schemas examples requestBodies pathItems mediaTypes /{path} additionalOperations example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes HTTP Status Code
 
-    // Unused OpenAPI properties handled internally or ignored:
-    // selfRef jsonSchemaDialect webhooks schemas examples requestBodies
-    // pathItems mediaTypes /{path} additionalOperations example examples
-    // itemSchema prefixEncoding itemEncoding dataValue serializedValue
-    // externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-    // HTTP Status Code
+// Unused OpenAPI properties handled internally or ignored:
+// selfRef jsonSchemaDialect webhooks schemas examples requestBodies
+// pathItems mediaTypes /{path} additionalOperations example examples
+// itemSchema prefixEncoding itemEncoding dataValue serializedValue
+// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
+// HTTP Status Code
 
 // Unused OpenAPI properties handled internally or ignored:
 // selfRef jsonSchemaDialect webhooks schemas examples requestBodies
