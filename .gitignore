@@ -11,4 +11,11 @@ build-my/
 # WASM build artifacts
 bin/
 build_wasm/
+
+dl_test/
+docs/
+doc_generator.py
+doc_generator2.py
+update_shields.py
+
 *.wasm
