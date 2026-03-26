@@ -1,107 +1,78 @@
 import Foundation
 
-/// Documentation for DocsJsonGenerator
 public class DocsJsonGenerator {
     public static func generate(from document: OpenAPIDocument, includeImports: Bool = true, includeWrapping: Bool = true) -> String {
-        /// Documentation for operationsList
-        var operationsList: [DocsJsonOperation] = []
+        var endpoints: [String: [String: String]] = [:]
 
-        /// Documentation for baseUrl
         let baseUrl = document.servers?.first?.url ?? "https://api.example.com"
 
         if let paths = document.paths {
             for (path, pathItem) in paths {
-                /// Documentation for methods
+                var pathMap: [String: String] = [:]
+                
                 let methods: [(String, Operation?)] = [
-                    ("GET", pathItem.get),
-                    ("POST", pathItem.post),
-                    ("PUT", pathItem.put),
-                    ("DELETE", pathItem.delete),
-                    ("PATCH", pathItem.patch),
-                    ("OPTIONS", pathItem.options),
-                    ("HEAD", pathItem.head),
+                    ("get", pathItem.get),
+                    ("post", pathItem.post),
+                    ("put", pathItem.put),
+                    ("delete", pathItem.delete),
+                    ("patch", pathItem.patch),
+                    ("options", pathItem.options),
+                    ("head", pathItem.head),
+                    ("trace", pathItem.trace)
                 ]
 
                 for (method, operation) in methods {
                     if let op = operation {
-                        /// Documentation for opName
-                        let opName = op.operationId ?? method.lowercased() + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
+                        let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
 
-                        /// Documentation for importsStr
-                        let importsStr = includeImports ? "import Foundation" : nil
-
-                        /// Documentation for wrapperStartStr
-                        let wrapperStartStr = includeWrapping ? "class APIClient {\n    func \(opName)() async throws {" : nil
-
-                        /// Documentation for snippetLines
-                        var snippetLines = [String]()
-
-                        /// Documentation for urlString
-                        let urlString = "\(baseUrl)\(path)"
-                        snippetLines.append("let url = URL(string: \"\(urlString)\")!")
-                        snippetLines.append("var request = URLRequest(url: url)")
-                        snippetLines.append("request.httpMethod = \"\(method)\"")
-
-                        // Basic payload handling
-                        if method == "POST" || method == "PUT" || method == "PATCH" {
-                            snippetLines.append("let payload: [String: Any] = [:] // TODO: Add payload")
-                            snippetLines.append("request.httpBody = try? JSONSerialization.data(withJSONObject: payload)")
-                            snippetLines.append("request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")")
+                        var lines = [String]()
+                        
+                        if includeImports {
+                            lines.append("import Foundation\n")
                         }
 
-                        snippetLines.append("let (data, response) = try await URLSession.shared.data(for: request)")
-                        snippetLines.append("let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0")
-
-                        /// Documentation for indent
+                        if includeWrapping {
+                            lines.append("class APIClient {")
+                            lines.append("    func \(opName)() async throws {")
+                        }
+                        
                         let indent = includeWrapping ? "        " : ""
-                        /// Documentation for snippetStr
-                        let snippetStr = snippetLines.map { indent + $0 }.joined(separator: "\n")
 
-                        /// Documentation for wrapperEndStr
-                        let wrapperEndStr = includeWrapping ? "    }\n}" : nil
+                        let urlString = "\(baseUrl)\(path)"
+                        lines.append("\(indent)let url = URL(string: \"\(urlString)\")!")
+                        lines.append("\(indent)var request = URLRequest(url: url)")
+                        lines.append("\(indent)request.httpMethod = \"\(method.uppercased())\"")
 
-                        /// Documentation for docsJsonCode
-                        let docsJsonCode = DocsJsonCode(
-                            imports: importsStr,
-                            wrapper_start: wrapperStartStr,
-                            snippet: snippetStr,
-                            wrapper_end: wrapperEndStr
-                        )
+                        if method == "post" || method == "put" || method == "patch" {
+                            lines.append("\(indent)let payload: [String: Any] = [:] // TODO: Add payload")
+                            lines.append("\(indent)request.httpBody = try? JSONSerialization.data(withJSONObject: payload)")
+                            lines.append("\(indent)request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")")
+                        }
 
-                        /// Documentation for docsJsonOp
-                        let docsJsonOp = DocsJsonOperation(
-                            method: method,
-                            path: path,
-                            operationId: op.operationId,
-                            code: docsJsonCode
-                        )
-                        operationsList.append(docsJsonOp)
+                        lines.append("\(indent)let (data, response) = try await URLSession.shared.data(for: request)")
+                        lines.append("\(indent)let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0")
+
+                        if includeWrapping {
+                            lines.append("    }")
+                            lines.append("}")
+                        }
+                        
+                        pathMap[method] = lines.joined(separator: "\n")
                     }
+                }
+                if !pathMap.isEmpty {
+                    endpoints[path] = pathMap
                 }
             }
         }
 
-        // Sort operations for deterministic output
-        operationsList.sort { op1, op2 in
-            if op1.path == op2.path {
-                return op1.method < op2.method
-            }
-            return op1.path < op2.path
-        }
+        let root: [String: Any] = ["endpoints": endpoints]
 
-        /// Documentation for docsJsonOutput
-        let docsJsonOutput = DocsJsonOutput(language: "swift", operations: operationsList)
-        /// Documentation for outputArray
-        let outputArray = [docsJsonOutput]
-
-        /// Documentation for encoder
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-
-        if let data = try? encoder.encode(outputArray), let jsonString = String(data: data, encoding: .utf8) {
+        if let data = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .withoutEscapingSlashes]),
+           let jsonString = String(data: data, encoding: .utf8) {
             return jsonString
         }
 
-        return "[]"
+        return "{}"
     }
 }
