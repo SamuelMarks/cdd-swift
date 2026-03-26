@@ -2,7 +2,37 @@ import Foundation
 
 /// Generator for producing JSON-formatted API documentation.
 public class DocsJsonGenerator {
-    
+    private init() {}
+
+    /// Generates JSON documentation from an OpenAPI document.
+    ///
+    /// - Parameters:
+    ///   - document: The parsed `OpenAPIDocument`.
+    /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
+    public static func generate(from document: OpenAPIDocument) -> String {
+        return generate(from: document, includeImports: true, includeWrapping: true)
+    }
+
+    /// Generates JSON documentation from an OpenAPI document.
+    ///
+    /// - Parameters:
+    ///   - document: The parsed `OpenAPIDocument`.
+    ///   - includeImports: Whether to include Foundation imports in the generated code snippet.
+    /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
+    public static func generate(from document: OpenAPIDocument, includeImports: Bool) -> String {
+        return generate(from: document, includeImports: includeImports, includeWrapping: true)
+    }
+
+    /// Generates JSON documentation from an OpenAPI document.
+    ///
+    /// - Parameters:
+    ///   - document: The parsed `OpenAPIDocument`.
+    ///   - includeWrapping: Whether to wrap the snippet in a class/function.
+    /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
+    public static func generate(from document: OpenAPIDocument, includeWrapping: Bool) -> String {
+        return generate(from: document, includeImports: true, includeWrapping: includeWrapping)
+    }
+
     /// Generates JSON documentation from an OpenAPI document.
     ///
     /// - Parameters:
@@ -10,7 +40,7 @@ public class DocsJsonGenerator {
     ///   - includeImports: Whether to include Foundation imports in the generated code snippet.
     ///   - includeWrapping: Whether to wrap the snippet in a class/function.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
-    public static func generate(from document: OpenAPIDocument, includeImports: Bool = true, includeWrapping: Bool = true) -> String {
+    public static func generate(from document: OpenAPIDocument, includeImports: Bool, includeWrapping: Bool) -> String {
         let baseUrl = document.servers?.first?.url ?? "https://api.example.com"
         var operations = [DocsJsonOperation]()
 
@@ -23,12 +53,12 @@ public class DocsJsonGenerator {
                 ("patch", pathItem.patch),
                 ("options", pathItem.options),
                 ("head", pathItem.head),
-                ("trace", pathItem.trace)
+                ("trace", pathItem.trace),
             ]
 
             for (method, operation) in methods {
                 guard let op = operation else { continue }
-                
+
                 let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
 
                 var imports: String? = nil
@@ -42,7 +72,7 @@ public class DocsJsonGenerator {
                     wrapperStart = "class APIClient {\n    func \(opName)() async throws {"
                     wrapperEnd = "    }\n}"
                 }
-                
+
                 let indent = includeWrapping ? "        " : ""
 
                 var snippetLines = [String]()
@@ -82,7 +112,7 @@ public class DocsJsonGenerator {
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-        
+
         // This force unwrap is safe as the objects are easily encodable.
         let data = try! encoder.encode(root)
         return String(data: data, encoding: .utf8)!

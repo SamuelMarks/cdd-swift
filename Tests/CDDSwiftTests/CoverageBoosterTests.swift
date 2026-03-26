@@ -81,6 +81,7 @@ final class CoverageBoosterTests: XCTestCase {
         _ = Schema()
         _ = Discriminator(propertyName: "")
         _ = XML()
-        _ = SchemaItem()
+        _ = Reference(ref: "")
+        _ = EncodingObject() == EncodingObject()
     }
 }
