@@ -1,9 +1,7 @@
 import Foundation
 
 /// Generator for producing JSON-formatted API documentation.
-public class DocsJsonGenerator {
-    private init() {}
-
+public enum DocsJsonGenerator {
     /// Generates JSON documentation from an OpenAPI document.
     ///
     /// - Parameters:

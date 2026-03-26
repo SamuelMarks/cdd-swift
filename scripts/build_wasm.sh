@@ -2,7 +2,7 @@
 set -e
 mkdir -p bin
 echo "Building WASM binary for Swift..."
-swift build --swift-sdk wasm32-unknown-wasi -c release
+swift build --swift-sdk 6.0.3-RELEASE-wasm32-unknown-wasi -c release
 
 if [ -f .build/wasm32-unknown-wasi/release/cdd-swift.wasm ]; then
     cp .build/wasm32-unknown-wasi/release/cdd-swift.wasm bin/cdd-swift.wasm
