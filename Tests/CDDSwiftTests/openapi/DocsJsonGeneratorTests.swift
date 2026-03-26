@@ -5,7 +5,8 @@ final class DocsJsonGeneratorTests: XCTestCase {
     func testDocsJsonGeneration() throws {
         let builder = OpenAPIDocumentBuilder(title: "Sample API", version: "1.0.0")
             .addPath("/test", item: PathItem(
-                get: Operation(operationId: "getTest")
+                get: Operation(operationId: "getTest"),
+                post: Operation(operationId: "postTest")
             ))
         let document = builder.build()
 
@@ -16,7 +17,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
 
         XCTAssertEqual(fullOutputs.count, 1)
         XCTAssertEqual(fullOutputs[0].language, "swift")
-        XCTAssertEqual(fullOutputs[0].operations.count, 1)
+        XCTAssertEqual(fullOutputs[0].operations.count, 2)
 
         let fullCode = fullOutputs[0].operations[0].code
         XCTAssertNotNil(fullCode.imports)
@@ -54,5 +55,16 @@ final class DocsJsonGeneratorTests: XCTestCase {
         XCTAssertNil(minCode.wrapper_start)
         XCTAssertNil(minCode.wrapper_end)
         XCTAssertTrue(minCode.snippet.contains("URLSession"))
+        // 5. Default Arguments
+        let defaultJsonStr = DocsJsonGenerator.generate(from: document)
+        let defaultData = defaultJsonStr.data(using: .utf8)!
+        let defaultOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: defaultData)
+        XCTAssertEqual(defaultOutputs.count, 1)
+        XCTAssertEqual(defaultOutputs[0].operations.count, 2)
+
+        // 6. Mixed Default Arguments
+        let mixed1 = DocsJsonGenerator.generate(from: document, includeImports: false)
+        let mixed2 = DocsJsonGenerator.generate(from: document, includeWrapping: false)
+        XCTAssertNotEqual(mixed1, mixed2)
     }
 }
