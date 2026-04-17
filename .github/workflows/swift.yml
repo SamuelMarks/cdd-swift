@@ -3,7 +3,7 @@ name: Swift CI
 on:
   push:
     branches: [ "master", "main" ]
-    tags: [ "v*.*.*", "*.*.*" ]
+    tags: [ "v*.*.*", "*.*.*", "latest" ]
   pull_request:
     branches: [ "master", "main" ]
 
