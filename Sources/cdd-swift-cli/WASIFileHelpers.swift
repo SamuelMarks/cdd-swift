@@ -10,13 +10,12 @@ import Foundation
 
 /// A set of helper methods for WASI-compatible file I/O operations using POSIX functions.
 enum WASIFileHelpers {
-    /// Read a file completely using POSIX read.
+    /// Read a file completely using C standard library.
     static func readFile(at path: String) throws -> Data {
-        let fd = open(path, O_RDONLY)
-        if fd < 0 {
+        guard let file = fopen(path, "rb") else {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not open file at \(path)"])
         }
-        defer { close(fd) }
+        defer { fclose(file) }
 
         var data = Data()
         let bufferSize = 8192
@@ -24,36 +23,33 @@ enum WASIFileHelpers {
         defer { buffer.deallocate() }
 
         while true {
-            let bytesRead = read(fd, buffer, bufferSize)
-            if bytesRead < 0 {
-                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not read file at \(path)"])
+            let bytesRead = fread(buffer, 1, bufferSize, file)
+            if bytesRead > 0 {
+                data.append(buffer, count: bytesRead)
             }
-            if bytesRead == 0 {
+            if bytesRead < bufferSize {
+                if ferror(file) != 0 {
+                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not read file at \(path)"])
+                }
                 break
             }
-            data.append(buffer, count: bytesRead)
         }
 
         return data
     }
     
-    /// Write data to a file using POSIX write.
+    /// Write data to a file using C standard library.
     static func writeFile(data: Data, to path: String) throws {
-        let fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0o666)
-        if fd < 0 {
+        guard let file = fopen(path, "wb") else {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not open file at \(path) for writing"])
         }
-        defer { close(fd) }
+        defer { fclose(file) }
 
         try data.withUnsafeBytes { rawBuffer in
             guard let baseAddress = rawBuffer.baseAddress else { return }
-            var totalWritten = 0
-            while totalWritten < rawBuffer.count {
-                let bytesWritten = write(fd, baseAddress.advanced(by: totalWritten), rawBuffer.count - totalWritten)
-                if bytesWritten < 0 {
-                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not write to file at \(path)"])
-                }
-                totalWritten += bytesWritten
+            let bytesWritten = fwrite(baseAddress, 1, rawBuffer.count, file)
+            if bytesWritten < rawBuffer.count {
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not write to file at \(path)"])
             }
         }
     }
@@ -73,5 +69,31 @@ enum WASIFileHelpers {
             throw NSError(domain: NSCocoaErrorDomain, code: 261, userInfo: [NSLocalizedDescriptionKey: "Could not encode string as UTF-8"])
         }
         try writeFile(data: data, to: path)
+    }
+
+    /// Check if file or directory exists using POSIX access.
+    static func fileExists(at path: String) -> Bool {
+        return access(path, F_OK) == 0
+    }
+
+    /// Create a directory using POSIX mkdir.
+    static func createDirectory(at path: String) throws {
+        let result = mkdir(path, 0o777)
+        if result != 0 && errno != EEXIST {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not create directory at \(path)"])
+        }
+    }
+
+    /// Recursively list files in a directory.
+    static func listDirectory(at path: String) throws -> [String] {
+        var files: [String] = []
+        let fm = FileManager.default
+        let dirURL = URL(fileURLWithPath: path)
+        if let enumerator = fm.enumerator(at: dirURL, includingPropertiesForKeys: nil) {
+            while let fileURL = enumerator.nextObject() as? URL {
+                files.append(fileURL.path)
+            }
+        }
+        return files
     }
 }
