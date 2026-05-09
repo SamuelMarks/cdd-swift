@@ -42,7 +42,12 @@ struct ToDocsJson: AsyncParsableCommand {
         }
 
         /// data
-        let data = try Data(contentsOf: inputURL)
+        let data: Data
+        if inputURL.scheme == "http" || inputURL.scheme == "https" {
+            data = try Data(contentsOf: inputURL)
+        } else {
+            data = try WASIFileHelpers.readFile(at: inputURL.path)
+        }
 
         do {
             /// json
@@ -58,9 +63,7 @@ struct ToDocsJson: AsyncParsableCommand {
             )
 
             if let outputPath = outputPath {
-                /// outputURL
-                let outputURL = URL(fileURLWithPath: outputPath)
-                try resultJson.write(to: outputURL, atomically: true, encoding: .utf8)
+                try WASIFileHelpers.writeString(resultJson, to: outputPath)
             } else {
                 print(resultJson)
             }
