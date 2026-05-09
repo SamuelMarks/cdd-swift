@@ -59,10 +59,8 @@ struct MergeSwift: AsyncParsableCommand {
     var destinationPath: String
 
     mutating func run() async throws {
-        /// Documentation for inputURL
-        let inputURL = URL(fileURLWithPath: inputPath)
         /// Documentation for data
-        let data = try Data(contentsOf: inputURL)
+        let data = try WASIFileHelpers.readFile(at: inputPath)
 
         do {
             /// Documentation for json
@@ -72,15 +70,13 @@ struct MergeSwift: AsyncParsableCommand {
             /// Documentation for generatedCode
             let generatedCode = OpenAPIToSwiftGenerator.generate(from: document)
 
-            /// Documentation for destURL
-            let destURL = URL(fileURLWithPath: destinationPath)
             /// Documentation for existingSource
-            let existingSource = try String(contentsOf: destURL, encoding: .utf8)
+            let existingSource = try WASIFileHelpers.readString(at: destinationPath)
 
             /// Documentation for mergedSource
             let mergedSource = SwiftCodeMerger.merge(generatedCode: generatedCode, into: existingSource)
 
-            try mergedSource.write(to: destURL, atomically: true, encoding: .utf8)
+            try WASIFileHelpers.writeString(mergedSource, to: destinationPath)
             print("✅ Successfully merged OpenAPI code into \(destinationPath)")
         } catch {
             print("❌ Failed to process: \(error)")
@@ -102,10 +98,8 @@ struct ToOpenAPI: AsyncParsableCommand {
     var outputPath: String?
 
     mutating func run() async throws {
-        /// Documentation for inputURL
-        let inputURL = URL(fileURLWithPath: inputPath)
         /// Documentation for sourceCode
-        let sourceCode = try String(contentsOf: inputURL, encoding: .utf8)
+        let sourceCode = try WASIFileHelpers.readString(at: inputPath)
 
         /// Documentation for parser
         let parser = SwiftASTParser()
@@ -121,9 +115,7 @@ struct ToOpenAPI: AsyncParsableCommand {
         let jsonString = String(data: data, encoding: .utf8) ?? "{}"
 
         if let outputPath = outputPath {
-            /// Documentation for outputURL
-            let outputURL = URL(fileURLWithPath: outputPath)
-            try jsonString.write(to: outputURL, atomically: true, encoding: .utf8)
+            try WASIFileHelpers.writeString(jsonString, to: outputPath)
             print("✅ OpenAPI JSON successfully written to \(outputPath)")
         } else {
             print(jsonString)
@@ -164,9 +156,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
         let jsonString = try builder.serialize()
 
         if let outputPath = outputPath {
-            /// Documentation for outputURL
-            let outputURL = URL(fileURLWithPath: outputPath)
-            try jsonString.write(to: outputURL, atomically: true, encoding: .utf8)
+            try WASIFileHelpers.writeString(jsonString, to: outputPath)
             print("✅ OpenAPI JSON successfully written to \(outputPath)")
         } else {
             print(jsonString)
