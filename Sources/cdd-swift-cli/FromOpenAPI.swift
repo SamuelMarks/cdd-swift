@@ -5,7 +5,6 @@ import Foundation
 func createDirRecursive(_ path: String) throws {
     let components = path.split(separator: "/")
     var currentPath = path.hasPrefix("/") ? "/" : ""
-    let fm = FileManager.default
     for component in components {
         if currentPath == "/" {
             currentPath += component
@@ -14,8 +13,8 @@ func createDirRecursive(_ path: String) throws {
         } else {
             currentPath += "/" + component
         }
-        if !fm.fileExists(atPath: currentPath) {
-            try fm.createDirectory(atPath: currentPath, withIntermediateDirectories: false)
+        if !WASIFileHelpers.fileExists(at: currentPath) {
+            try WASIFileHelpers.createDirectory(at: currentPath)
         }
     }
 }
@@ -65,15 +64,13 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             let name = url.deletingPathExtension().lastPathComponent
             results.append((name, document))
         } else if let inputDir = inputDir {
-            let fm = FileManager.default
-            let dirURL = URL(fileURLWithPath: inputDir)
-            let enumerator = fm.enumerator(at: dirURL, includingPropertiesForKeys: nil)
-            while let fileURL = enumerator?.nextObject() as? URL {
-                if fileURL.pathExtension == "json" {
-                    guard let data = try? WASIFileHelpers.readFile(at: fileURL.path) else { continue }
+            let files = try WASIFileHelpers.listDirectory(at: inputDir)
+            for filePath in files {
+                if filePath.hasSuffix(".json") {
+                    guard let data = try? WASIFileHelpers.readFile(at: filePath) else { continue }
                     
                     if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
-                        let name = fileURL.deletingPathExtension().lastPathComponent
+                        let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
                         results.append((name, doc))
                     }
                 }

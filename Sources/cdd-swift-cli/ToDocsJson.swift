@@ -44,7 +44,13 @@ struct ToDocsJson: AsyncParsableCommand {
         /// data
         let data: Data
         if inputURL.scheme == "http" || inputURL.scheme == "https" {
-            data = try Data(contentsOf: inputURL)
+            #if os(WASI)
+            print("❌ HTTP/HTTPS is not supported in WASI")
+            throw ExitCode.failure
+            #else
+            let (fetchedData, _) = try await URLSession.shared.data(from: inputURL)
+            data = fetchedData
+            #endif
         } else {
             data = try WASIFileHelpers.readFile(at: inputURL.path)
         }
