@@ -19,3 +19,49 @@ doc_generator2.py
 update_shields.py
 
 *.wasm
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+*.swo
+
+# Project specific / temporary scripts / testing artifacts
+*.py
+*.txt
+*.json
+!comprehensive-openapi.json
+!example-openapi.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!openapi_output.json
+*.swift
+!Package.swift
+!Sources/**/*.swift
+!Tests/**/*.swift
+!builder.swift
+!generated.swift
+!merger.swift
+!test.swift
+!test_gen.swift

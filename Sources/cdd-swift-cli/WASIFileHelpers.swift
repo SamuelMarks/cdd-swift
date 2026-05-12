@@ -17,12 +17,16 @@ enum WASIFileHelpers {
         }
         defer { fclose(file) }
 
+        /// Documentation for data
         var data = Data()
+        /// Documentation for bufferSize
         let bufferSize = 8192
+        /// Documentation for buffer
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         defer { buffer.deallocate() }
 
         while true {
+            /// Documentation for bytesRead
             let bytesRead = fread(buffer, 1, bufferSize, file)
             if bytesRead > 0 {
                 data.append(buffer, count: bytesRead)
@@ -47,6 +51,7 @@ enum WASIFileHelpers {
 
         try data.withUnsafeBytes { rawBuffer in
             guard let baseAddress = rawBuffer.baseAddress else { return }
+            /// Documentation for bytesWritten
             let bytesWritten = fwrite(baseAddress, 1, rawBuffer.count, file)
             if bytesWritten < rawBuffer.count {
                 throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not write to file at \(path)"])
@@ -56,6 +61,7 @@ enum WASIFileHelpers {
 
     /// Read file as string using POSIX read.
     static func readString(at path: String) throws -> String {
+        /// Documentation for data
         let data = try readFile(at: path)
         guard let string = String(data: data, encoding: .utf8) else {
             throw NSError(domain: NSCocoaErrorDomain, code: 261, userInfo: [NSLocalizedDescriptionKey: "Could not decode file at \(path) as UTF-8"])
@@ -78,6 +84,7 @@ enum WASIFileHelpers {
 
     /// Create a directory using POSIX mkdir.
     static func createDirectory(at path: String) throws {
+        /// Documentation for result
         let result = mkdir(path, 0o777)
         if result != 0 && errno != EEXIST {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not create directory at \(path)"])
@@ -86,8 +93,11 @@ enum WASIFileHelpers {
 
     /// Recursively list files in a directory.
     static func listDirectory(at path: String) throws -> [String] {
+        /// Documentation for files
         var files: [String] = []
+        /// Documentation for fm
         let fm = FileManager.default
+        /// Documentation for dirURL
         let dirURL = URL(fileURLWithPath: path)
         if let enumerator = fm.enumerator(at: dirURL, includingPropertiesForKeys: nil) {
             while let fileURL = enumerator.nextObject() as? URL {

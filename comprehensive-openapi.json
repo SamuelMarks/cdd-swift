@@ -6,52 +6,156 @@
     "description": "API for testing coverage"
   },
   "servers": [
-    { "url": "https://api.example.com/v1" }
+    {
+      "url": "https://api.example.com/v1"
+    }
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer" },
-      "oauth2": { "type": "oauth2", "flows": { "implicit": { "authorizationUrl": "https://example.com/api/oauth/dialog", "scopes": { "write:pets": "modify pets" } } } }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "https://example.com/api/oauth/dialog",
+            "scopes": {
+              "write:pets": "modify pets"
+            }
+          }
+        }
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
     },
     "schemas": {
       "Error": {
         "type": "object",
         "properties": {
-          "code": { "type": "integer", "format": "int32" },
-          "message": { "type": "string" }
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
         },
-        "required": ["code", "message"]
+        "required": [
+          "code",
+          "message"
+        ]
       },
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "format": "int64" },
-          "username": { "type": "string" },
-          "isActive": { "type": "boolean", "default": true },
-          "metadata": { "type": "object", "additionalProperties": { "type": "string" } },
-          "roles": { "type": "array", "items": { "type": "string" } },
-          "status": { "type": "string", "enum": ["active", "suspended"] },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "avatar": { "type": "string", "format": "byte" }
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "byte"
+          }
         },
-        "required": ["id", "username"]
+        "required": [
+          "id",
+          "username"
+        ]
       },
       "ExtendedUser": {
         "allOf": [
-          { "$ref": "#/components/schemas/User" },
-          { "type": "object", "properties": { "extra": { "type": "string" } } }
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "extra": {
+                "type": "string"
+              }
+            }
+          }
         ]
       },
       "AnyValue": {
         "anyOf": [
-          { "type": "string" },
-          { "type": "integer" }
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          }
         ]
       },
       "OneValue": {
         "oneOf": [
-          { "type": "number", "format": "double" },
-          { "type": "boolean" }
+          {
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "TupleModel": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "DictModel": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/User"
+        }
+      },
+      "EnumStringModel": {
+        "type": "string",
+        "enum": [
+          "one",
+          "two",
+          "three"
         ]
       }
     }
@@ -62,12 +166,48 @@
         "operationId": "listUsers",
         "summary": "List all users",
         "parameters": [
-          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 } },
-          { "name": "X-Custom-Header", "in": "header", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "X-Custom-Header",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } } },
-          "default": { "description": "Error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "post": {
@@ -79,14 +219,25 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": { "type": "string" }
+                  "username": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -94,31 +245,260 @@
       "put": {
         "operationId": "updateUser",
         "parameters": [
-          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "requestBody": {
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExtendedUser" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendedUser"
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "description": "OK" }
+          "200": {
+            "description": "OK"
+          }
         }
       },
       "delete": {
         "operationId": "deleteUser",
         "parameters": [
-          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "204": { "description": "Deleted" }
+          "204": {
+            "description": "Deleted"
+          }
         }
       },
       "patch": {
         "operationId": "patchUser",
         "parameters": [
-          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "OK" }
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/matrix/{ids}": {
+      "get": {
+        "operationId": "getMatrix",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "path",
+            "required": true,
+            "style": "matrix",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "ids2",
+            "in": "path",
+            "required": true,
+            "style": "matrix",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "formExp",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "formNoExp",
+            "in": "query",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "space",
+            "in": "query",
+            "style": "spaceDelimited",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "pipe",
+            "in": "query",
+            "style": "pipeDelimited",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "deep",
+            "in": "query",
+            "style": "deepObject",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "name": "arrPath",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "callbacks": {
+          "onData": {
+            "{$request.body#/url}": {
+              "post": {
+                "operationId": "onData",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "OK"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/formRoute": {
+      "post": {
+        "operationId": "formPost",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/multipartRoute": {
+      "post": {
+        "operationId": "multipartPost",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object"
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "image/png"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "webhooks": {
+    "onEvent": {
+      "post": {
+        "operationId": "postEvent",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
         }
       }
     }

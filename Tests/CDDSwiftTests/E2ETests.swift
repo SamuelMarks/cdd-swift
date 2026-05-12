@@ -20,7 +20,14 @@ final class E2ETests: XCTestCase {
         let json = try String(contentsOfFile: fileURL.path)
         let document = try OpenAPIParser.parse(json: json)
         let swiftCode = OpenAPIToSwiftGenerator.generate(from: document)
-        let schemas = try SwiftASTParser().parseModels(from: swiftCode)
+        let cliCode = emitSDKCLI(document: document)
+        let serverCode = emitServer(document: document)
+        
+        // This will test the parsing of all generated code components
+        let combinedCode = swiftCode + "\n" + cliCode + "\n" + serverCode
+        let parsedDoc = try SwiftASTParser().parseDocument(from: combinedCode)
+        
+        let schemas = parsedDoc.components?.schemas ?? [:]
         XCTAssertGreaterThan(schemas.count, 0)
     }
 
