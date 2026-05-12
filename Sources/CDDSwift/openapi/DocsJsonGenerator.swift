@@ -39,10 +39,13 @@ public enum DocsJsonGenerator {
     ///   - includeWrapping: Whether to wrap the snippet in a class/function.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
     public static func generate(from document: OpenAPIDocument, includeImports: Bool, includeWrapping: Bool) -> String {
+        /// Documentation for baseUrl
         let baseUrl = document.servers?.first?.url ?? "https://api.example.com"
+        /// Documentation for operations
         var operations = [DocsJsonOperation]()
 
         for (path, pathItem) in document.paths ?? [:] {
+            /// Documentation for methods
             let methods: [(String, Operation?)] = [
                 ("get", pathItem.get),
                 ("post", pathItem.post),
@@ -57,23 +60,30 @@ public enum DocsJsonGenerator {
             for (method, operation) in methods {
                 guard let op = operation else { continue }
 
+                /// Documentation for opName
                 let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
 
+                /// Documentation for imports
                 var imports: String? = nil
                 if includeImports {
                     imports = "import Foundation"
                 }
 
+                /// Documentation for wrapperStart
                 var wrapperStart: String? = nil
+                /// Documentation for wrapperEnd
                 var wrapperEnd: String? = nil
                 if includeWrapping {
                     wrapperStart = "class APIClient {\n    func \(opName)() async throws {"
                     wrapperEnd = "    }\n}"
                 }
 
+                /// Documentation for indent
                 let indent = includeWrapping ? "        " : ""
 
+                /// Documentation for snippetLines
                 var snippetLines = [String]()
+                /// Documentation for urlString
                 let urlString = "\(baseUrl)\(path)"
                 snippetLines.append("\(indent)let url = URL(string: \"\(urlString)\")!")
                 snippetLines.append("\(indent)var request = URLRequest(url: url)")
@@ -88,6 +98,7 @@ public enum DocsJsonGenerator {
                 snippetLines.append("\(indent)let (data, response) = try await URLSession.shared.data(for: request)")
                 snippetLines.append("\(indent)let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0")
 
+                /// Documentation for code
                 let code = DocsJsonCode(
                     imports: imports,
                     wrapper_start: wrapperStart,
@@ -95,6 +106,7 @@ public enum DocsJsonGenerator {
                     wrapper_end: wrapperEnd
                 )
 
+                /// Documentation for jsonOp
                 let jsonOp = DocsJsonOperation(
                     method: method,
                     path: path,
@@ -105,13 +117,17 @@ public enum DocsJsonGenerator {
             }
         }
 
+        /// Documentation for output
         let output = DocsJsonOutput(language: "swift", operations: operations)
+        /// Documentation for root
         let root = [output]
 
+        /// Documentation for encoder
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
 
         // This force unwrap is safe as the objects are easily encodable.
+        /// Documentation for data
         let data = try! encoder.encode(root)
         return String(data: data, encoding: .utf8)!
     }

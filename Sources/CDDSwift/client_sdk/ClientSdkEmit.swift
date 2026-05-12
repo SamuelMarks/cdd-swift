@@ -75,30 +75,29 @@ import Foundation
 
 /// A utility to generate Swift code from an OpenAPI Document.
 public enum OpenAPIToSwiftGenerator {
-    /// Generates Swift code from the given OpenAPI document.
+    /// Generates Swift files from the given OpenAPI document.
     /// - Parameter document: The OpenAPI document to process.
-    /// - Returns: A string containing the generated Swift source code.
-    public static func generate(from document: OpenAPIDocument) -> String {
-        /// Documentation for output
-        var output = "import Foundation\n\n"
-
-        // Generate Models
-        output += "// MARK: - Models\n\n"
+    /// - Returns: A dictionary of filenames to their generated Swift source code.
+    public static func generateFiles(from document: OpenAPIDocument) -> [String: String] {
+        /// Documentation for modelsOutput
+        var modelsOutput = "import Foundation\n\n"
+        modelsOutput += "// MARK: - Models\n\n"
         if let schemas = document.components?.schemas {
             /// Documentation for sortedSchemas
             let sortedSchemas = schemas.sorted { $0.key < $1.key }
             for (name, schema) in sortedSchemas {
-                output += emitModel(name: name, schema: schema)
-                output += "\n"
+                modelsOutput += emitModel(name: name, schema: schema)
+                modelsOutput += "\n"
             }
         }
 
-        // Generate API Client
-        output += "// MARK: - API Client\n\n"
-        output += emitDocstring("API Client for \(document.info.title) (v\(document.info.version))", indent: 0)
-        output += "public struct APIClient {\n"
-        output += "    public let baseURL: URL\n"
-        output += "    public let session: URLSession\n"
+        /// Documentation for clientOutput
+        var clientOutput = "import Foundation\n\n"
+        clientOutput += "// MARK: - API Client\n\n"
+        clientOutput += emitDocstring("API Client for \(document.info.title) (v\(document.info.version))", indent: 0)
+        clientOutput += "public struct APIClient {\n"
+        clientOutput += "    public let baseURL: URL\n"
+        clientOutput += "    public let session: URLSession\n"
 
         /// Documentation for securitySchemes
         let securitySchemes = document.components?.securitySchemes ?? [:]
@@ -108,10 +107,10 @@ public enum OpenAPIToSwiftGenerator {
                 if scheme.type != nil {
                     /// Documentation for propName
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    output += "    public let \(propName): String?\n"
+                    clientOutput += "    public let \(propName): String?\n"
                 }
             }
-            output += "\n"
+            clientOutput += "\n"
             /// Documentation for initParams
             var initParams = "baseURL: URL, session: URLSession = .shared"
             for (key, scheme) in securitySchemes {
@@ -121,22 +120,22 @@ public enum OpenAPIToSwiftGenerator {
                     initParams += ", \(propName): String? = nil"
                 }
             }
-            output += "    public init(\(initParams)) {\n"
-            output += "        self.baseURL = baseURL\n"
-            output += "        self.session = session\n"
+            clientOutput += "    public init(\(initParams)) {\n"
+            clientOutput += "        self.baseURL = baseURL\n"
+            clientOutput += "        self.session = session\n"
             for (key, scheme) in securitySchemes {
                 if scheme.type != nil {
                     /// Documentation for propName
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    output += "        self.\(propName) = \(propName)\n"
+                    clientOutput += "        self.\(propName) = \(propName)\n"
                 }
             }
-            output += "    }\n\n"
+            clientOutput += "    }\n\n"
         } else {
-            output += "\n    public init(baseURL: URL, session: URLSession = .shared) {\n"
-            output += "        self.baseURL = baseURL\n"
-            output += "        self.session = session\n"
-            output += "    }\n\n"
+            clientOutput += "\n    public init(baseURL: URL, session: URLSession = .shared) {\n"
+            clientOutput += "        self.baseURL = baseURL\n"
+            clientOutput += "        self.session = session\n"
+            clientOutput += "    }\n\n"
         }
 
         if let paths = document.paths {
@@ -144,29 +143,29 @@ public enum OpenAPIToSwiftGenerator {
             let sortedPaths = paths.sorted { $0.key < $1.key }
             for (path, item) in sortedPaths {
                 if let getOp = item.get {
-                    output += emitMethod(path: path, method: "GET", operation: getOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                    clientOutput += emitMethod(path: path, method: "GET", operation: getOp, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let postOp = item.post {
-                    output += emitMethod(path: path, method: "POST", operation: postOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                    clientOutput += emitMethod(path: path, method: "POST", operation: postOp, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let putOp = item.put {
-                    output += emitMethod(path: path, method: "PUT", operation: putOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                    clientOutput += emitMethod(path: path, method: "PUT", operation: putOp, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let deleteOp = item.delete {
-                    output += emitMethod(path: path, method: "DELETE", operation: deleteOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                    clientOutput += emitMethod(path: path, method: "DELETE", operation: deleteOp, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let patchOp = item.patch {
-                    output += emitMethod(path: path, method: "PATCH", operation: patchOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                    clientOutput += emitMethod(path: path, method: "PATCH", operation: patchOp, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let additional = item.additionalOperations {
                     for (methodName, op) in additional {
-                        output += emitMethod(path: path, method: methodName.uppercased(), operation: op, documentSecurity: document.security, securitySchemes: securitySchemes)
+                        clientOutput += emitMethod(path: path, method: methodName.uppercased(), operation: op, documentSecurity: document.security, securitySchemes: securitySchemes)
                     }
                 }
             }
         }
 
-        output += "}\n\n"
+        clientOutput += "}\n\n"
 
         // Generate Callbacks
         if let paths = document.paths {
@@ -177,8 +176,8 @@ public enum OpenAPIToSwiftGenerator {
                 let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
                 for op in ops {
                     if let cbs = op.callbacks, !cbs.isEmpty {
-                        output += emitCallbacks(operationId: op.operationId ?? "Unknown", callbacks: cbs)
-                        output += "\n"
+                        clientOutput += emitCallbacks(operationId: op.operationId ?? "Unknown", callbacks: cbs)
+                        clientOutput += "\n"
                     }
                 }
             }
@@ -186,21 +185,40 @@ public enum OpenAPIToSwiftGenerator {
 
         // Generate Webhooks
         if let webhooks = document.webhooks, !webhooks.isEmpty {
-            output += "// MARK: - Webhooks Protocol\n\n"
-            output += emitWebhooks(webhooks: webhooks)
-            output += "\n"
+            clientOutput += "// MARK: - Webhooks Protocol\n\n"
+            clientOutput += emitWebhooks(webhooks: webhooks)
+            clientOutput += "\n"
         }
 
         // Generate Mocks
-        output += "// MARK: - Mocks\n\n"
-        output += emitMockClient(paths: document.paths)
-        output += "\n"
+        clientOutput += "// MARK: - Mocks\n\n"
+        clientOutput += emitMockClient(paths: document.paths)
+        clientOutput += "\n"
 
         // Generate Tests stub
-        output += "// MARK: - Tests Stub\n\n"
-        output += emitTests(paths: document.paths)
+        clientOutput += "// MARK: - Tests Stub\n\n"
+        clientOutput += emitTests(paths: document.paths)
 
-        return output
+        return [
+            "models.swift": modelsOutput,
+            "client.swift": clientOutput
+        ]
+    }
+
+    /// Generates Swift code from the given OpenAPI document.
+    /// - Parameter document: The OpenAPI document to process.
+    /// - Returns: A string containing the generated Swift source code.
+    public static func generate(from document: OpenAPIDocument) -> String {
+        /// Documentation for files
+        let files = generateFiles(from: document)
+        /// Documentation for models
+        let models = files["models.swift"] ?? ""
+        /// Documentation for client
+        let client = files["client.swift"] ?? ""
+        // Strip the redundant "import Foundation\n\n" from the client file
+        /// Documentation for clientStripped
+        let clientStripped = client.replacingOccurrences(of: "import Foundation\n\n", with: "")
+        return models + "\n" + clientStripped
     }
 }
 
