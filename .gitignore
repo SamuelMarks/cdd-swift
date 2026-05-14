@@ -65,3 +65,44 @@ Temporary Items
 !merger.swift
 !test.swift
 !test_gen.swift
+
+# ---------------------------------------------------
+# Additional comprehensive wildcards for safe git add
+# ---------------------------------------------------
+
+# Code coverage and profiling
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+
+# Archives
+*.7z
+*.gz
+*.tar
+*.tgz
+*.zip
+*.bzip2
+*.bz2
+
+# Temporary / Backup files / Crash reports
+*.bak
+*.tmp
+*.temp
+*.out
+*.crash
+*.pid
+*.seed
+*.pid.lock
+
+# OS generated files (Windows / Linux)
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*~

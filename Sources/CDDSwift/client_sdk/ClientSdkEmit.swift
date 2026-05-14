@@ -78,7 +78,7 @@ public enum OpenAPIToSwiftGenerator {
     /// Generates Swift files from the given OpenAPI document.
     /// - Parameter document: The OpenAPI document to process.
     /// - Returns: A dictionary of filenames to their generated Swift source code.
-    public static func generateFiles(from document: OpenAPIDocument) -> [String: String] {
+    public static func generateFiles(from document: OpenAPIDocument, tests: Bool = false) -> [String: String] {
         /// Documentation for modelsOutput
         var modelsOutput = "import Foundation\n\n"
         modelsOutput += "// MARK: - Models\n\n"
@@ -190,19 +190,44 @@ public enum OpenAPIToSwiftGenerator {
             clientOutput += "\n"
         }
 
-        // Generate Mocks
-        clientOutput += "// MARK: - Mocks\n\n"
-        clientOutput += emitMockClient(paths: document.paths)
-        clientOutput += "\n"
-
-        // Generate Tests stub
-        clientOutput += "// MARK: - Tests Stub\n\n"
-        clientOutput += emitTests(paths: document.paths)
-
-        return [
-            "models.swift": modelsOutput,
-            "client.swift": clientOutput
+        var files: [String: String] = [
+            "models.swift": modelsOutput
         ]
+
+        if tests {
+            var mocksOutput = "import Foundation\n"
+            // Wait, since we are inside GeneratedSDKMocks, we need to import GeneratedSDK
+            mocksOutput += "import GeneratedSDK\n\n"
+            mocksOutput += emitMockClient(paths: document.paths)
+            files["mocks.swift"] = mocksOutput
+
+            var testsOutput = "import Foundation\n"
+            testsOutput += "import GeneratedSDK\n"
+            testsOutput += "import GeneratedSDKMocks\n"
+            
+            // emitTests outputs "import XCTest..." so we can just replace that or append. 
+            // It's cleaner to replace the first line to include our imports.
+            let generatedTests = emitTests(paths: document.paths).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
+            // Also tests should be open class so they are composable
+            let composableTests = generatedTests.replacingOccurrences(of: "final class APIClientTests", with: "open class APIClientTests")
+            testsOutput += composableTests
+            files["tests.swift"] = testsOutput
+            
+            files["client.swift"] = clientOutput
+        } else {
+            // Generate Mocks
+            clientOutput += "// MARK: - Mocks\n\n"
+            clientOutput += emitMockClient(paths: document.paths)
+            clientOutput += "\n"
+
+            // Generate Tests stub
+            clientOutput += "// MARK: - Tests Stub\n\n"
+            clientOutput += emitTests(paths: document.paths)
+            
+            files["client.swift"] = clientOutput
+        }
+
+        return files
     }
 
     /// Generates Swift code from the given OpenAPI document.
