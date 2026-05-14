@@ -54,6 +54,10 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// Documentation for noInstallablePackage
     var noInstallablePackage: Bool = false
 
+    @Flag(name: [.customLong("create-composable-tests-mocks"), .customLong("tests")], help: "Create composable tests & mocks.")
+    /// Documentation for testsMocks
+    var testsMocks: Bool = false
+
     mutating func validate() throws {
         if inputPath == nil && inputDir == nil {
             throw ValidationError("Please provide either --input or --input-dir.")
@@ -104,10 +108,16 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// Documentation for generateScaffolding
     func generateScaffolding(in outDir: String, packageName: String, isExecutable: Bool = false) throws {
         if !noInstallablePackage {
-            /// Documentation for productStr
-            let productStr = isExecutable ? ".executable(name: \"\(packageName)\", targets: [\"\(packageName)\"])" : ".library(name: \"\(packageName)\", targets: [\"\(packageName)\"])"
-            /// Documentation for targetStr
-            let targetStr = isExecutable ? ".executableTarget(name: \"\(packageName)\", dependencies: [\"ArgumentParser\"])" : ".target(name: \"\(packageName)\")"
+            var productStr = "        " + (isExecutable ? ".executable(name: \"\(packageName)\", targets: [\"\(packageName)\"])" : ".library(name: \"\(packageName)\", targets: [\"\(packageName)\"])")
+            var targetStr = "        " + (isExecutable ? ".executableTarget(name: \"\(packageName)\", dependencies: [\"ArgumentParser\"])" : ".target(name: \"\(packageName)\")")
+
+            if testsMocks && !isExecutable {
+                productStr += ",\n        .library(name: \"\(packageName)Mocks\", targets: [\"\(packageName)Mocks\"])"
+                // Test targets are not exported as products
+                targetStr += ",\n        .target(name: \"\(packageName)Mocks\", dependencies: [\"\(packageName)\"])"
+                targetStr += ",\n        .testTarget(name: \"\(packageName)Tests\", dependencies: [\"\(packageName)\", \"\(packageName)Mocks\"])"
+            }
+
             /// Documentation for depStr
             let depStr = isExecutable ? ".package(url: \"https://github.com/apple/swift-argument-parser.git\", from: \"1.2.0\")" : ""
             /// Documentation for packageSwift
@@ -119,13 +129,13 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             let package = Package(
                 name: "\(packageName)",
                 products: [
-                    \(productStr),
+            \(productStr)
                 ],
                 dependencies: [
                     \(depStr)
                 ],
                 targets: [
-                    \(targetStr),
+            \(targetStr)
                 ]
             )
             """
@@ -184,7 +194,7 @@ struct ToSDK: AsyncParsableCommand {
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
             /// Documentation for files
-            let files = OpenAPIToSwiftGenerator.generateFiles(from: doc)
+            let files = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: options.testsMocks)
             /// Documentation for docDir
             let docDir = docs.count > 1 ? srcDir.appendingPathComponent(name) : srcDir
             if docs.count > 1 {
@@ -192,7 +202,20 @@ struct ToSDK: AsyncParsableCommand {
             }
             for (filename, code) in files {
                 /// Documentation for fileUrl
-                let fileUrl = docDir.appendingPathComponent(filename)
+                var targetDir = docDir
+                if options.testsMocks && !options.noInstallablePackage {
+                    if filename == "mocks.swift" {
+                        targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKMocks")
+                        if docs.count > 1 { targetDir = targetDir.appendingPathComponent(name) }
+                        try createDirRecursive(targetDir.path)
+                    } else if filename == "tests.swift" {
+                        targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Tests").appendingPathComponent("GeneratedSDKTests")
+                        if docs.count > 1 { targetDir = targetDir.appendingPathComponent(name) }
+                        try createDirRecursive(targetDir.path)
+                    }
+                }
+                
+                let fileUrl = targetDir.appendingPathComponent(filename)
                 try WASIFileHelpers.writeString(code, to: fileUrl.path)
             }
         }
