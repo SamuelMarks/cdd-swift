@@ -82,7 +82,7 @@ public enum OpenAPIToSwiftGenerator {
         /// Documentation for modelsOutput
         var modelsOutput = "import Foundation\n\n"
         modelsOutput += "// MARK: - Models\n\n"
-        if let schemas = document.components?.schemas {
+        if let schemas = document.components?.schemas ?? document.definitions {
             /// Documentation for sortedSchemas
             let sortedSchemas = schemas.sorted { $0.key < $1.key }
             for (name, schema) in sortedSchemas {
@@ -101,7 +101,7 @@ public enum OpenAPIToSwiftGenerator {
         clientOutput += "    public let session: URLSession\n"
 
         /// Documentation for securitySchemes
-        let securitySchemes = document.components?.securitySchemes ?? [:]
+        let securitySchemes = document.components?.securitySchemes ?? document.securityDefinitions ?? [:]
 
         if !securitySchemes.isEmpty {
             for (key, scheme) in securitySchemes {
@@ -208,7 +208,7 @@ public enum OpenAPIToSwiftGenerator {
             
             // emitTests outputs "import XCTest..." so we can just replace that or append. 
             // It's cleaner to replace the first line to include our imports.
-            let generatedTests = emitTests(paths: document.paths, components: document.components).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
+            let generatedTests = emitTests(paths: document.paths, document: document).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
             // Also tests should be open class so they are composable
             let composableTests = generatedTests.replacingOccurrences(of: "final class APIClientTests", with: "open class APIClientTests")
             testsOutput += composableTests
@@ -223,7 +223,7 @@ public enum OpenAPIToSwiftGenerator {
 
             // Generate Tests stub
             clientOutput += "// MARK: - Tests Stub\n\n"
-            clientOutput += emitTests(paths: document.paths, components: document.components)
+            clientOutput += emitTests(paths: document.paths, document: document)
             
             files["client.swift"] = clientOutput
         }

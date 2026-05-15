@@ -1,13 +1,13 @@
 import Foundation
 
-fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, components: Components?, visited: Set<String> = []) -> String {
+fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
     if let ref = ref {
         let name = ref.components(separatedBy: "/").last ?? ""
         if visited.contains(name) { return "{}" } // break cycle
-        if let s = components?.schemas?[name] {
+        if let s = schemas?[name] {
             var newVisited = visited
             newVisited.insert(name)
-            return generateDummyJSON(type: s.type, ref: s.ref, properties: s.properties, required: s.required, items: s.items, components: components, visited: newVisited)
+            return generateDummyJSON(type: s.type, ref: s.ref, properties: s.properties, required: s.required, items: s.items, schemas: schemas, visited: newVisited)
         }
         return "{}"
     }
@@ -22,7 +22,7 @@ fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [Str
         return "true"
     case "array":
         if let items = items {
-            let itemStr = generateDummyJSON(type: items.type, ref: items.ref, properties: nil, required: nil, items: nil, components: components, visited: visited)
+            let itemStr = generateDummyJSON(type: items.type, ref: items.ref, properties: nil, required: nil, items: nil, schemas: schemas, visited: visited)
             return "[\(itemStr)]"
         }
         return "[]"
@@ -31,7 +31,7 @@ fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [Str
         let req = required ?? []
         for r in req {
             if let p = properties?[r] {
-                let val = generateDummyJSON(type: p.type, ref: p.ref, properties: p.properties, required: p.required, items: p.items, components: components, visited: visited)
+                let val = generateDummyJSON(type: p.type, ref: p.ref, properties: p.properties, required: p.required, items: p.items, schemas: schemas, visited: visited)
                 dict.append("\"\(r)\": \(val)")
             } else {
                 dict.append("\"\(r)\": \"\"")
@@ -45,7 +45,7 @@ fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [Str
 }
 
 /// Emits XCTest cases based on the OpenAPI Spec.
-public func emitTests(paths: [String: PathItem]?, components: Components? = nil) -> String {
+public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = nil) -> String {
     var output = "import XCTest\n\n"
     
     output += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
@@ -67,6 +67,8 @@ public func emitTests(paths: [String: PathItem]?, components: Components? = nil)
         }
 
 """
+
+    let schemas = document?.components?.schemas ?? document?.definitions
 
     if let paths = paths {
         let sortedPaths = paths.sorted { $0.key < $1.key }
@@ -99,6 +101,16 @@ public func emitTests(paths: [String: PathItem]?, components: Components? = nil)
                         bodyParamName = "multipartData"
                         bodyType = mapType(schema: schema)
                         bodySchema = schema
+                    } else if let globalParams = op.parameters {
+                        for param in globalParams {
+                            if param.in == "body", let schema = param.schema {
+                                hasBodyParam = true
+                                bodyParamName = param.name ?? "body"
+                                bodyType = mapType(schema: schema)
+                                bodySchema = schema
+                                break
+                            }
+                        }
                     }
 
                     var callArgs: [String] = []
@@ -106,6 +118,7 @@ public func emitTests(paths: [String: PathItem]?, components: Components? = nil)
                     // Generate mock params
                     if let params = op.parameters {
                         for param in params {
+                            if param.in == "body" { continue }
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
                             let isRequired = param.required ?? false
@@ -127,12 +140,13 @@ public func emitTests(paths: [String: PathItem]?, components: Components? = nil)
                     
                     // If body parameter is required, create a dummy
                     if hasBodyParam {
-                        let isRequired = op.requestBody?.required ?? false
+                        // Swagger 2.0 has required on the parameter, OpenAPI 3.x has it on requestBody. We default to false but usually dummy is passed if required
+                        let isRequired = op.requestBody?.required ?? true
                         if isRequired {
                             if bodyType == "String" {
                                 callArgs.append("\(bodyParamName): \"test_string\"")
                             } else {
-                                let jsonStr = generateDummyJSON(type: bodySchema?.type, ref: bodySchema?.ref, properties: bodySchema?.properties, required: bodySchema?.required, items: bodySchema?.items, components: components)
+                                let jsonStr = generateDummyJSON(type: bodySchema?.type, ref: bodySchema?.ref, properties: bodySchema?.properties, required: bodySchema?.required, items: bodySchema?.items, schemas: schemas)
                                 let escapedJson = jsonStr.replacingOccurrences(of: "\"", with: "\\\"")
                                 callArgs.append("\(bodyParamName): try! JSONDecoder().decode(\(bodyType).self, from: \"\(escapedJson)\".data(using: .utf8)!)")
                             }

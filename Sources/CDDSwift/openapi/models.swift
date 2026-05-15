@@ -5,7 +5,9 @@ import Foundation
 /// Represents an OpenAPI Document.
 public struct OpenAPIDocument: Codable, Equatable {
     /// Documentation for openapi
-    public let openapi: String
+    public let openapi: String?
+    /// Documentation for swagger
+    public let swagger: String?
     /// Documentation for selfRef
     public let selfRef: String?
     /// Documentation for info
@@ -26,10 +28,31 @@ public struct OpenAPIDocument: Codable, Equatable {
     public let tags: [Tag]?
     /// Documentation for externalDocs
     public let externalDocs: ExternalDocumentation?
+    
+    // Swagger 2.0 properties
+    /// Documentation for host
+    public let host: String?
+    /// Documentation for basePath
+    public let basePath: String?
+    /// Documentation for schemes
+    public let schemes: [String]?
+    /// Documentation for consumes
+    public let consumes: [String]?
+    /// Documentation for produces
+    public let produces: [String]?
+    /// Documentation for definitions
+    public let definitions: [String: Schema]?
+    /// Documentation for parameters
+    public let parameters: [String: Parameter]?
+    /// Documentation for responses
+    public let responses: [String: Response]?
+    /// Documentation for securityDefinitions
+    public let securityDefinitions: [String: SecurityScheme]?
 
     /// Documentation for CodingKeys
     enum CodingKeys: String, CodingKey {
         case openapi
+        case swagger
         case selfRef = "$self"
         case info
         case jsonSchemaDialect
@@ -40,11 +63,21 @@ public struct OpenAPIDocument: Codable, Equatable {
         case security
         case tags
         case externalDocs
+        case host
+        case basePath
+        case schemes
+        case consumes
+        case produces
+        case definitions
+        case parameters
+        case responses
+        case securityDefinitions
     }
 
     /// Documentation for initializer
-    public init(openapi: String, selfRef: String? = nil, info: Info, jsonSchemaDialect: String? = nil, servers: [Server]? = nil, paths: [String: PathItem]? = nil, webhooks: [String: PathItem]? = nil, components: Components? = nil, security: [SecurityRequirement]? = nil, tags: [Tag]? = nil, externalDocs: ExternalDocumentation? = nil) {
+    public init(openapi: String? = nil, swagger: String? = nil, selfRef: String? = nil, info: Info, jsonSchemaDialect: String? = nil, servers: [Server]? = nil, paths: [String: PathItem]? = nil, webhooks: [String: PathItem]? = nil, components: Components? = nil, security: [SecurityRequirement]? = nil, tags: [Tag]? = nil, externalDocs: ExternalDocumentation? = nil, host: String? = nil, basePath: String? = nil, schemes: [String]? = nil, consumes: [String]? = nil, produces: [String]? = nil, definitions: [String: Schema]? = nil, parameters: [String: Parameter]? = nil, responses: [String: Response]? = nil, securityDefinitions: [String: SecurityScheme]? = nil) {
         self.openapi = openapi
+        self.swagger = swagger
         self.selfRef = selfRef
         self.info = info
         self.jsonSchemaDialect = jsonSchemaDialect
@@ -55,6 +88,15 @@ public struct OpenAPIDocument: Codable, Equatable {
         self.security = security
         self.tags = tags
         self.externalDocs = externalDocs
+        self.host = host
+        self.basePath = basePath
+        self.schemes = schemes
+        self.consumes = consumes
+        self.produces = produces
+        self.definitions = definitions
+        self.parameters = parameters
+        self.responses = responses
+        self.securityDefinitions = securityDefinitions
     }
 }
 
