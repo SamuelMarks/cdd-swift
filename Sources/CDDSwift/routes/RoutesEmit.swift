@@ -24,12 +24,13 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         let isArray: Bool
         /// Documentation for isObject
         let isObject: Bool
+        let isRequired: Bool
     }
 
     /// Documentation for queryParams
     var queryParams: [ParamData] = []
     /// Documentation for headerParams
-    var headerParams: [String] = []
+    var headerParams: [(name: String, isRequired: Bool)] = []
 
     if let params = operation.parameters {
         for param in params {
@@ -77,9 +78,9 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                     pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName))")
                 }
             } else if pIn == "query" {
-                queryParams.append(ParamData(name: pName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject))
+                queryParams.append(ParamData(name: pName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject, isRequired: isRequired))
             } else if pIn == "header" {
-                headerParams.append(pName)
+                headerParams.append((name: pName, isRequired: isRequired))
             }
         }
     }
@@ -150,13 +151,17 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "    public func \(funcName)(\(argsString)) async throws -> \(returnType) {\n"
 
     if queryParams.isEmpty {
-        output += "        let url = baseURL.appendingPathComponent(\"\\(String(format: \\\"\(pathInterpolation)\\\"))\")\n"
+        output += "        let url = baseURL.appendingPathComponent(\"\(pathInterpolation)\")\n"
         output += "        var request = URLRequest(url: url)\n"
     } else {
-        output += "        var components = URLComponents(url: baseURL.appendingPathComponent(\"\\(String(format: \\\"\(pathInterpolation)\\\"))\"), resolvingAgainstBaseURL: true)!\n"
+        output += "        var components = URLComponents(url: baseURL.appendingPathComponent(\"\(pathInterpolation)\"), resolvingAgainstBaseURL: true)!\n"
         output += "        var queryItems: [URLQueryItem] = []\n"
         for qp in queryParams {
-            output += "        if let val = \(qp.name) {\n"
+            if qp.isRequired {
+                output += "        let val = \(qp.name)\n"
+            } else {
+                output += "        if let val = \(qp.name) {\n"
+            }
             if qp.isArray {
                 if qp.style == "form" && qp.explode {
                     output += "            for item in val { queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: item))) }\n"
@@ -180,7 +185,9 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             } else {
                 output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: val)))\n"
             }
-            output += "        }\n"
+            if !qp.isRequired {
+                output += "        }\n"
+            }
         }
         output += "        components.queryItems = queryItems.isEmpty ? nil : queryItems\n"
         output += "        if let encodedQuery = components.percentEncodedQuery {\n"
@@ -192,9 +199,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "        request.httpMethod = \"\(method)\"\n"
 
     for hParam in headerParams {
-        output += "        if let val = \(hParam) {\n"
-        output += "            request.setValue(String(describing: val), forHTTPHeaderField: \"\(hParam)\")\n"
-        output += "        }\n"
+        if hParam.isRequired {
+            output += "        let val = \(hParam.name)\n"
+            output += "        request.setValue(String(describing: val), forHTTPHeaderField: \"\(hParam.name)\")\n"
+        } else {
+            output += "        if let val = \(hParam.name) {\n"
+            output += "            request.setValue(String(describing: val), forHTTPHeaderField: \"\(hParam.name)\")\n"
+            output += "        }\n"
+        }
     }
 
     // Evaluate Security Requirements
@@ -288,9 +300,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "        request.httpBody = bodyData\n"
         } else {
             output += "        request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")\n"
-            output += "        if let body = \(bodyParamName) {\n"
-            output += "            request.httpBody = try JSONEncoder().encode(body)\n"
-            output += "        }\n"
+            let isBodyRequired = operation.requestBody?.required ?? false
+            if isBodyRequired {
+                output += "        request.httpBody = try JSONEncoder().encode(\(bodyParamName))\n"
+            } else {
+                output += "        if let body = \(bodyParamName) {\n"
+                output += "            request.httpBody = try JSONEncoder().encode(body)\n"
+                output += "        }\n"
+            }
         }
     }
 

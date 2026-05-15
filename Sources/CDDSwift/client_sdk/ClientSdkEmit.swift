@@ -95,6 +95,7 @@ public enum OpenAPIToSwiftGenerator {
         var clientOutput = "import Foundation\n\n"
         clientOutput += "// MARK: - API Client\n\n"
         clientOutput += emitDocstring("API Client for \(document.info.title) (v\(document.info.version))", indent: 0)
+        clientOutput += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
         clientOutput += "public struct APIClient {\n"
         clientOutput += "    public let baseURL: URL\n"
         clientOutput += "    public let session: URLSession\n"
