@@ -208,7 +208,7 @@ public enum OpenAPIToSwiftGenerator {
             
             // emitTests outputs "import XCTest..." so we can just replace that or append. 
             // It's cleaner to replace the first line to include our imports.
-            let generatedTests = emitTests(paths: document.paths).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
+            let generatedTests = emitTests(paths: document.paths, components: document.components).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
             // Also tests should be open class so they are composable
             let composableTests = generatedTests.replacingOccurrences(of: "final class APIClientTests", with: "open class APIClientTests")
             testsOutput += composableTests
@@ -223,7 +223,7 @@ public enum OpenAPIToSwiftGenerator {
 
             // Generate Tests stub
             clientOutput += "// MARK: - Tests Stub\n\n"
-            clientOutput += emitTests(paths: document.paths)
+            clientOutput += emitTests(paths: document.paths, components: document.components)
             
             files["client.swift"] = clientOutput
         }
