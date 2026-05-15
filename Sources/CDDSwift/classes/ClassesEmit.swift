@@ -57,7 +57,7 @@ public func emitModel(name: String, schema: Schema) -> String {
                 /// Documentation for typeName
                 let typeName = mapType(schema: option)
                 /// Documentation for mappingKey
-                let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" })?.key ?? typeName
+                let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" || $0.value == "#/definitions/\(typeName)" })?.key ?? typeName
                 output += "        case \"\(mappingKey)\":\n"
                 output += "            let singleContainer = try decoder.singleValueContainer()\n"
                 output += "            self = .\(typeName.lowercased())(try singleContainer.decode(\(typeName).self))\n"
