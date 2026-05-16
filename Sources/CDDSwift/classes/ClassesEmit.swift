@@ -32,6 +32,24 @@ public func emitModel(name: String, schema: Schema) -> String {
         return output
     }
 
+    if schema.type == "array" {
+        let swiftType = mapType(schema: schema)
+        output += "public typealias \(name) = \(swiftType)\n"
+        return output
+    }
+
+    if schema.type == "string" || schema.type == "integer" || schema.type == "number" || schema.type == "boolean" {
+        let swiftType = mapType(schema: schema)
+        output += "public typealias \(name) = \(swiftType)\n"
+        return output
+    }
+
+    if schema.type == "object" && schema.properties == nil && schema.additionalProperties != nil {
+        let swiftType = mapType(schema: schema)
+        output += "public typealias \(name) = \(swiftType)\n"
+        return output
+    }
+
     if schema.anyOf != nil || schema.oneOf != nil {
         output += "public enum \(name): Codable, Equatable {\n"
         /// Documentation for options

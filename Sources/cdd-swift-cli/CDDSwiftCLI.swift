@@ -98,11 +98,29 @@ struct ToOpenAPI: AsyncParsableCommand {
     var outputPath: String?
 
     mutating func run() async throws {
-        /// Documentation for sourceCode
-        let sourceCode = try WASIFileHelpers.readString(at: inputPath)
-
         /// Documentation for parser
         let parser = SwiftASTParser()
+
+        var sourceCode = ""
+        if WASIFileHelpers.fileExists(at: inputPath) {
+            sourceCode = try WASIFileHelpers.readString(at: inputPath)
+        } else {
+            // Fallback: If the exact file doesn't exist, check its directory
+            let parentDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent().path
+            if WASIFileHelpers.fileExists(at: parentDir) {
+                let files = try WASIFileHelpers.listDirectory(at: parentDir)
+                for file in files {
+                    if file.hasSuffix(".swift") {
+                        if let content = try? WASIFileHelpers.readString(at: file) {
+                            sourceCode += "\n" + content
+                        }
+                    }
+                }
+            } else {
+                throw NSError(domain: "ToOpenAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Input file or directory not found: \(inputPath)"])
+            }
+        }
+
         /// Documentation for document
         let document = try parser.parseDocument(from: sourceCode)
 

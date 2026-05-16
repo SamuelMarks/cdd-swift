@@ -28,7 +28,7 @@ public struct OpenAPIDocument: Codable, Equatable {
     public let tags: [Tag]?
     /// Documentation for externalDocs
     public let externalDocs: ExternalDocumentation?
-    
+
     // Swagger 2.0 properties
     /// Documentation for host
     public let host: String?

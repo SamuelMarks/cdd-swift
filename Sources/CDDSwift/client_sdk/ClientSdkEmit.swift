@@ -192,7 +192,7 @@ public enum OpenAPIToSwiftGenerator {
         }
 
         var files: [String: String] = [
-            "models.swift": modelsOutput
+            "models.swift": modelsOutput,
         ]
 
         if tests {
@@ -205,15 +205,15 @@ public enum OpenAPIToSwiftGenerator {
             var testsOutput = "import Foundation\n"
             testsOutput += "import GeneratedSDK\n"
             testsOutput += "import GeneratedSDKMocks\n"
-            
-            // emitTests outputs "import XCTest..." so we can just replace that or append. 
+
+            // emitTests outputs "import XCTest..." so we can just replace that or append.
             // It's cleaner to replace the first line to include our imports.
             let generatedTests = emitTests(paths: document.paths, document: document).replacingOccurrences(of: "import XCTest\n", with: "import XCTest\n\n")
             // Also tests should be open class so they are composable
             let composableTests = generatedTests.replacingOccurrences(of: "final class APIClientTests", with: "open class APIClientTests")
             testsOutput += composableTests
             files["tests.swift"] = testsOutput
-            
+
             files["client.swift"] = clientOutput
         } else {
             // Generate Mocks
@@ -224,7 +224,7 @@ public enum OpenAPIToSwiftGenerator {
             // Generate Tests stub
             clientOutput += "// MARK: - Tests Stub\n\n"
             clientOutput += emitTests(paths: document.paths, document: document)
-            
+
             files["client.swift"] = clientOutput
         }
 

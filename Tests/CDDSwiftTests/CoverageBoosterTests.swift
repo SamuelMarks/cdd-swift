@@ -94,12 +94,12 @@ final class CoverageBoosterTests: XCTestCase {
         let code = """
         func testMethod() {}
         func mockTestMethod() {}
-        
+
         func postEvent() {}
         func putEvent() {}
         func deleteEvent() {}
         func patchEvent() {}
-        
+
         protocol PostEventCallbacks { func onEvent() }
         protocol PutEventCallbacks { func onEvent() }
         protocol DeleteEventCallbacks { func onEvent() }

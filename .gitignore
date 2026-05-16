@@ -48,6 +48,7 @@ Temporary Items
 
 # Project specific / temporary scripts / testing artifacts
 *.py
+!scripts/**/*.py
 *.txt
 *.json
 !comprehensive-openapi.json

@@ -1,9 +1,9 @@
 #if canImport(Darwin)
-import Darwin
+    import Darwin
 #elseif canImport(Glibc)
-import Glibc
+    import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+    import WASILibc
 #endif
 
 import Foundation
@@ -41,7 +41,7 @@ enum WASIFileHelpers {
 
         return data
     }
-    
+
     /// Write data to a file using C standard library.
     static func writeFile(data: Data, to path: String) throws {
         guard let file = fopen(path, "wb") else {
@@ -86,7 +86,7 @@ enum WASIFileHelpers {
     static func createDirectory(at path: String) throws {
         /// Documentation for result
         let result = mkdir(path, 0o777)
-        if result != 0 && errno != EEXIST {
+        if result != 0, errno != EEXIST {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not create directory at \(path)"])
         }
     }
