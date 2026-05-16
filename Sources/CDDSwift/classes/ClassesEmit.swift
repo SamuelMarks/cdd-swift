@@ -247,6 +247,7 @@ public func mapType(schema: Schema) -> String {
     case "string":
         if schema.format == "date-time" { return "Date" }
         if schema.format == "uuid" { return "UUID" }
+        if schema.format == "binary" { return "Data" }
         if schema.enum_values != nil { return "String" }
         return "String"
     case "integer": return schema.format == "int64" ? "Int64" : "Int"

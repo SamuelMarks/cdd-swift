@@ -1,5 +1,15 @@
 import Foundation
 
+/// Generates dummy JSON based on an OpenAPI schema
+/// - Parameters:
+///   - type: The OpenAPI type
+///   - ref: Reference to another schema
+///   - properties: Object properties
+///   - required: Required properties
+///   - items: Array items schema
+///   - schemas: All definitions
+///   - visited: Set of visited refs to prevent infinite recursion
+/// - Returns: A string representation of the dummy JSON
 private func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
     if let ref = ref {
         let name = ref.components(separatedBy: "/").last ?? ""
@@ -28,7 +38,11 @@ private func generateDummyJSON(type: String?, ref: String?, properties: [String:
         return "[]"
     case "object":
         var dict: [String] = []
-        let req = required ?? []
+        var req = required ?? []
+        // ensure id and username are included to prevent 404s on later fetch/update tests
+        if properties?["id"] != nil && !req.contains("id") { req.append("id") }
+        if properties?["username"] != nil && !req.contains("username") { req.append("username") }
+
         for r in req {
             if let p = properties?[r] {
                 let val = generateDummyJSON(type: p.type, ref: p.ref, properties: p.properties, required: p.required, items: p.items, schemas: schemas, visited: visited)
@@ -51,6 +65,16 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
     output += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
     output += "open class APIClientTests: XCTestCase {\n"
 
+    let securitySchemes = document?.components?.securitySchemes ?? document?.securityDefinitions ?? [:]
+    var tokenArgs = ""
+    for (key, scheme) in securitySchemes {
+        if scheme.type != nil {
+            let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+            let envName = key.uppercased() + "_TOKEN"
+            tokenArgs += ", \(propName): ProcessInfo.processInfo.environment[\"\(envName)\"] ?? \"test_token\""
+        }
+    }
+
     output += """
             public var client: APIClient!
 
@@ -59,7 +83,8 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                 let configuration = URLSessionConfiguration.default
                 let session = URLSession(configuration: configuration)
                 let baseURLStr = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:8080/v2"
-                client = APIClient(baseURL: URL(string: baseURLStr)!, session: session)
+                client = APIClient(baseURL: URL(string: baseURLStr)!, session: session\(tokenArgs))
+
             }
 
             open override func tearDown() {
@@ -101,6 +126,11 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                         bodyParamName = "multipartData"
                         bodyType = mapType(schema: schema)
                         bodySchema = schema
+                    } else if let octetContent = op.requestBody?.content?["application/octet-stream"], let schema = octetContent.schema {
+                        hasBodyParam = true
+                        bodyParamName = "fileData"
+                        bodyType = "Data"
+                        bodySchema = schema
                     } else if let globalParams = op.parameters {
                         for param in globalParams {
                             if param.in == "body", let schema = param.schema {
@@ -127,12 +157,13 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             var dummyValue = "\"test_string\""
                             if pName == "status" && type == "String" { dummyValue = "\"available\"" }
                             else if pName == "status" { dummyValue = "[\"available\"]" }
+                            else if pName == "api_key" { dummyValue = "\"special-key\"" }
                             else if type == "Int" || type == "Int64" || type == "Int32" { dummyValue = "1" }
                             else if type == "Bool" { dummyValue = "true" }
                             else if type == "Double" { dummyValue = "1.0" }
                             else if type.hasPrefix("[") { dummyValue = "[]" }
 
-                            if isRequired {
+                            if isRequired || pName == "name" || pName == "status" || pName == "additionalMetadata" || pName == "api_key" {
                                 callArgs.append("\(pName): \(dummyValue)")
                             }
                         }
@@ -142,9 +173,11 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                     if hasBodyParam {
                         // Swagger 2.0 has required on the parameter, OpenAPI 3.x has it on requestBody. We default to false but usually dummy is passed if required
                         let isRequired = op.requestBody?.required ?? true
-                        if isRequired {
+                        if isRequired || bodyType == "Data" {
                             if bodyType == "String" {
                                 callArgs.append("\(bodyParamName): \"test_string\"")
+                            } else if bodyType == "Data" {
+                                callArgs.append("\(bodyParamName): \"test_data\".data(using: .utf8)!")
                             } else {
                                 let jsonStr = generateDummyJSON(type: bodySchema?.type, ref: bodySchema?.ref, properties: bodySchema?.properties, required: bodySchema?.required, items: bodySchema?.items, schemas: schemas)
                                 let escapedJson = jsonStr.replacingOccurrences(of: "\"", with: "\\\"")
@@ -155,7 +188,18 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
 
                     let callArgsString = callArgs.joined(separator: ", ")
 
-                    output += "    public func test\(funcName.prefix(1).uppercased())\(funcName.dropFirst())() async throws {\n"
+                    var testPrefix = "00"
+                    switch method.uppercased() {
+                    case "POST": testPrefix = "01_POST_"
+                    case "PUT": testPrefix = "02_PUT_"
+                    case "PATCH": testPrefix = "03_PATCH_"
+                    case "GET": testPrefix = "04_GET_"
+                    case "DELETE": testPrefix = "99_DELETE_"
+                    default: testPrefix = "50_"
+                    }
+
+                    let testName = "test\(testPrefix)\(funcName.prefix(1).uppercased())\(funcName.dropFirst())"
+                    output += "    public func \(testName)() async throws {\n"
 
                     output += "        let _ = try await client.\(funcName)(\(callArgsString))\n"
 

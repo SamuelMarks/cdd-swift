@@ -2,6 +2,7 @@ import Foundation
 
 /// Represents a OpenAPIParser object.
 public enum OpenAPIParser {
+    /// Parses a JSON string into an OpenAPIDocument.
     public static func parse(json: String) throws -> OpenAPIDocument {
         guard let data = json.data(using: .utf8) else {
             throw NSError(domain: "OpenAPIParser", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON string"])
