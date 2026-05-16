@@ -223,33 +223,35 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         output += "        let queryItems: [URLQueryItem] = []\n"
     }
     for qp in queryParams {
+        let safeName = qp.name.replacingOccurrences(of: "`", with: "")
+        let valName = "val_\(safeName)"
         if qp.isRequired {
-            output += "        let val = \(qp.name)\n"
+            output += "        let \(valName) = \(qp.name)\n"
         } else {
-            output += "        if let val = \(qp.name) {\n"
+            output += "        if let \(valName) = \(qp.name) {\n"
         }
         if qp.isArray {
             if qp.style == "form" && qp.explode {
-                output += "            for item in val { queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: item))) }\n"
+                output += "            for item in \(valName) { queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: item))) }\n"
             } else if qp.style == "form" && !qp.explode {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: val.map { String(describing: $0) }.joined(separator: \",\")))\n"
+                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \",\")))\n"
             } else if qp.style == "spaceDelimited" {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: val.map { String(describing: $0) }.joined(separator: \" \")))\n"
+                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \" \")))\n"
             } else if qp.style == "pipeDelimited" {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: val.map { String(describing: $0) }.joined(separator: \"|\")))\n"
+                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \"|\")))\n"
             } else {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: val)))\n"
+                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: \(valName))))\n"
             }
         } else if qp.isObject {
             if qp.style == "deepObject" {
-                output += "            if let dict = val as? [String: Any] {\n"
+                output += "            if let dict = \(valName) as? [String: Any] {\n"
                 output += "                for (k, v) in dict { queryItems.append(URLQueryItem(name: \"\(qp.name)[\\(k)]\", value: String(describing: v))) }\n"
                 output += "            }\n"
             } else {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: val)))\n"
+                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: \(valName))))\n"
             }
         } else {
-            output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: val)))\n"
+            output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: \(valName))))\n"
         }
         if !qp.isRequired {
             output += "        }\n"
@@ -279,12 +281,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "        request.httpMethod = \"\(method)\"\n"
 
     for hParam in headerParams {
+        let safeName = hParam.name.replacingOccurrences(of: "`", with: "")
+        let valName = "val_\(safeName)"
         if hParam.isRequired {
-            output += "        let val = \(hParam.name)\n"
-            output += "        request.setValue(String(describing: val), forHTTPHeaderField: \"\(hParam.name)\")\n"
+            output += "        let \(valName) = \(hParam.name)\n"
+            output += "        request.setValue(String(describing: \(valName)), forHTTPHeaderField: \"\(hParam.name)\")\n"
         } else {
-            output += "        if let val = \(hParam.name) {\n"
-            output += "            request.setValue(String(describing: val), forHTTPHeaderField: \"\(hParam.name)\")\n"
+            output += "        if let \(valName) = \(hParam.name) {\n"
+            output += "            request.setValue(String(describing: \(valName)), forHTTPHeaderField: \"\(hParam.name)\")\n"
             output += "        }\n"
         }
     }
