@@ -71,10 +71,10 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
         if let inputPath = inputPath {
             /// Documentation for url
             let url = URL(fileURLWithPath: inputPath)
-            
+
             /// Documentation for data
             let data = try WASIFileHelpers.readFile(at: inputPath)
-            
+
             /// Documentation for json
             let json = String(data: data, encoding: .utf8) ?? ""
             /// Documentation for document
@@ -88,7 +88,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             for filePath in files {
                 if filePath.hasSuffix(".json") {
                     guard let data = try? WASIFileHelpers.readFile(at: filePath) else { continue }
-                    
+
                     if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
                         /// Documentation for name
                         let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
@@ -214,7 +214,7 @@ struct ToSDK: AsyncParsableCommand {
                         try createDirRecursive(targetDir.path)
                     }
                 }
-                
+
                 let fileUrl = targetDir.appendingPathComponent(filename)
                 try WASIFileHelpers.writeString(code, to: fileUrl.path)
             }

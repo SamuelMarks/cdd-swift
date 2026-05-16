@@ -10,27 +10,24 @@ repos:
     rev: 0.53.5
     hooks:
     -   id: swiftformat
+-   repo: https://github.com/realm/SwiftLint
+    rev: 0.54.0
+    hooks:
+    -   id: swiftlint
 -   repo: local
     hooks:
-    -   id: update-shields
-        name: Update README shields
-        entry: python3 update_shields.py
-        language: python
-        pass_filenames: false
-        always_run: true
--   repo: local
-    hooks:
-    -   id: run-tests
-        name: Run tests
-        entry: swift test
+    -   id: build
+        name: Build
+        entry: swift build
         language: system
         pass_filenames: false
-
-  - repo: local
-    hooks:
-      - id: update-badges
+    -   id: run-tests
+        name: Run tests
+        entry: swift test --enable-code-coverage
+        language: system
+        pass_filenames: false
+    -   id: update-badges
         name: Update Badges
         entry: python3 scripts/update_badges.py
         language: system
-        files: ^README\.md$
         pass_filenames: false

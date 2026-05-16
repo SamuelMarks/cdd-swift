@@ -1,6 +1,6 @@
 import Foundation
 
-fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
+private func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
     if let ref = ref {
         let name = ref.components(separatedBy: "/").last ?? ""
         if visited.contains(name) { return "{}" } // break cycle
@@ -11,7 +11,7 @@ fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [Str
         }
         return "{}"
     }
-    
+
     let t = type ?? "object"
     switch t {
     case "string":
@@ -47,26 +47,26 @@ fileprivate func generateDummyJSON(type: String?, ref: String?, properties: [Str
 /// Emits XCTest cases based on the OpenAPI Spec.
 public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = nil) -> String {
     var output = "import XCTest\n\n"
-    
+
     output += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
     output += "open class APIClientTests: XCTestCase {\n"
-    
+
     output += """
-        public var client: APIClient!
-        
-        open override func setUp() {
-            super.setUp()
-            let configuration = URLSessionConfiguration.default
-            let session = URLSession(configuration: configuration)
-            let baseURLStr = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:8080/v2"
-            client = APIClient(baseURL: URL(string: baseURLStr)!, session: session)
-        }
+            public var client: APIClient!
 
-        open override func tearDown() {
-            super.tearDown()
-        }
+            open override func setUp() {
+                super.setUp()
+                let configuration = URLSessionConfiguration.default
+                let session = URLSession(configuration: configuration)
+                let baseURLStr = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:8080/v2"
+                client = APIClient(baseURL: URL(string: baseURLStr)!, session: session)
+            }
 
-"""
+            open override func tearDown() {
+                super.tearDown()
+            }
+
+    """
 
     let schemas = document?.components?.schemas ?? document?.definitions
 
@@ -80,12 +80,12 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
             for (method, opOpt) in operations {
                 if let op = opOpt {
                     let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
-                    
+
                     var hasBodyParam = false
                     var bodyParamName = ""
                     var bodyType = ""
                     var bodySchema: Schema? = nil
-                    
+
                     if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
                         hasBodyParam = true
                         bodyParamName = "body"
@@ -114,7 +114,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                     }
 
                     var callArgs: [String] = []
-                    
+
                     // Generate mock params
                     if let params = op.parameters {
                         for param in params {
@@ -122,7 +122,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
                             let isRequired = param.required ?? false
-                            
+
                             // Try to provide a dummy value based on type
                             var dummyValue = "\"test_string\""
                             if pName == "status" && type == "String" { dummyValue = "\"available\"" }
@@ -131,13 +131,13 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             else if type == "Bool" { dummyValue = "true" }
                             else if type == "Double" { dummyValue = "1.0" }
                             else if type.hasPrefix("[") { dummyValue = "[]" }
-                            
+
                             if isRequired {
                                 callArgs.append("\(pName): \(dummyValue)")
                             }
                         }
                     }
-                    
+
                     // If body parameter is required, create a dummy
                     if hasBodyParam {
                         // Swagger 2.0 has required on the parameter, OpenAPI 3.x has it on requestBody. We default to false but usually dummy is passed if required
@@ -152,13 +152,13 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             }
                         }
                     }
-                    
+
                     let callArgsString = callArgs.joined(separator: ", ")
 
                     output += "    public func test\(funcName.prefix(1).uppercased())\(funcName.dropFirst())() async throws {\n"
-                    
+
                     output += "        let _ = try await client.\(funcName)(\(callArgsString))\n"
-                    
+
                     output += "    }\n"
                 }
             }

@@ -36,7 +36,7 @@ final class RoutesTests: XCTestCase {
             operationId: "postJson",
             requestBody: RequestBody(
                 content: [
-                    "application/json": MediaType(schema: Schema(type: "object"))
+                    "application/json": MediaType(schema: Schema(type: "object")),
                 ]
             )
         )

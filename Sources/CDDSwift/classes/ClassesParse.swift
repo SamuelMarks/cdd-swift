@@ -207,6 +207,41 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
+    /// Documentation for visit
+    override public func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
+        let name = node.name.text
+        let (schema, _) = parseType(node.initializer.value)
+
+        let description = parseDocstring(from: Syntax(node))
+        var finalSchema = schema
+        if let desc = description {
+            finalSchema = Schema(
+                type: schema.type,
+                properties: schema.properties,
+                additionalProperties: schema.additionalProperties,
+                items: schema.items,
+                prefixItems: schema.prefixItems,
+                required: schema.required,
+                ref: schema.ref,
+                description: desc,
+                format: schema.format,
+                maximum: schema.maximum,
+                minimum: schema.minimum,
+                maxLength: schema.maxLength,
+                minLength: schema.minLength,
+                pattern: schema.pattern,
+                enum_values: schema.enum_values,
+                allOf: schema.allOf,
+                oneOf: schema.oneOf,
+                anyOf: schema.anyOf,
+                discriminator: schema.discriminator
+            )
+        }
+
+        schemas[name] = finalSchema
+        return .skipChildren
+    }
+
     /// Documentation for parseType
     private func parseType(_ type: TypeSyntax) -> (Schema, Bool) {
         if let optType = type.as(OptionalTypeSyntax.self) {
