@@ -255,6 +255,7 @@ import SwiftSyntax
 /// Safely merges generated Swift code into an existing Swift file using AST.
 /// Preserves whitespace and comments.
 public enum SwiftCodeMerger {
+    /// Merges generated Swift code into an existing Swift file using AST.
     public static func merge(generatedCode: String, into destinationSource: String) -> String {
         /// Documentation for destFile
         let destFile = Parser.parse(source: destinationSource)
