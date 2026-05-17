@@ -10,6 +10,10 @@ repos:
     rev: 0.53.5
     hooks:
     -   id: swiftformat
+        name: Auto-format Code (swiftformat)
+    -   id: swiftformat
+        name: Check Code Formatting
+        args: [--lint]
 -   repo: https://github.com/realm/SwiftLint
     rev: 0.54.0
     hooks:
@@ -26,8 +30,24 @@ repos:
         entry: swift test --enable-code-coverage
         language: system
         pass_filenames: false
+    -   id: build-wasm
+        name: Build WASM
+        entry: make build_wasm
+        language: system
+        pass_filenames: false
+    -   id: swagger-2-0-petstore
+        name: Swagger 2.0 Petstore test
+        entry: bash scripts/test_swagger_2_0.sh
+        language: system
+        pass_filenames: false
+    -   id: openapi-3-2-0-petstore
+        name: OpenAPI 3.2.0 Petstore test
+        entry: bash scripts/test_openapi_3_2_0.sh
+        language: system
+        pass_filenames: false
     -   id: update-badges
-        name: Update Badges
+        name: Update Badges (Doc & Test Coverage)
         entry: python3 scripts/update_badges.py
         language: system
         pass_filenames: false
+        always_run: true
