@@ -12,7 +12,7 @@ final class CoverageBoosterTests3: XCTestCase {
                 "missing": Schema(type: "string")
             ], required: ["missing"])
         ]
-        
+
         let paths: [String: PathItem] = [
             "/test": PathItem(
                 get: Operation(

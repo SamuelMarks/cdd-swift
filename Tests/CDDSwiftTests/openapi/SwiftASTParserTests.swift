@@ -24,7 +24,7 @@ final class SwiftASTParserTests: XCTestCase {
         XCTAssertEqual(schemas.count, 1) // Should ignore NotAModel
         XCTAssertNotNil(schemas["User"])
 
-        let userSchema = schemas["User"]!
+        let userSchema = try XCTUnwrap(schemas["User"])
         XCTAssertEqual(userSchema.type, "object")
         XCTAssertEqual(userSchema.required?.count, 3)
         XCTAssertTrue(userSchema.required?.contains("id") ?? false)

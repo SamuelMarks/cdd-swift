@@ -38,7 +38,7 @@ public class MockAPIClient {
 import XCTest
 
 final class APIClientTests: XCTestCase {
-    func testExample() async throws {
+    func testExample() {
         XCTAssertTrue(true)
     }
 }

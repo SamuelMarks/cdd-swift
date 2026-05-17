@@ -22,7 +22,7 @@ final class ClassesTests: XCTestCase {
         let schema = Schema(
             type: "object",
             properties: [
-                "aString": Schema(type: "string", description: "A string prop"),
+                "aString": Schema(type: "string", description: "A string prop")
             ],
             required: ["aString"],
             description: "Test schema"
@@ -45,11 +45,11 @@ final class ClassesTests: XCTestCase {
         let schema = Schema(
             oneOf: [
                 Schema(ref: "#/components/schemas/Dog"),
-                Schema(ref: "#/components/schemas/Cat"),
+                Schema(ref: "#/components/schemas/Cat")
             ],
             discriminator: Discriminator(propertyName: "petType", mapping: [
                 "dog": "#/components/schemas/Dog",
-                "cat": "#/components/schemas/Cat",
+                "cat": "#/components/schemas/Cat"
             ])
         )
         let emitted = emitModel(name: "Pet", schema: schema)

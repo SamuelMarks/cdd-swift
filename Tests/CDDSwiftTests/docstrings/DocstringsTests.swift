@@ -4,13 +4,13 @@ import SwiftSyntax
 import XCTest
 
 final class DocstringsTests: XCTestCase {
-    func testParseDocstring() {
+    func testParseDocstring() throws {
         let source = """
         /// This is a docstring.
         /// It spans two lines.
         struct Example {}
         """
-        let node = Parser.parse(source: source).statements.first!.item
+        let node = try XCTUnwrap(Parser.parse(source: source).statements.first?.item)
         let doc = parseDocstring(from: Syntax(node))
         XCTAssertEqual(doc, "This is a docstring.\nIt spans two lines.")
     }

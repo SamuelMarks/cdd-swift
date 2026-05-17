@@ -119,15 +119,15 @@ public class ModelVisitor: SyntaxVisitor {
                             var (schema, isOptional) = parseType(typeSyntax)
 
                             /// Documentation for min
-                            var min: Double? = nil
+                            var min: Double?
                             /// Documentation for max
-                            var max: Double? = nil
+                            var max: Double?
                             /// Documentation for minLen
-                            var minLen: Int? = nil
+                            var minLen: Int?
                             /// Documentation for maxLen
-                            var maxLen: Int? = nil
+                            var maxLen: Int?
                             /// Documentation for patternStr
-                            var patternStr: String? = nil
+                            var patternStr: String?
 
                             if let attributes = binding.parent?.parent?.as(VariableDeclSyntax.self)?.attributes {
                                 for attr in attributes {

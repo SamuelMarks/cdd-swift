@@ -100,7 +100,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
         for (path, item) in sortedPaths {
             let operations: [(String, Operation?)] = [
                 ("GET", item.get), ("POST", item.post), ("PUT", item.put),
-                ("DELETE", item.delete), ("PATCH", item.patch),
+                ("DELETE", item.delete), ("PATCH", item.patch)
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {
@@ -109,7 +109,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                     var hasBodyParam = false
                     var bodyParamName = ""
                     var bodyType = ""
-                    var bodySchema: Schema? = nil
+                    var bodySchema: Schema?
 
                     if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
                         hasBodyParam = true
@@ -155,13 +155,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
 
                             // Try to provide a dummy value based on type
                             var dummyValue = "\"test_string\""
-                            if pName == "status" && type == "String" { dummyValue = "\"available\"" }
-                            else if pName == "status" { dummyValue = "[\"available\"]" }
-                            else if pName == "api_key" { dummyValue = "\"special-key\"" }
-                            else if type == "Int" || type == "Int64" || type == "Int32" { dummyValue = "1" }
-                            else if type == "Bool" { dummyValue = "true" }
-                            else if type == "Double" { dummyValue = "1.0" }
-                            else if type.hasPrefix("[") { dummyValue = "[]" }
+                            if pName == "status" && type == "String" { dummyValue = "\"available\"" } else if pName == "status" { dummyValue = "[\"available\"]" } else if pName == "api_key" { dummyValue = "\"special-key\"" } else if type == "Int" || type == "Int64" || type == "Int32" { dummyValue = "1" } else if type == "Bool" { dummyValue = "true" } else if type == "Double" { dummyValue = "1.0" } else if type.hasPrefix("[") { dummyValue = "[]" }
 
                             if isRequired || pName == "name" || pName == "status" || pName == "additionalMetadata" || pName == "api_key" {
                                 callArgs.append("\(pName): \(dummyValue)")

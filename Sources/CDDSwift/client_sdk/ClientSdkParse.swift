@@ -13,7 +13,6 @@ public enum OpenAPIParser {
     }
 }
 
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

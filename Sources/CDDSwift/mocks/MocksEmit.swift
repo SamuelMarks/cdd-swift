@@ -13,7 +13,7 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
             /// Documentation for operations
             let operations: [(String, Operation?)] = [
                 ("GET", item.get), ("POST", item.post), ("PUT", item.put),
-                ("DELETE", item.delete), ("PATCH", item.patch),
+                ("DELETE", item.delete), ("PATCH", item.patch)
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {

@@ -54,7 +54,7 @@ public enum DocsJsonGenerator {
                 ("patch", pathItem.patch),
                 ("options", pathItem.options),
                 ("head", pathItem.head),
-                ("trace", pathItem.trace),
+                ("trace", pathItem.trace)
             ]
 
             for (method, operation) in methods {
@@ -64,15 +64,15 @@ public enum DocsJsonGenerator {
                 let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
 
                 /// Documentation for imports
-                var imports: String? = nil
+                var imports: String?
                 if includeImports {
                     imports = "import Foundation"
                 }
 
                 /// Documentation for wrapperStart
-                var wrapperStart: String? = nil
+                var wrapperStart: String?
                 /// Documentation for wrapperEnd
-                var wrapperEnd: String? = nil
+                var wrapperEnd: String?
                 if includeWrapping {
                     wrapperStart = "class APIClient {\n    func \(opName)() async throws {"
                     wrapperEnd = "    }\n}"

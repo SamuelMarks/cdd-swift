@@ -62,12 +62,7 @@ public class RouteVisitor: SyntaxVisitor {
         /// Documentation for pathName
         /// Documentation for pathName
         let pathName = "/" + name
-        if name.lowercased().hasPrefix("get") { method = "get" }
-        else if name.lowercased().hasPrefix("post") { method = "post" }
-        else if name.lowercased().hasPrefix("put") { method = "put" }
-        else if name.lowercased().hasPrefix("delete") { method = "delete" }
-        else if name.lowercased().hasPrefix("patch") { method = "patch" }
-        else { return .skipChildren }
+        if name.lowercased().hasPrefix("get") { method = "get" } else if name.lowercased().hasPrefix("post") { method = "post" } else if name.lowercased().hasPrefix("put") { method = "put" } else if name.lowercased().hasPrefix("delete") { method = "delete" } else if name.lowercased().hasPrefix("patch") { method = "patch" } else { return .skipChildren }
 
         /// Documentation for operationId
         /// Documentation for operationId
@@ -77,7 +72,7 @@ public class RouteVisitor: SyntaxVisitor {
         let description = parseDocstring(from: Syntax(node))
 
         /// Documentation for links
-        var links: [String: Link]? = nil
+        var links: [String: Link]?
         /// Documentation for cleanDescription
         var cleanDescription = description
         if let desc = description, desc.contains("@link") {
@@ -113,7 +108,7 @@ public class RouteVisitor: SyntaxVisitor {
         var parameters: [Parameter] = []
         /// Documentation for requestBody
         /// Documentation for requestBody
-        var requestBody: RequestBody? = nil
+        var requestBody: RequestBody?
 
         for param in node.signature.parameterClause.parameters {
             /// Documentation for pName

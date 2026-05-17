@@ -86,7 +86,7 @@ final class CoverageBoosterTests: XCTestCase {
         XCTAssertNotNil(visitor.paths["/patchItems"])
     }
 
-    func testClientSdkParse() {
+    func testClientSdkParse() throws {
         do {
             _ = try OpenAPIParser.parse(json: "{ invalid json")
         } catch {}
@@ -105,7 +105,7 @@ final class CoverageBoosterTests: XCTestCase {
         protocol DeleteEventCallbacks { func onEvent() }
         protocol PatchEventCallbacks { func onEvent() }
         """
-        let doc = try! SwiftASTParser().parseDocument(from: code)
+        let doc = try SwiftASTParser().parseDocument(from: code)
         XCTAssertNotNil(doc)
     }
 
@@ -114,10 +114,10 @@ final class CoverageBoosterTests: XCTestCase {
         let schema2 = Schema(type: "array")
         let schema3 = Schema(type: "object", additionalProperties: SchemaItem(ref: "#/components/schemas/User"))
         let schema5 = Schema(type: "object", additionalProperties: nil)
-        let _ = emitModel(name: "Test1", schema: schema1)
-        let _ = emitModel(name: "Test2", schema: schema2)
-        let _ = emitModel(name: "Test3", schema: schema3)
-        let _ = emitModel(name: "Test5", schema: schema5)
+        _ = emitModel(name: "Test1", schema: schema1)
+        _ = emitModel(name: "Test2", schema: schema2)
+        _ = emitModel(name: "Test3", schema: schema3)
+        _ = emitModel(name: "Test5", schema: schema5)
     }
 
     func testModelsCoverage() {
@@ -149,20 +149,21 @@ final class CoverageBoosterTests: XCTestCase {
         _ = Reference(ref: "")
         _ = EncodingObject() == EncodingObject()
     }
+
     func testExtraClassesEmit() {
         let schemaEnum = Schema(type: "string", enum_values: [AnyCodable("val1"), AnyCodable("val2")])
         _ = emitModel(name: "TestEnum", schema: schemaEnum)
         _ = mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(ref: nil)))
     }
 
-    func testExtraClassesParse() {
+    func testExtraClassesParse() throws {
         let code = """
         /// Test model doc
         struct TestModel {
             enum CodingKeys: String, CodingKey { case a }
         }
         """
-        _ = try! SwiftASTParser().parseDocument(from: code)
+        _ = try SwiftASTParser().parseDocument(from: code)
     }
 
     func testExtraTestsEmit() {
@@ -173,9 +174,9 @@ final class CoverageBoosterTests: XCTestCase {
     func testExtraClientSdkEmit() {
         let doc = OpenAPIDocument(openapi: "3.0", info: Info(title: "test", version: "1"), paths: ["/path": PathItem(get: Operation(operationId: "get"))], security: [["auth": []]])
         _ = OpenAPIDocumentBuilder(title: "test", version: "1").addWebhook("hook", item: PathItem()).addSecurityScheme("scheme", scheme: SecurityScheme(type: "http", scheme: "bearer")).build()
-        
+
         let files = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
-        
+
         let gen = """
         enum MyEnum {}
         protocol MyProto {}
@@ -199,7 +200,7 @@ final class CoverageBoosterTests: XCTestCase {
         let syntax = Parser.parse(source: cliParseCode)
         let visitor = CliVisitor(viewMode: .all)
         visitor.walk(syntax)
-        
+
         let doc1 = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(get: Operation())])
         let doc2 = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(post: Operation())])
     }
@@ -223,7 +224,7 @@ final class CoverageBoosterTests: XCTestCase {
             "apiKeyAuth": SecurityScheme(type: "apiKey", name: "X-API-KEY", in: "header"),
             "apiKeyQuery": SecurityScheme(type: "apiKey", name: "api_key", in: "query")
         ]
-        _ = emitMethod(path: "/path/{id}/{id2}/{id3}", method: "POST", operation: op, documentSecurity: [["bearerAuth":[]], ["apiKeyAuth":[]], ["apiKeyQuery":[]]], securitySchemes: schemes)
+        _ = emitMethod(path: "/path/{id}/{id2}/{id3}", method: "POST", operation: op, documentSecurity: [["bearerAuth": []], ["apiKeyAuth": []], ["apiKeyQuery": []]], securitySchemes: schemes)
 
         let op2 = Operation(
             operationId: "uploadFile",
@@ -242,17 +243,17 @@ final class CoverageBoosterTests: XCTestCase {
     func testCoverage100() {
         // ClientSdkCliEmit empty subcommands
         _ = emitSDKCLI(document: OpenAPIDocument(openapi: "3", info: Info(title: "x", version: "1")))
-        
+
         // ClassesEmit
         let schemaDoc = Schema(maxLength: 10, pattern: "^A")
         _ = emitModel(name: "ValidationModel", schema: schemaDoc)
-        
+
         let schemaArr = Schema(type: "array", items: SchemaItem(type: "string"))
         _ = emitModel(name: "ArrModel", schema: schemaArr)
-        
+
         let schemaStr = Schema(type: "string")
         _ = emitModel(name: "StrModel", schema: schemaStr)
-        
+
         let schemaDict = Schema(type: "object", additionalProperties: SchemaItem(type: "string"))
         _ = emitModel(name: "DictModel", schema: schemaDict)
 
@@ -276,6 +277,7 @@ final class CoverageBoosterTests: XCTestCase {
         """
         _ = try? SwiftASTParser().parseModels(from: classParseCode)
     }
+
     func testExtraTestsEmit2() {
         let op = Operation(
             operationId: "uploadFile2",
@@ -292,6 +294,7 @@ final class CoverageBoosterTests: XCTestCase {
         )
         _ = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
     }
+
     func testClientSdkMerge() throws {
         let code = """
         func getusers() {}
@@ -299,6 +302,7 @@ final class CoverageBoosterTests: XCTestCase {
         """
         _ = try SwiftASTParser().parseDocument(from: code)
     }
+
     func testExtraRoutesEmit3() {
         let op = Operation(
             operationId: "megaOp",
@@ -315,8 +319,9 @@ final class CoverageBoosterTests: XCTestCase {
         let schemes = [
             "bearerAuth": SecurityScheme(type: "http", scheme: "bearer")
         ]
-        _ = emitMethod(path: "/path/{p1}/{p2}/{p3}", method: "POST", operation: op, documentSecurity: [["bearerAuth":[]]], securitySchemes: schemes)
+        _ = emitMethod(path: "/path/{p1}/{p2}/{p3}", method: "POST", operation: op, documentSecurity: [["bearerAuth": []]], securitySchemes: schemes)
     }
+
     func testExtraRoutesEmit4() {
         let op = Operation(
             operationId: "megaOp2",
@@ -331,8 +336,9 @@ final class CoverageBoosterTests: XCTestCase {
         let schemes = [
             "oauth": SecurityScheme(type: "oauth2")
         ]
-        _ = emitMethod(path: "/path/{p_nostyle}", method: "POST", operation: op, documentSecurity: [["oauth":[]]], securitySchemes: schemes)
+        _ = emitMethod(path: "/path/{p_nostyle}", method: "POST", operation: op, documentSecurity: [["oauth": []]], securitySchemes: schemes)
     }
+
     func testExtraTestsEmit3() {
         let op = Operation(
             operationId: "op3",
@@ -344,7 +350,7 @@ final class CoverageBoosterTests: XCTestCase {
             openapi: "3", info: Info(title: "", version: ""), paths: ["/": PathItem(post: op)]
         )
         _ = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
-        
+
         // Let's call generateDummyJSON through emitTests with array and primitives
         let op4 = Operation(
             operationId: "op4",
@@ -355,6 +361,7 @@ final class CoverageBoosterTests: XCTestCase {
         )
         _ = emitTests(paths: ["/4": PathItem(post: op4)], document: doc4)
     }
+
     func testExtraClientSdkEmit2() {
         let op = Operation(operationId: "get")
         let item = PathItem(additionalOperations: ["trace": op])

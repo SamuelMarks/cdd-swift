@@ -12,7 +12,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
 
         // 1. Full Output
         let fullJsonStr = DocsJsonGenerator.generate(from: document, includeImports: true, includeWrapping: true)
-        let fullData = fullJsonStr.data(using: .utf8)!
+        let fullData = try XCTUnwrap(fullJsonStr.data(using: .utf8))
         let fullOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: fullData)
 
         XCTAssertEqual(fullOutputs.count, 1)
@@ -27,7 +27,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
 
         // 2. No Imports
         let noImportsJsonStr = DocsJsonGenerator.generate(from: document, includeImports: false, includeWrapping: true)
-        let noImportsData = noImportsJsonStr.data(using: .utf8)!
+        let noImportsData = try XCTUnwrap(noImportsJsonStr.data(using: .utf8))
         let noImportsOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: noImportsData)
 
         let noImportsCode = noImportsOutputs[0].operations[0].code
@@ -37,7 +37,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
 
         // 3. No Wrapping
         let noWrappingJsonStr = DocsJsonGenerator.generate(from: document, includeImports: true, includeWrapping: false)
-        let noWrappingData = noWrappingJsonStr.data(using: .utf8)!
+        let noWrappingData = try XCTUnwrap(noWrappingJsonStr.data(using: .utf8))
         let noWrappingOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: noWrappingData)
 
         let noWrappingCode = noWrappingOutputs[0].operations[0].code
@@ -47,7 +47,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
 
         // 4. No Imports & No Wrapping
         let minJsonStr = DocsJsonGenerator.generate(from: document, includeImports: false, includeWrapping: false)
-        let minData = minJsonStr.data(using: .utf8)!
+        let minData = try XCTUnwrap(minJsonStr.data(using: .utf8))
         let minOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: minData)
 
         let minCode = minOutputs[0].operations[0].code
@@ -57,7 +57,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
         XCTAssertTrue(minCode.snippet.contains("URLSession"))
         // 5. Default Arguments
         let defaultJsonStr = DocsJsonGenerator.generate(from: document)
-        let defaultData = defaultJsonStr.data(using: .utf8)!
+        let defaultData = try XCTUnwrap(defaultJsonStr.data(using: .utf8))
         let defaultOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: defaultData)
         XCTAssertEqual(defaultOutputs.count, 1)
         XCTAssertEqual(defaultOutputs[0].operations.count, 2)

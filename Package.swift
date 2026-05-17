@@ -7,7 +7,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0"),
     .package(url: "https://github.com/httpswift/swifter.git", from: "1.5.0"),
-    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0")
 ]
 
 let package = Package(
@@ -17,11 +17,11 @@ let package = Package(
         .macCatalyst(.v13),
         .iOS(.v13),
         .tvOS(.v13),
-        .watchOS(.v6),
+        .watchOS(.v6)
     ],
     products: [
         .library(name: "CDDSwift", targets: ["CDDSwift"]),
-        .executable(name: "cdd-swift", targets: ["cdd-swift-cli"]),
+        .executable(name: "cdd-swift", targets: ["cdd-swift-cli"])
     ],
     dependencies: dependencies,
     targets: [
@@ -29,7 +29,7 @@ let package = Package(
             name: "CDDSwift",
             dependencies: [
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
-                .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax")
             ]
         ),
         .executableTarget(
@@ -37,12 +37,12 @@ let package = Package(
             dependencies: [
                 "CDDSwift",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Swifter", package: "swifter", condition: .when(platforms: [.macOS, .macCatalyst, .linux, .windows, .iOS, .tvOS, .watchOS, .android, .openbsd])),
+                .product(name: "Swifter", package: "swifter", condition: .when(platforms: [.macOS, .macCatalyst, .linux, .windows, .iOS, .tvOS, .watchOS, .android, .openbsd]))
             ]
         ),
         .testTarget(
             name: "CDDSwiftTests",
             dependencies: ["CDDSwift"]
-        ),
+        )
     ]
 )

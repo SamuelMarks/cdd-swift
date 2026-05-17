@@ -7,7 +7,7 @@ final class CoverageBoosterTests2: XCTestCase {
         struct Uncodable {}
         let any = AnyCodable(Uncodable())
         XCTAssertThrowsError(try JSONEncoder().encode(any))
-        
+
         let any2 = AnyCodable(AnyCodable(1))
         _ = try? JSONEncoder().encode(any2)
     }
