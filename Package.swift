@@ -1,6 +1,14 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
+import Foundation
+
+var dependencies: [Package.Dependency] = [
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0"),
+    .package(url: "https://github.com/httpswift/swifter.git", from: "1.5.0"),
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
+]
 
 let package = Package(
     name: "CDDSwift",
@@ -15,12 +23,7 @@ let package = Package(
         .library(name: "CDDSwift", targets: ["CDDSwift"]),
         .executable(name: "cdd-swift", targets: ["cdd-swift-cli"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0"),
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
-        .package(url: "https://github.com/httpswift/swifter.git", from: "1.5.0"),
-    ],
+    dependencies: dependencies,
     targets: [
         .target(
             name: "CDDSwift",
