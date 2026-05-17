@@ -12,7 +12,7 @@ final class CDDSwiftTests: XCTestCase {
             "bool": AnyCodable(true),
             "null": AnyCodable(NSNull()),
             "array": AnyCodable([1, 2]),
-            "dict": AnyCodable(["key": "value"]),
+            "dict": AnyCodable(["key": "value"])
         ]
 
         let encoder = JSONEncoder()

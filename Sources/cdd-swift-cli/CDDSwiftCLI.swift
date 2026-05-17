@@ -18,7 +18,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
                 let argName = key.dropFirst("CDD_SWIFT_".count).lowercased().replacingOccurrences(of: "_", with: "-")
                 /// flag
                 let flag = "--\(argName)"
-                if !args.contains(flag) && !args.contains(where: { $0.starts(with: "\(flag)=") }) {
+                if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
                     if value.lowercased() == "true" {
                         args.append(flag)
                     } else if value.lowercased() != "false" {
@@ -165,7 +165,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
                 type: "object",
                 properties: [
                     "id": Schema(type: "string"),
-                    "name": Schema(type: "string"),
+                    "name": Schema(type: "string")
                 ],
                 required: ["id", "name"]
             ))

@@ -71,9 +71,7 @@ public class OpenAPIDocumentBuilder {
     }
 }
 
-import Foundation
-
-/// A utility to generate Swift code from an OpenAPI Document.
+/// OpenAPIToSwiftGenerator generates swift SDK files from openapi models.
 public enum OpenAPIToSwiftGenerator {
     /// Generates Swift files from the given OpenAPI document.
     /// - Parameter document: The OpenAPI document to process.
@@ -192,7 +190,7 @@ public enum OpenAPIToSwiftGenerator {
         }
 
         var files: [String: String] = [
-            "models.swift": modelsOutput,
+            "models.swift": modelsOutput
         ]
 
         if tests {
@@ -248,7 +246,6 @@ public enum OpenAPIToSwiftGenerator {
     }
 }
 
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

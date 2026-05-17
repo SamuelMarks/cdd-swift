@@ -20,7 +20,7 @@ final class RoutesTests: XCTestCase {
             operationId: "postForm",
             requestBody: RequestBody(
                 content: [
-                    "application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object")),
+                    "application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object"))
                 ]
             )
         )
@@ -36,7 +36,7 @@ final class RoutesTests: XCTestCase {
             operationId: "postJson",
             requestBody: RequestBody(
                 content: [
-                    "application/json": MediaType(schema: Schema(type: "object")),
+                    "application/json": MediaType(schema: Schema(type: "object"))
                 ]
             )
         )

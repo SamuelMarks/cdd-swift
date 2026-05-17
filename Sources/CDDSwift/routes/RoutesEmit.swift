@@ -94,7 +94,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     /// Documentation for isOctetStream
     var isOctetStream = false
     /// Documentation for multipartEncodings
-    var multipartEncodings: [String: EncodingObject]? = nil
+    var multipartEncodings: [String: EncodingObject]?
 
     if let reqBody = operation.requestBody {
         if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
@@ -153,48 +153,48 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     if operation.operationId == "updatePetWithForm" {
         queryParams.removeAll { $0.name == "name" || $0.name == "status" }
         customBody = """
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        var formComponents: [String] = []
-        let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
-        if let val = name {
-            if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
-                formComponents.append("name=\\(encoded)")
-            } else {
-                formComponents.append("name=\\(val)")
-            }
-        }
-        if let val = status {
-            if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
-                formComponents.append("status=\\(encoded)")
-            } else {
-                formComponents.append("status=\\(val)")
-            }
-        }
-        request.httpBody = formComponents.joined(separator: "&").data(using: .utf8)
-"""
+                request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+                var formComponents: [String] = []
+                let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+                if let val = name {
+                    if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
+                        formComponents.append("name=\\(encoded)")
+                    } else {
+                        formComponents.append("name=\\(val)")
+                    }
+                }
+                if let val = status {
+                    if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
+                        formComponents.append("status=\\(encoded)")
+                    } else {
+                        formComponents.append("status=\\(val)")
+                    }
+                }
+                request.httpBody = formComponents.joined(separator: "&").data(using: .utf8)
+        """
     } else if operation.operationId == "uploadFile" {
         queryParams.removeAll { $0.name == "additionalMetadata" }
         let fileParam = bodyParamName.isEmpty ? "file" : bodyParamName
         customBody = """
-        let boundary = UUID().uuidString
-        request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
-        var bodyData = Data()
-        if let val = additionalMetadata {
-            bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
-            bodyData.append("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".data(using: .utf8)!)
-            bodyData.append("\\(val)\\r\\n".data(using: .utf8)!)
-        }
-        if let fileValue = \(fileParam) {
-            let fileData = (fileValue as Any) as? Data ?? String(describing: fileValue).data(using: .utf8)!
-            bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
-            bodyData.append("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".data(using: .utf8)!)
-            bodyData.append("Content-Type: application/octet-stream\\r\\n\\r\\n".data(using: .utf8)!)
-            bodyData.append(fileData)
-            bodyData.append("\\r\\n".data(using: .utf8)!)
-        }
-        bodyData.append("--\\(boundary)--\\r\\n".data(using: .utf8)!)
-        request.httpBody = bodyData
-"""
+                let boundary = UUID().uuidString
+                request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
+                var bodyData = Data()
+                if let val = additionalMetadata {
+                    bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
+                    bodyData.append("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".data(using: .utf8)!)
+                    bodyData.append("\\(val)\\r\\n".data(using: .utf8)!)
+                }
+                if let fileValue = \(fileParam) {
+                    let fileData = (fileValue as Any) as? Data ?? String(describing: fileValue).data(using: .utf8)!
+                    bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
+                    bodyData.append("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".data(using: .utf8)!)
+                    bodyData.append("Content-Type: application/octet-stream\\r\\n\\r\\n".data(using: .utf8)!)
+                    bodyData.append(fileData)
+                    bodyData.append("\\r\\n".data(using: .utf8)!)
+                }
+                bodyData.append("--\\(boundary)--\\r\\n".data(using: .utf8)!)
+                request.httpBody = bodyData
+        """
     }
 
     /// Documentation for output
@@ -487,7 +487,7 @@ public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -
             /// Documentation for methods
             let methods: [(String, Operation?)] = [
                 ("GET", pathItem.get), ("POST", pathItem.post), ("PUT", pathItem.put),
-                ("DELETE", pathItem.delete), ("PATCH", pathItem.patch),
+                ("DELETE", pathItem.delete), ("PATCH", pathItem.patch)
             ]
             for (_, opOpt) in methods {
                 if let op = opOpt {

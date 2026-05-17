@@ -18,7 +18,7 @@ public func emitServer(document: OpenAPIDocument) -> String {
             let methods = [
                 ("get", item.get), ("post", item.post),
                 ("put", item.put), ("delete", item.delete),
-                ("patch", item.patch),
+                ("patch", item.patch)
             ]
 
             for (method, opOptional) in methods {

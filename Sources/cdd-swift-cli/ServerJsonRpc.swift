@@ -78,7 +78,7 @@
                     let response: [String: Any] = [
                         "jsonrpc": "2.0",
                         "result": output,
-                        "id": id,
+                        "id": id
                     ]
                     /// Documentation for respData
                     let respData = try? JSONSerialization.data(withJSONObject: response)
@@ -88,7 +88,7 @@
                     let errorResponse: [String: Any] = [
                         "jsonrpc": "2.0",
                         "error": ["code": -32603, "message": error.localizedDescription],
-                        "id": id,
+                        "id": id
                     ]
                     /// Documentation for respData
                     let respData = try? JSONSerialization.data(withJSONObject: errorResponse)

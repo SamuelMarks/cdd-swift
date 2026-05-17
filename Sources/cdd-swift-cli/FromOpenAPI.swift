@@ -59,7 +59,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     var testsMocks: Bool = false
 
     mutating func validate() throws {
-        if inputPath == nil && inputDir == nil {
+        if inputPath == nil, inputDir == nil {
             throw ValidationError("Please provide either --input or --input-dir.")
         }
     }
@@ -203,7 +203,7 @@ struct ToSDK: AsyncParsableCommand {
             for (filename, code) in files {
                 /// Documentation for fileUrl
                 var targetDir = docDir
-                if options.testsMocks && !options.noInstallablePackage {
+                if options.testsMocks, !options.noInstallablePackage {
                     if filename == "mocks.swift" {
                         targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKMocks")
                         if docs.count > 1 { targetDir = targetDir.appendingPathComponent(name) }

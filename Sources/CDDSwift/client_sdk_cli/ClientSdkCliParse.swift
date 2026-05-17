@@ -74,10 +74,7 @@ public class CliVisitor: SyntaxVisitor {
 
                 /// Documentation for method
                 var method = "post"
-                if opId.hasPrefix("get") { method = "get" }
-                else if opId.hasPrefix("put") { method = "put" }
-                else if opId.hasPrefix("delete") { method = "delete" }
-                else if opId.hasPrefix("patch") { method = "patch" }
+                if opId.hasPrefix("get") { method = "get" } else if opId.hasPrefix("put") { method = "put" } else if opId.hasPrefix("delete") { method = "delete" } else if opId.hasPrefix("patch") { method = "patch" }
 
                 /// Documentation for path
                 let path = "/" + opId
@@ -87,11 +84,7 @@ public class CliVisitor: SyntaxVisitor {
 
                 /// Documentation for pathItem
                 var pathItem = paths[path] ?? PathItem()
-                if method == "get" { pathItem.get = operation }
-                else if method == "put" { pathItem.put = operation }
-                else if method == "delete" { pathItem.delete = operation }
-                else if method == "patch" { pathItem.patch = operation }
-                else { pathItem.post = operation }
+                if method == "get" { pathItem.get = operation } else if method == "put" { pathItem.put = operation } else if method == "delete" { pathItem.delete = operation } else if method == "patch" { pathItem.patch = operation } else { pathItem.post = operation }
 
                 paths[path] = pathItem
             }
