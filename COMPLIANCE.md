@@ -23,4 +23,4 @@ The codebase is engineered directly against `3.2.0.md` and achieves robust compl
 - Links / Callbacks: ✅ Supported
 - Webhooks: ✅ Supported
 
-Further iterations will ensure edge cases for JSON Schema and OpenAPI 3.2.0 changes are completely covered as the spec matures.
+Further iterations will ensure edge cases for JSON Schema and Swagger 2.0 and OpenAPI 3.2.0 changes are completely covered as the spec matures.
