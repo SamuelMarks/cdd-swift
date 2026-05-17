@@ -110,3 +110,7 @@ $RECYCLE.BIN/
 coverage_report/
 test_out/
 DerivedData/
+
+# Integration testing directories
+cdd-swift-client/
+cdd-swift-client-*/
