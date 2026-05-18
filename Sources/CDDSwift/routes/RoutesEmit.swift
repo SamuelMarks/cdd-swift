@@ -136,6 +136,21 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             isOctetStream = true
             args.append("fileData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         }
+    } else if let params = operation.parameters {
+        for param in params {
+            if param.in == "body", let schema = param.schema {
+                let type = mapType(schema: schema)
+                let isRequired = param.required ?? false
+                let optionalSuffix = isRequired ? "" : "?"
+                let pName = param.name ?? "body"
+                bodyParamName = pName
+                // Don't re-append if already added as a generic param
+                if !args.contains(where: { $0.starts(with: "\(pName):") }) {
+                    args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
+                }
+                break
+            }
+        }
     }
 
     /// Documentation for returnType
@@ -439,7 +454,10 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             }
         } else {
             output += "        request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")\n"
-            let isBodyRequired = operation.requestBody?.required ?? false
+            var isBodyRequired = operation.requestBody?.required ?? false
+            if !isBodyRequired, let params = operation.parameters, params.contains(where: { $0.in == "body" && ($0.required ?? false) }) {
+                isBodyRequired = true
+            }
             if isBodyRequired {
                 output += "        request.httpBody = try JSONEncoder().encode(\(bodyParamName))\n"
             } else {
