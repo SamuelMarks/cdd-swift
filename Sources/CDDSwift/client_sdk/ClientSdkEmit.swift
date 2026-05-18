@@ -79,7 +79,7 @@ public enum OpenAPIToSwiftGenerator {
     /// - Returns: A dictionary of filenames to their generated Swift source code.
     public static func generateFiles(from document: OpenAPIDocument, tests: Bool = false) -> [String: String] {
         /// Documentation for modelsOutput
-        var modelsOutput = "import Foundation\n\n"
+        var modelsOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
         modelsOutput += "// MARK: - Models\n\n"
         if let schemas = document.components?.schemas ?? document.definitions {
             /// Documentation for sortedSchemas
@@ -91,7 +91,7 @@ public enum OpenAPIToSwiftGenerator {
         }
 
         /// Documentation for clientOutput
-        var clientOutput = "import Foundation\n\n"
+        var clientOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
         clientOutput += "// MARK: - API Client\n\n"
         clientOutput += emitDocstring("API Client for \(document.info.title) (v\(document.info.version))", indent: 0)
         clientOutput += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
@@ -189,13 +189,13 @@ public enum OpenAPIToSwiftGenerator {
         ]
 
         if tests {
-            var mocksOutput = "import Foundation\n"
+            var mocksOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n"
             // Wait, since we are inside GeneratedSDKMocks, we need to import GeneratedSDK
             mocksOutput += "import GeneratedSDK\n\n"
             mocksOutput += emitMockClient(paths: document.paths)
             files["mocks.swift"] = mocksOutput
 
-            var testsOutput = "import Foundation\n"
+            var testsOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n"
             testsOutput += "import GeneratedSDK\n"
             testsOutput += "import GeneratedSDKMocks\n"
 
@@ -236,7 +236,7 @@ public enum OpenAPIToSwiftGenerator {
         let client = files["client.swift"] ?? ""
         // Strip the redundant "import Foundation\n\n" from the client file
         /// Documentation for clientStripped
-        let clientStripped = client.replacingOccurrences(of: "import Foundation\n\n", with: "")
+        let clientStripped = client.replacingOccurrences(of: "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n", with: "")
         return models + "\n" + clientStripped
     }
 }

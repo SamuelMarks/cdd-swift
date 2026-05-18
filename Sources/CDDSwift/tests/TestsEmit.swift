@@ -63,7 +63,7 @@ private func generateDummyJSON(type: String?, ref: String?, properties: [String:
 
 /// Emits XCTest cases based on the OpenAPI Spec.
 public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = nil) -> String {
-    var output = "import XCTest\n\n"
+    var output = "import XCTest\nimport Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
 
     output += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
     output += "open class APIClientTests: XCTestCase {\n"
