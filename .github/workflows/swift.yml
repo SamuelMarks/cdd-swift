@@ -50,6 +50,7 @@ jobs:
         fi
 
     - name: Swagger 2.0 Petstore test
+      if: runner.os == 'Linux'
       run: |
         docker run -d -p 8080:8080 -e SWAGGER_HOST="http://localhost:8080" -e SWAGGER_BASE_PATH="/v2" --name petstore_server swaggerapi/petstore >/dev/null || true
         sleep 5
@@ -59,6 +60,7 @@ jobs:
         docker rm -f petstore_server || true
 
     - name: OpenAPI 3.2.0 Petstore test
+      if: runner.os == 'Linux'
       run: |
         docker run -d -p 8080:8080 -e SWAGGER_HOST="http://localhost:8080" -e SWAGGER_BASE_PATH="/api/v3" --name petstore_server swaggerapi/petstore >/dev/null || true
         sleep 5
