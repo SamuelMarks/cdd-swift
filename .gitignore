@@ -113,7 +113,7 @@ DerivedData/
 # Integration testing directories
 cdd-swift-client/
 cdd-swift-client-*/
-\n*.yaml
-petstore_oas3.yaml
-\n!*.yaml\n*.yaml\n
+
+# Test artifacts
+*.yaml
 petstore_oas3.json

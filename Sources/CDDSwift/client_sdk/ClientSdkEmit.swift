@@ -75,6 +75,7 @@ public class OpenAPIDocumentBuilder {
 public enum OpenAPIToSwiftGenerator {
     /// Generates Swift files from the given OpenAPI document.
     /// - Parameter document: The OpenAPI document to process.
+    /// - Parameter tests: A boolean flag indicating whether to generate tests along with the SDK files.
     /// - Returns: A dictionary of filenames to their generated Swift source code.
     public static func generateFiles(from document: OpenAPIDocument, tests: Bool = false) -> [String: String] {
         /// Documentation for modelsOutput

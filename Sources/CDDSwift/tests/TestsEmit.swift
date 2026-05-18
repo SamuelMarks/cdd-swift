@@ -58,6 +58,7 @@ private func generateDummyJSON(type: String?, ref: String?, properties: [String:
         return "{}"
     }
 }
+
 // swiftlint:enable function_parameter_count
 
 /// Emits XCTest cases based on the OpenAPI Spec.
