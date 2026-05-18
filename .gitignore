@@ -76,8 +76,7 @@ Temporary Items
 *.profdata
 *.gcda
 *.gcno
-
-# Logs and databases
+coverage_report/
 *.log
 *.sqlite
 *.sqlite3
