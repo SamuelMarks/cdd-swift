@@ -12,19 +12,17 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         let env = ProcessInfo.processInfo.environment
 
         // Map env vars like CDD_SWIFT_PORT to --port
-        for (key, value) in env {
-            if key.hasPrefix("CDD_SWIFT_") {
-                /// argName
-                let argName = key.dropFirst("CDD_SWIFT_".count).lowercased().replacingOccurrences(of: "_", with: "-")
-                /// flag
-                let flag = "--\(argName)"
-                if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
-                    if value.lowercased() == "true" {
-                        args.append(flag)
-                    } else if value.lowercased() != "false" {
-                        args.append(flag)
-                        args.append(value)
-                    }
+        for (key, value) in env where key.hasPrefix("CDD_SWIFT_") {
+            /// argName
+            let argName = key.dropFirst("CDD_SWIFT_".count).lowercased().replacingOccurrences(of: "_", with: "-")
+            /// flag
+            let flag = "--\(argName)"
+            if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
+                if value.lowercased() == "true" {
+                    args.append(flag)
+                } else if value.lowercased() != "false" {
+                    args.append(flag)
+                    args.append(value)
                 }
             }
         }
@@ -109,11 +107,9 @@ struct ToOpenAPI: AsyncParsableCommand {
             let parentDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent().path
             if WASIFileHelpers.fileExists(at: parentDir) {
                 let files = try WASIFileHelpers.listDirectory(at: parentDir)
-                for file in files {
-                    if file.hasSuffix(".swift") {
-                        if let content = try? WASIFileHelpers.readString(at: file) {
-                            sourceCode += "\n" + content
-                        }
+                for file in files where file.hasSuffix(".swift") {
+                    if let content = try? WASIFileHelpers.readString(at: file) {
+                        sourceCode += "\n" + content
                     }
                 }
             } else {

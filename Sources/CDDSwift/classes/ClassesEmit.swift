@@ -141,7 +141,7 @@ public func emitModel(name: String, schema: Schema) -> String {
     }
 
     output += "public struct \(name): Codable, Equatable {\n"
-    /// Documentation for allProperties
+    // swiftlint:disable:next large_tuple
     var allProperties: [(name: String, schema: Schema, isRequired: Bool)] = []
 
     if let allOf = schema.allOf {

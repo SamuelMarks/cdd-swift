@@ -17,10 +17,8 @@ public class CliVisitor: SyntaxVisitor {
         /// Documentation for isCommand
         var isCommand = false
         if let inheritanceClause = node.inheritanceClause {
-            for type in inheritanceClause.inheritedTypes {
-                if type.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "AsyncParsableCommand" {
-                    isCommand = true
-                }
+            for type in inheritanceClause.inheritedTypes where type.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "AsyncParsableCommand" {
+                isCommand = true
             }
         }
 

@@ -102,32 +102,26 @@ public enum OpenAPIToSwiftGenerator {
         let securitySchemes = document.components?.securitySchemes ?? document.securityDefinitions ?? [:]
 
         if !securitySchemes.isEmpty {
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    clientOutput += "    public let \(propName): String?\n"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                clientOutput += "    public let \(propName): String?\n"
             }
             clientOutput += "\n"
             /// Documentation for initParams
             var initParams = "baseURL: URL, session: URLSession = .shared"
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    initParams += ", \(propName): String? = nil"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                initParams += ", \(propName): String? = nil"
             }
             clientOutput += "    public init(\(initParams)) {\n"
             clientOutput += "        self.baseURL = baseURL\n"
             clientOutput += "        self.session = session\n"
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    clientOutput += "        self.\(propName) = \(propName)\n"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                clientOutput += "        self.\(propName) = \(propName)\n"
             }
             clientOutput += "    }\n\n"
         } else {
@@ -281,15 +275,13 @@ public enum SwiftCodeMerger {
         /// Documentation for finalSource
         var finalSource = mergedFile.description
 
-        for (name, decl) in generatedDecls {
-            if !rewriter.visitedDecls.contains(name) {
-                if !finalSource.hasSuffix("\n") {
-                    finalSource += "\n\n"
-                } else if !finalSource.hasSuffix("\n\n") {
-                    finalSource += "\n"
-                }
-                finalSource += decl.description + "\n"
+        for (name, decl) in generatedDecls where !rewriter.visitedDecls.contains(name) {
+            if !finalSource.hasSuffix("\n") {
+                finalSource += "\n\n"
+            } else if !finalSource.hasSuffix("\n\n") {
+                finalSource += "\n"
             }
+            finalSource += decl.description + "\n"
         }
 
         return finalSource

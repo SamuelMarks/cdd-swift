@@ -101,32 +101,26 @@ public enum OpenAPIToSwiftGenerator {
         let securitySchemes = document.components?.securitySchemes ?? [:]
 
         if !securitySchemes.isEmpty {
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    output += "    public let \(propName): String?\n"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                output += "    public let \(propName): String?\n"
             }
             output += "\n"
             /// Documentation for initParams
             var initParams = "baseURL: URL, session: URLSession = .shared"
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    initParams += ", \(propName): String? = nil"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                initParams += ", \(propName): String? = nil"
             }
             output += "    public init(\(initParams)) {\n"
             output += "        self.baseURL = baseURL\n"
             output += "        self.session = session\n"
-            for (key, scheme) in securitySchemes {
-                if scheme.type != nil {
-                    /// Documentation for propName
-                    let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-                    output += "        self.\(propName) = \(propName)\n"
-                }
+            for (key, scheme) in securitySchemes where scheme.type != nil {
+                /// Documentation for propName
+                let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+                output += "        self.\(propName) = \(propName)\n"
             }
             output += "    }\n\n"
         } else {
