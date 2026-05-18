@@ -30,7 +30,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         git clone --depth 1 -b 0.54.0 https://github.com/realm/SwiftLint.git && cd SwiftLint && swift build -c release && sudo cp .build/release/swiftlint /usr/local/bin/ && cd .. && rm -rf SwiftLint
-        git clone --depth 1 -b 0.53.5 https://github.com/nicklockwood/SwiftFormat.git && cd SwiftFormat && swift build -c release && sudo cp .build/release/swiftformat /usr/local/bin/ && cd .. && rm -rf SwiftFormat
+        git clone --depth 1 -b 0.61.1 https://github.com/nicklockwood/SwiftFormat.git && cd SwiftFormat && swift build -c release && sudo cp .build/release/swiftformat /usr/local/bin/ && cd .. && rm -rf SwiftFormat
 
     - name: Format Check
       run: swiftformat --lint .
