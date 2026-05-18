@@ -27,15 +27,13 @@ public enum SwiftCodeMerger {
         /// Documentation for finalSource
         var finalSource = mergedFile.description
 
-        for (name, decl) in generatedDecls {
-            if !rewriter.visitedDecls.contains(name) {
-                if !finalSource.hasSuffix("\n") {
-                    finalSource += "\n\n"
-                } else if !finalSource.hasSuffix("\n\n") {
-                    finalSource += "\n"
-                }
-                finalSource += decl.description + "\n"
+        for (name, decl) in generatedDecls where !rewriter.visitedDecls.contains(name) {
+            if !finalSource.hasSuffix("\n") {
+                finalSource += "\n\n"
+            } else if !finalSource.hasSuffix("\n\n") {
+                finalSource += "\n"
             }
+            finalSource += decl.description + "\n"
         }
 
         return finalSource

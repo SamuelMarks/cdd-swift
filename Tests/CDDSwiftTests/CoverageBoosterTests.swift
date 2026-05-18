@@ -175,7 +175,7 @@ final class CoverageBoosterTests: XCTestCase {
         let doc = OpenAPIDocument(openapi: "3.0", info: Info(title: "test", version: "1"), paths: ["/path": PathItem(get: Operation(operationId: "get"))], security: [["auth": []]])
         _ = OpenAPIDocumentBuilder(title: "test", version: "1").addWebhook("hook", item: PathItem()).addSecurityScheme("scheme", scheme: SecurityScheme(type: "http", scheme: "bearer")).build()
 
-        let files = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
+        _ = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
 
         let gen = """
         enum MyEnum {}
@@ -201,8 +201,8 @@ final class CoverageBoosterTests: XCTestCase {
         let visitor = CliVisitor(viewMode: .all)
         visitor.walk(syntax)
 
-        let doc1 = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(get: Operation())])
-        let doc2 = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(post: Operation())])
+        _ = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(get: Operation())])
+        _ = OpenAPIDocument(openapi: "3", info: Info(title: "", version: ""), paths: ["/path": PathItem(post: Operation())])
     }
 
     func testExtraRoutesEmit() {

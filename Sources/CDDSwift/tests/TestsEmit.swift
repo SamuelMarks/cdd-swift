@@ -1,5 +1,6 @@
 import Foundation
 
+// swiftlint:disable function_parameter_count
 /// Generates dummy JSON based on an OpenAPI schema
 /// - Parameters:
 ///   - type: The OpenAPI type
@@ -57,6 +58,7 @@ private func generateDummyJSON(type: String?, ref: String?, properties: [String:
         return "{}"
     }
 }
+// swiftlint:enable function_parameter_count
 
 /// Emits XCTest cases based on the OpenAPI Spec.
 public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = nil) -> String {
@@ -67,12 +69,10 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
 
     let securitySchemes = document?.components?.securitySchemes ?? document?.securityDefinitions ?? [:]
     var tokenArgs = ""
-    for (key, scheme) in securitySchemes {
-        if scheme.type != nil {
-            let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
-            let envName = key.uppercased() + "_TOKEN"
-            tokenArgs += ", \(propName): ProcessInfo.processInfo.environment[\"\(envName)\"] ?? \"test_token\""
-        }
+    for (key, scheme) in securitySchemes where scheme.type != nil {
+        let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
+        let envName = key.uppercased() + "_TOKEN"
+        tokenArgs += ", \(propName): ProcessInfo.processInfo.environment[\"\(envName)\"] ?? \"test_token\""
     }
 
     output += """

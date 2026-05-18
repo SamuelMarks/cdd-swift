@@ -85,15 +85,13 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
         } else if let inputDir = inputDir {
             /// Documentation for files
             let files = try WASIFileHelpers.listDirectory(at: inputDir)
-            for filePath in files {
-                if filePath.hasSuffix(".json") {
-                    guard let data = try? WASIFileHelpers.readFile(at: filePath) else { continue }
+            for filePath in files where filePath.hasSuffix(".json") {
+                guard let data = try? WASIFileHelpers.readFile(at: filePath) else { continue }
 
-                    if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
-                        /// Documentation for name
-                        let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
-                        results.append((name, doc))
-                    }
+                if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
+                    /// Documentation for name
+                    let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
+                    results.append((name, doc))
                 }
             }
         }

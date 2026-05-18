@@ -117,10 +117,10 @@ final class CDDSwiftTests: XCTestCase {
             }
           }
         }
-        """.data(using: .utf8)!
+        """
 
         let decoder = JSONDecoder()
-        let document = try decoder.decode(OpenAPIDocument.self, from: json)
+        let document = try decoder.decode(OpenAPIDocument.self, from: Data(json.utf8))
 
         let swiftCode = OpenAPIToSwiftGenerator.generate(from: document)
 
