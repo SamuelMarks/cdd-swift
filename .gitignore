@@ -46,6 +46,11 @@ Temporary Items
 *~
 *.swo
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Project specific / temporary scripts / testing artifacts
 *.py
 !scripts/**/*.py

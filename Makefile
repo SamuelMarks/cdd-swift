@@ -1,5 +1,7 @@
 .PHONY: install_base install_deps build_docs build build_wasm build_docker run_docker test run help all
 
+PYTHON ?= $(shell command -v python3 || command -v python)
+
 DOCS_DIR ?= docs
 
 default: help
@@ -20,7 +22,7 @@ build:
 	swift build -c release
 
 build_wasm:
-	@python scripts/build_wasm.py
+	@$(PYTHON) scripts/build_wasm.py
 
 build_wasm_old:
 	@echo "Building WASM binary..."
