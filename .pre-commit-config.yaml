@@ -6,6 +6,9 @@ repos:
     -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-added-large-files
+    -   id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: \.(bat|cmd|ps1)$
 -   repo: https://github.com/nicklockwood/SwiftFormat
     rev: 0.61.1
     hooks:
@@ -32,22 +35,22 @@ repos:
         pass_filenames: false
     -   id: build-wasm
         name: Build WASM
-        entry: make build_wasm
-        language: system
+        entry: python scripts/build_wasm.py
+        language: python
         pass_filenames: false
     -   id: swagger-2-0-petstore
         name: Swagger 2.0 Petstore test
-        entry: bash scripts/test_swagger_2_0.sh
-        language: system
+        entry: python scripts/test_swagger_2_0.py
+        language: python
         pass_filenames: false
     -   id: openapi-3-2-0-petstore
         name: OpenAPI 3.2.0 Petstore test
-        entry: bash scripts/test_openapi_3_2_0.sh
-        language: system
+        entry: python scripts/test_openapi_3_2_0.py
+        language: python
         pass_filenames: false
     -   id: update-badges
         name: Update Badges (Doc & Test Coverage)
-        entry: python3 scripts/update_badges.py
-        language: system
+        entry: python scripts/update_badges.py
+        language: python
         pass_filenames: false
         always_run: true

@@ -20,7 +20,7 @@ build:
 	swift build -c release
 
 build_wasm:
-	@bash scripts/build_wasm.sh
+	@python scripts/build_wasm.py
 
 build_wasm_old:
 	@echo "Building WASM binary..."

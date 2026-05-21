@@ -107,7 +107,7 @@ jobs:
     - name: Install SwiftWasm
       run: |
         swift sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip --checksum 31d3585b06dd92de390bacc18527801480163188cd7473f492956b5e213a8618
-        bash scripts/build_wasm.sh
+        python scripts/build_wasm.py
 
     - name: Upload WASM Artifact
       if: startsWith(github.ref, 'refs/tags/')
