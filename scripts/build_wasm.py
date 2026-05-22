@@ -13,7 +13,7 @@ def check_output(cmd):
 def main():
     if not os.path.exists("bin"):
         os.makedirs("bin")
-        
+
     print("Building WASM binary for Swift...")
 
     swift_bin = "swift"
@@ -31,7 +31,7 @@ def main():
             sys.exit(1)
 
     sdks_output = check_output([swift_bin, "sdk", "list"])
-    available_sdks = [line.strip() for line in sdks_output.split("\n") 
+    available_sdks = [line.strip() for line in sdks_output.split("\n")
                       if ("wasm32-unknown-wasi" in line or "_wasm" in line) and "embedded" not in line]
 
     if not available_sdks:
