@@ -120,3 +120,4 @@ petstore_oas3.json
 
 # Prompts
 prompt.md
+*.profraw
