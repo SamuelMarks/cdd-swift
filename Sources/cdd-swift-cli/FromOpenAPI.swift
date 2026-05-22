@@ -157,7 +157,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
               build:
                 runs-on: ubuntu-latest
                 steps:
-                - uses: actions/checkout@v4
+                - uses: actions/checkout@v6
                 - name: Set up Swift
                   uses: swift-actions/setup-swift@v2
                   with:
@@ -304,7 +304,7 @@ struct ToServer: AsyncParsableCommand {
               build:
                 runs-on: ubuntu-latest
                 steps:
-                - uses: actions/checkout@v4
+                - uses: actions/checkout@v6
                 - name: Set up Swift
                   uses: swift-actions/setup-swift@v2
                   with:

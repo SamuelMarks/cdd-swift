@@ -9,6 +9,7 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
     output += "    static let configuration = CommandConfiguration(\n"
     output += "        commandName: \"api\",\n"
     output += "        abstract: \"\(document.info.title) CLI\",\n"
+    output += "        version: \"\(document.info.version)\",\n"
 
     /// Documentation for subcommands
     var subcommands: [String] = []

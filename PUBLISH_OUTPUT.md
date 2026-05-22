@@ -17,7 +17,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch OpenAPI Spec
         run: curl -s https://api.myserver.com/openapi.json -o spec.json
       - name: Generate SDK

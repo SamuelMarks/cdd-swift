@@ -61,16 +61,10 @@ __pycache__/
 !package.json
 !package-lock.json
 !tsconfig.json
-!openapi_output.json
 *.swift
 !Package.swift
 !Sources/**/*.swift
 !Tests/**/*.swift
-!builder.swift
-!generated.swift
-!merger.swift
-!test.swift
-!test_gen.swift
 
 # ---------------------------------------------------
 # Additional comprehensive wildcards for safe git add
@@ -121,4 +115,8 @@ cdd-swift-client-*/
 
 # Test artifacts
 *.yaml
+!.pre-commit-config.yaml
 petstore_oas3.json
+
+# Prompts
+prompt.md
