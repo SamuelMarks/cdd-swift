@@ -39,6 +39,8 @@ final class ClassesTests: XCTestCase {
         XCTAssertEqual(mapType(schema: Schema(type: "integer")), "Int")
         XCTAssertEqual(mapType(schema: Schema(type: "boolean")), "Bool")
         XCTAssertEqual(mapType(schema: Schema(type: "number")), "Double")
+        XCTAssertEqual(mapType(schema: Schema(type: "unknown_type")), "AnyCodable")
+        XCTAssertEqual(mapType(schema: Schema(type: nil)), "AnyCodable")
     }
 
     func testEmitPolymorphicModelWithDiscriminator() {

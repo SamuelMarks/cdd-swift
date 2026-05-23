@@ -15,22 +15,21 @@ public class RouteVisitor: SyntaxVisitor {
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Documentation for visit
+    /// Visits and parses Struct declarations to find the APIClient.
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for name
+        // Extract the struct name.
         let name = node.name.text
         if name == "APIClient" {
             for member in node.memberBlock.members {
                 if let varDecl = member.decl.as(VariableDeclSyntax.self) {
                     for binding in varDecl.bindings {
                         if let ident = binding.pattern.as(IdentifierPatternSyntax.self) {
-                            /// Documentation for propName
+                            // Identify token properties representing security schemes.
                             let propName = ident.identifier.text
                             if propName.hasSuffix("Token") {
-                                /// Documentation for schemeKey
+                                // Extract the core scheme name from the property.
                                 let schemeKey = propName.replacingOccurrences(of: "Token", with: "")
-                                /// Documentation for capitalizedKey
-                                /// Documentation for capitalizedKey
+                                // Ensure consistent casing for the scheme key.
                                 let capitalizedKey = schemeKey.prefix(1).lowercased() + schemeKey.dropFirst()
                                 if schemeKey.lowercased().contains("bearer") {
                                     securitySchemes[String(capitalizedKey)] = SecurityScheme(type: "http", scheme: "bearer")
@@ -51,46 +50,46 @@ public class RouteVisitor: SyntaxVisitor {
         return .visitChildren
     }
 
-    /// Documentation for visit
+    /// Visits and parses Struct declarations to find the APIClient.
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for name
-        /// Documentation for name
+        // Extract the struct name.
+        // Extract the struct name.
         let name = node.name.text
 
-        /// Documentation for method
+        // Determine the HTTP method from the function name prefix.
         var method = ""
-        /// Documentation for pathName
-        /// Documentation for pathName
+        // pathName
+        // pathName
         let pathName = "/" + name
         if name.lowercased().hasPrefix("get") { method = "get" } else if name.lowercased().hasPrefix("post") { method = "post" } else if name.lowercased().hasPrefix("put") { method = "put" } else if name.lowercased().hasPrefix("delete") { method = "delete" } else if name.lowercased().hasPrefix("patch") { method = "patch" } else { return .skipChildren }
 
-        /// Documentation for operationId
-        /// Documentation for operationId
+        // operationId
+        // operationId
         let operationId = name
-        /// Documentation for description
-        /// Documentation for description
+        /// Description.
+        /// Description.
         let description = parseDocstring(from: Syntax(node))
 
-        /// Documentation for links
+        // Look for defined links
         var links: [String: Link]?
-        /// Documentation for cleanDescription
+        // cleanDescription
         var cleanDescription = description
         if let desc = description, desc.contains("@link") {
-            /// Documentation for lines
-            /// Documentation for lines
+            // lines
+            // lines
             let lines = desc.components(separatedBy: .newlines)
-            /// Documentation for extractedLinks
+            // extractedLinks
             var extractedLinks: [String: Link] = [:]
-            /// Documentation for finalLines
+            // finalLines
             var finalLines: [String] = []
             for line in lines {
                 if line.contains("@link") {
-                    /// Documentation for parts
+                    // parts
                     let parts = line.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
                     if parts.count == 2 {
-                        /// Documentation for left
+                        // left
                         let left = parts[0].replacingOccurrences(of: "@link", with: "").trimmingCharacters(in: .whitespaces)
-                        /// Documentation for right
+                        // right
                         let right = parts[1]
                         extractedLinks[left] = Link(operationId: right)
                     }
@@ -104,15 +103,15 @@ public class RouteVisitor: SyntaxVisitor {
             }
         }
 
-        /// Documentation for parameters
+        // Look for parameters
         var parameters: [Parameter] = []
-        /// Documentation for requestBody
-        /// Documentation for requestBody
+        // Look for request body
+        // Look for request body
         var requestBody: RequestBody?
 
         for param in node.signature.parameterClause.parameters {
-            /// Documentation for pName
-            /// Documentation for pName
+            /// Parameter name.
+            /// Parameter name.
             let pName = param.firstName.text
             if pName == "body" {
                 requestBody = RequestBody(content: ["application/json": MediaType(schema: Schema(type: "object"))], required: true)
@@ -125,11 +124,11 @@ public class RouteVisitor: SyntaxVisitor {
             }
         }
 
-        /// Documentation for operation
+        // operation
         let operation = Operation(summary: cleanDescription, description: cleanDescription, operationId: operationId, parameters: parameters.isEmpty ? nil : parameters, requestBody: requestBody, responses: ["200": Response(description: "Success", links: links)], security: nil)
 
-        /// Documentation for pathItem
-        /// Documentation for pathItem
+        // Create or update the PathItem with the inferred operation.
+        // Create or update the PathItem with the inferred operation.
         var pathItem = paths[pathName] ?? PathItem()
         switch method {
         case "get": pathItem.get = operation

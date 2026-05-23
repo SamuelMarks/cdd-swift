@@ -1,31 +1,31 @@
 import Foundation
 
-/// Documentation for DocsJsonOutput
+/// Represents the root object for documentation JSON output.
 public struct DocsJsonOutput: Codable {
-    /// Documentation for language
+    /// The programming language of the snippet.
     public let language: String
-    /// Documentation for operations
+    /// The list of API operations documented.
     public let operations: [DocsJsonOperation]
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(language: String, operations: [DocsJsonOperation]) {
         self.language = language
         self.operations = operations
     }
 }
 
-/// Documentation for DocsJsonOperation
+/// Represents a single documented API operation.
 public struct DocsJsonOperation: Codable {
-    /// Documentation for method
+    /// The HTTP method.
     public let method: String
-    /// Documentation for path
+    /// The API endpoint path.
     public let path: String
-    /// Documentation for operationId
+    /// The unique operation identifier.
     public let operationId: String?
-    /// Documentation for code
+    /// The code snippet parts.
     public let code: DocsJsonCode
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(method: String, path: String, operationId: String?, code: DocsJsonCode) {
         self.method = method
         self.path = path
@@ -34,18 +34,18 @@ public struct DocsJsonOperation: Codable {
     }
 }
 
-/// Documentation for DocsJsonCode
+/// Represents the segments of a code snippet.
 public struct DocsJsonCode: Codable {
-    /// Documentation for imports
+    /// Necessary module imports.
     public let imports: String?
-    /// Documentation for wrapper_start
+    /// The setup code preceding the snippet.
     public let wrapper_start: String?
-    /// Documentation for snippet
+    /// The actual request snippet.
     public let snippet: String
-    /// Documentation for wrapper_end
+    /// The teardown code following the snippet.
     public let wrapper_end: String?
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(imports: String?, wrapper_start: String?, snippet: String, wrapper_end: String?) {
         self.imports = imports
         self.wrapper_start = wrapper_start

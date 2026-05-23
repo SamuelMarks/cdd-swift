@@ -1,14 +1,14 @@
 import Foundation
 
 @propertyWrapper
-/// Documentation for Minimum
+/// Validates a minimum boundary.
 public struct Minimum<Value: Comparable & Codable>: Codable, Equatable {
-    /// Documentation for wrappedValue
+    /// Wrapped value.
     public var wrappedValue: Value
-    /// Documentation for minimumValue
+    /// Minimum value.
     public let minimumValue: Value
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(wrappedValue: Value, _ minimumValue: Value) {
         self.wrappedValue = wrappedValue
         self.minimumValue = minimumValue
@@ -16,14 +16,14 @@ public struct Minimum<Value: Comparable & Codable>: Codable, Equatable {
 }
 
 @propertyWrapper
-/// Documentation for Maximum
+/// Validates a maximum boundary.
 public struct Maximum<Value: Comparable & Codable>: Codable, Equatable {
-    /// Documentation for wrappedValue
+    /// Wrapped value.
     public var wrappedValue: Value
-    /// Documentation for maximumValue
+    /// Maximum value.
     public let maximumValue: Value
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(wrappedValue: Value, _ maximumValue: Value) {
         self.wrappedValue = wrappedValue
         self.maximumValue = maximumValue
@@ -31,14 +31,14 @@ public struct Maximum<Value: Comparable & Codable>: Codable, Equatable {
 }
 
 @propertyWrapper
-/// Documentation for MinLength
+/// Validates a minimum string length.
 public struct MinLength: Codable, Equatable {
-    /// Documentation for wrappedValue
+    /// Wrapped value.
     public var wrappedValue: String
-    /// Documentation for minLength
+    /// Minimum length.
     public let minLength: Int
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(wrappedValue: String, _ minLength: Int) {
         self.wrappedValue = wrappedValue
         self.minLength = minLength
@@ -46,14 +46,14 @@ public struct MinLength: Codable, Equatable {
 }
 
 @propertyWrapper
-/// Documentation for MaxLength
+/// Validates a maximum string length.
 public struct MaxLength: Codable, Equatable {
-    /// Documentation for wrappedValue
+    /// Wrapped value.
     public var wrappedValue: String
-    /// Documentation for maxLength
+    /// Maximum length.
     public let maxLength: Int
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(wrappedValue: String, _ maxLength: Int) {
         self.wrappedValue = wrappedValue
         self.maxLength = maxLength
@@ -61,14 +61,14 @@ public struct MaxLength: Codable, Equatable {
 }
 
 @propertyWrapper
-/// Documentation for Pattern
+/// Validates a regex pattern.
 public struct Pattern: Codable, Equatable {
-    /// Documentation for wrappedValue
+    /// Wrapped value.
     public var wrappedValue: String
-    /// Documentation for pattern
+    /// Pattern.
     public let pattern: String
 
-    /// Documentation for initializer
+    /// Initializer.
     public init(wrappedValue: String, _ pattern: String) {
         self.wrappedValue = wrappedValue
         self.pattern = pattern

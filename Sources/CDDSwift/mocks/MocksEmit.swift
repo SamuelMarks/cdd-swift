@@ -2,24 +2,24 @@ import Foundation
 
 /// Emits Mock API client code.
 public func emitMockClient(paths: [String: PathItem]?) -> String {
-    /// Documentation for output
+    // Initialize the Mock API Client string.
     var output = "public class MockAPIClient {\n"
     output += "    public init() {}\n"
 
     if let paths = paths {
-        /// Documentation for sortedPaths
+        // Sort paths alphabetically for consistent generation.
         let sortedPaths = paths.sorted { $0.key < $1.key }
         for (path, item) in sortedPaths {
-            /// Documentation for operations
+            // Map HTTP methods to their corresponding Operation objects.
             let operations: [(String, Operation?)] = [
                 ("GET", item.get), ("POST", item.post), ("PUT", item.put),
                 ("DELETE", item.delete), ("PATCH", item.patch)
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {
-                    /// Documentation for funcName
+                    // Generate the mock function name, fallback to method + path if missing operationId.
                     let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
-                    /// Documentation for returnType
+                    // Determine the expected return type from the operation's responses.
                     var returnType = "Void"
                     if let responses = op.responses {
                         if let okResponse = responses["200"] ?? responses["201"] ?? responses["default"], let content = okResponse.content, let jsonContent = content["application/json"], let schema = jsonContent.schema {
@@ -27,48 +27,48 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
                         }
                     }
 
-                    /// Documentation for args
+                    // Collect the arguments required for the mock function signature.
                     var args: [String] = []
                     if let params = op.parameters {
                         for param in params {
-                            /// Documentation for pName
+                            // The name of the parameter.
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
-                            /// Documentation for type
+                            // The mapped Swift type for the parameter.
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
-                            /// Documentation for isRequired
+                            // Whether the parameter is required.
                             let isRequired = param.required ?? false
-                            /// Documentation for optionalSuffix
+                            // Suffix for optional parameters.
                             let optionalSuffix = isRequired ? "" : "?"
                             args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                         }
                     }
                     if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
-                        /// Documentation for type
+                        // The mapped Swift type for the payload.
                         let type = mapType(schema: schema)
-                        /// Documentation for isRequired
+                        // Whether the payload is required.
                         let isRequired = reqBody.required ?? false
-                        /// Documentation for optionalSuffix
+                        // Suffix for optional payloads.
                         let optionalSuffix = isRequired ? "" : "?"
                         args.append("body: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     } else if let formContent = op.requestBody?.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
-                        /// Documentation for type
+                        // The mapped Swift type for the payload.
                         let type = mapType(schema: schema)
-                        /// Documentation for isRequired
+                        // Whether the payload is required.
                         let isRequired = op.requestBody?.required ?? false
-                        /// Documentation for optionalSuffix
+                        // Suffix for optional payloads.
                         let optionalSuffix = isRequired ? "" : "?"
                         args.append("formData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     } else if let multiContent = op.requestBody?.content?["multipart/form-data"], let schema = multiContent.schema {
-                        /// Documentation for type
+                        // The mapped Swift type for the payload.
                         let type = mapType(schema: schema)
-                        /// Documentation for isRequired
+                        // Whether the payload is required.
                         let isRequired = op.requestBody?.required ?? false
-                        /// Documentation for optionalSuffix
+                        // Suffix for optional payloads.
                         let optionalSuffix = isRequired ? "" : "?"
                         args.append("multipartData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                     }
 
-                    /// Documentation for argsString
+                    // Join all arguments into a single string for the function signature.
                     let argsString = args.joined(separator: ", ")
                     output += "    public func \(funcName)(\(argsString)) async throws -> \(returnType) {\n"
                     if returnType != "Void" {

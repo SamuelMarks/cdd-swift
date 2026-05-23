@@ -3,21 +3,21 @@ import SwiftSyntax
 
 /// Extracts mock structures to update OpenAPI.
 public class MockVisitor: SyntaxVisitor {
-    /// Documentation for inferredPaths
+    /// Dictionary of OpenAPI PathItems inferred from mock functions.
     public var inferredPaths: [String: PathItem] = [:]
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Documentation for visit
+    /// Visits function declarations to infer mocked operations.
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for name
+        // Extract the function name.
         let name = node.name.text
         if name.hasPrefix("mock") {
-            /// Documentation for pathName
+            // Derive the API path from the mock function name.
             let pathName = "/" + name.replacingOccurrences(of: "mock", with: "").lowercased()
-            /// Documentation for op
+            // Create a stub operation for the mocked endpoint.
             let op = Operation(summary: "Mock generated operation for \(name)", operationId: name)
 
-            /// Documentation for pathItem
+            // Merge the new mock operation with any existing inferred path item.
             var pathItem = inferredPaths[pathName] ?? PathItem()
             pathItem = PathItem(
                 ref: pathItem.ref,

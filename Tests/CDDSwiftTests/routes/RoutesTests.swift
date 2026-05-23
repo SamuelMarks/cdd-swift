@@ -82,4 +82,79 @@ final class RoutesTests: XCTestCase {
         XCTAssertTrue(emitted.contains("public func getSpecificResponse() async throws -> MyModel"))
         XCTAssertTrue(emitted.contains("return try JSONDecoder().decode(MyModel.self, from: data)"))
     }
+
+    func testRoutesEmitPathUnknownStyle() {
+        let op = Operation(
+            parameters: [
+                Parameter(name: "p", in: "path", required: true, style: "unknown", explode: false, schema: Schema(type: "string"))
+            ]
+        )
+        let emitted = emitMethod(path: "/test/{p}", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
+        XCTAssertTrue(emitted.contains("\\(p)"))
+    }
+
+    func testRoutesEmitQueryArrayUnknownStyle() {
+        let op = Operation(
+            parameters: [
+                Parameter(name: "q", in: "query", required: false, style: "unknown", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string")))
+            ]
+        )
+        let emitted = emitMethod(path: "/test", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
+        XCTAssertTrue(emitted.contains("String(describing: val_q)"))
+    }
+
+    func testRoutesEmitInBodyParam() {
+        let op = Operation(
+            parameters: [
+                Parameter(name: "myBody", in: "body", required: true, schema: Schema(type: "string"))
+            ]
+        )
+        // By adding an existing `myBody` to `args` before the param loop, we trigger the `if !args.contains` check. However `args` is an internal variable inside `emitMethod`, so we cannot inject into `args`.
+        // The `args` list contains path parameters, query parameters, header parameters, etc.
+        // Let's create a path parameter and a body parameter with the same name.
+        let op2 = Operation(
+            parameters: [
+                Parameter(name: "sharedName", in: "path", required: true, schema: Schema(type: "string")),
+                Parameter(name: "sharedName", in: "body", required: true, schema: Schema(type: "string"))
+            ]
+        )
+        let emitted2 = emitMethod(path: "/test/{sharedName}", method: "POST", operation: op2, documentSecurity: nil, securitySchemes: [:])
+
+        let emitted = emitMethod(path: "/test", method: "POST", operation: op, documentSecurity: nil, securitySchemes: [:])
+        XCTAssertTrue(emitted.contains("myBody: String"))
+        XCTAssertTrue(emitted.contains("request.httpBody = try JSONEncoder().encode(myBody)"))
+        XCTAssertTrue(emitted2.contains("sharedName: String"))
+        XCTAssertTrue(emitted2.contains("request.httpBody = try JSONEncoder().encode(sharedName)"))
+    }
+
+    func testRoutesEmitReturnData() {
+        let op = Operation(
+            responses: [
+                "200": Response(description: "OK", content: ["application/json": MediaType(schema: Schema(type: "string", format: "binary"))])
+            ]
+        )
+        let emitted = emitMethod(path: "/test", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
+        XCTAssertTrue(emitted.contains("return data"))
+    }
+
+    func testEmitCallbacksEmpty() {
+        let emitted1 = emitCallbacks(operationId: "myOp", callbacks: nil)
+        XCTAssertEqual(emitted1, "")
+
+        let emitted2 = emitCallbacks(operationId: "myOp", callbacks: [:])
+        XCTAssertEqual(emitted2, "")
+    }
+
+    func testEmitCallbacksPopulated() {
+        let op = Operation(
+            operationId: "myCallbackOp",
+            requestBody: RequestBody(content: ["application/json": MediaType(schema: Schema(type: "string"))], required: true)
+        )
+        let pathItem = PathItem(post: op)
+        let callbacks: [String: Callback] = ["myCallback": ["{$request.query.callbackUrl}": pathItem]]
+
+        let emitted = emitCallbacks(operationId: "subscribe", callbacks: callbacks)
+        XCTAssertTrue(emitted.contains("public protocol SubscribeCallbacks {"))
+        XCTAssertTrue(emitted.contains("func myCallbackOp(payload: String) async throws"))
+    }
 }

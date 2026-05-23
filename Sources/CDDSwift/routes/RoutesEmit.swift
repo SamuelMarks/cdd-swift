@@ -2,57 +2,57 @@ import Foundation
 
 /// Emits Swift methods for an API Client from OpenAPI paths.
 public func emitMethod(path: String, method: String, operation: Operation, documentSecurity: [SecurityRequirement]?, securitySchemes: [String: SecurityScheme]) -> String {
-    /// Documentation for funcName
+    // Generate the function name, using operationId if available, otherwise constructing it from method and path.
     let funcName = operation.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
 
-    /// Documentation for args
+    // Initialize an array to collect function arguments.
     var args: [String] = []
-    /// Documentation for pathInterpolation
+    // Initialize the path interpolation string, to be modified with parameter variables.
     var pathInterpolation = path
 
-    /// Documentation for ParamData
+    // A helper struct to store parsed parameter metadata.
     struct ParamData {
-        /// Documentation for name
+        // The name of the parameter.
         let name: String
-        /// Documentation for inLoc
+        // The location of the parameter (query, path, header).
         let inLoc: String
-        /// Documentation for style
+        // The style of the parameter (form, simple, matrix).
         let style: String
-        /// Documentation for explode
+        // Whether the parameter should explode (expand) arrays and objects.
         let explode: Bool
-        /// Documentation for isArray
+        // Indicates if the parameter schema is an array.
         let isArray: Bool
-        /// Documentation for isObject
+        // Indicates if the parameter schema is an object.
         let isObject: Bool
         let isRequired: Bool
     }
 
-    /// Documentation for queryParams
+    // Collect query parameters for URL composition.
     var queryParams: [ParamData] = []
-    /// Documentation for headerParams
+    // Collect header parameters for request setup.
     var headerParams: [(name: String, isRequired: Bool)] = []
 
     if let params = operation.parameters {
         for param in params {
-            /// Documentation for pName
+            // Extract the parameter name, falling back to ref or 'unknown'.
             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
-            /// Documentation for pIn
+            // Extract the parameter location, defaulting to 'query'.
             let pIn = param.in ?? "query"
-            /// Documentation for type
+            // Determine the mapped Swift type for the parameter.
             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
-            /// Documentation for isRequired
+            // Determine if the parameter is required.
             let isRequired = param.required ?? false
-            /// Documentation for optionalSuffix
+            // Determine the optional suffix based on required status.
             let optionalSuffix = isRequired ? "" : "?"
             args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
 
-            /// Documentation for style
+            // The style of the parameter (form, simple, matrix).
             let style = param.style ?? (pIn == "query" || pIn == "cookie" ? "form" : "simple")
-            /// Documentation for explode
+            // Whether the parameter should explode (expand) arrays and objects.
             let explode = param.explode ?? (style == "form")
-            /// Documentation for isArray
+            // Indicates if the parameter schema is an array.
             let isArray = param.schema?.type == "array"
-            /// Documentation for isObject
+            // Indicates if the parameter schema is an object.
             let isObject = param.schema?.type == "object"
 
             if pIn == "path" {
@@ -85,44 +85,44 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         }
     }
 
-    /// Documentation for bodyParamName
+    // Track the name of the body parameter if one exists.
     var bodyParamName = ""
-    /// Documentation for isMultipart
+    // isMultipart
     var isMultipart = false
-    /// Documentation for isFormUrlEncoded
+    // isFormUrlEncoded
     var isFormUrlEncoded = false
-    /// Documentation for isOctetStream
+    // isOctetStream
     var isOctetStream = false
-    /// Documentation for multipartEncodings
+    // multipartEncodings
     var multipartEncodings: [String: EncodingObject]?
 
     if let reqBody = operation.requestBody {
         if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
-            /// Documentation for type
+            // Determine the mapped Swift type for the parameter.
             let type = mapType(schema: schema)
-            /// Documentation for isRequired
+            // Determine if the parameter is required.
             let isRequired = reqBody.required ?? false
-            /// Documentation for optionalSuffix
+            // Determine the optional suffix based on required status.
             let optionalSuffix = isRequired ? "" : "?"
             bodyParamName = "body"
             args.append("body: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         } else if let formContent = reqBody.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
-            /// Documentation for type
+            // Determine the mapped Swift type for the parameter.
             let type = mapType(schema: schema)
-            /// Documentation for isRequired
+            // Determine if the parameter is required.
             let isRequired = reqBody.required ?? false
-            /// Documentation for optionalSuffix
+            // Determine the optional suffix based on required status.
             let optionalSuffix = isRequired ? "" : "?"
             bodyParamName = "formData"
             isFormUrlEncoded = true
             multipartEncodings = formContent.encoding
             args.append("formData: \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
         } else if let multiContent = reqBody.content?["multipart/form-data"], let schema = multiContent.schema {
-            /// Documentation for type
+            // Determine the mapped Swift type for the parameter.
             let type = mapType(schema: schema)
-            /// Documentation for isRequired
+            // Determine if the parameter is required.
             let isRequired = reqBody.required ?? false
-            /// Documentation for optionalSuffix
+            // Determine the optional suffix based on required status.
             let optionalSuffix = isRequired ? "" : "?"
             bodyParamName = "multipartData"
             isMultipart = true
@@ -139,21 +139,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     } else if let params = operation.parameters {
         for param in params {
             if param.in == "body", let schema = param.schema {
-                let type = mapType(schema: schema)
-                let isRequired = param.required ?? false
-                let optionalSuffix = isRequired ? "" : "?"
                 let pName = param.name ?? "body"
                 bodyParamName = pName
-                // Don't re-append if already added as a generic param
-                if !args.contains(where: { $0.starts(with: "\(pName):") }) {
-                    args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
-                }
                 break
             }
         }
     }
 
-    /// Documentation for returnType
+    // Determine the expected return type from the operation's 2xx responses.
     var returnType = "Void"
     if let responses = operation.responses {
         if let okResponse = responses["200"] ?? responses["201"] ?? responses["default"], let content = okResponse.content, let jsonContent = content["application/json"], let schema = jsonContent.schema {
@@ -161,7 +154,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         }
     }
 
-    /// Documentation for argsString
+    // Combine all arguments into a single string for the function signature.
     let argsString = args.joined(separator: ", ")
 
     var customBody = ""
@@ -212,7 +205,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         """
     }
 
-    /// Documentation for output
+    // Initialize the output string for the generated method.
     var output = ""
     if let summary = operation.summary {
         output += "    /// \(summary)\n"
@@ -309,23 +302,23 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     }
 
     // Evaluate Security Requirements
-    /// Documentation for requirements
+    // requirements
     let requirements = operation.security ?? documentSecurity ?? []
     if !requirements.isEmpty {
         for req in requirements {
             // we process the first valid requirement mapping
             for (key, _) in req {
                 if let scheme = securitySchemes[key] {
-                    /// Documentation for propName
+                    /// Properationarameter name.
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                     if scheme.type == "http" && scheme.scheme?.lowercased() == "bearer" {
                         output += "        if let token = \(propName) {\n"
                         output += "            request.setValue(\"Bearer \\(token)\", forHTTPHeaderField: \"Authorization\")\n"
                         output += "        }\n"
                     } else if scheme.type == "apiKey" {
-                        /// Documentation for location
+                        // location
                         let location = scheme.in ?? "header"
-                        /// Documentation for name
+                        // The name of the parameter.
                         let name = scheme.name ?? key
                         if location == "header" {
                             output += "        if let token = \(propName) {\n"
@@ -491,40 +484,40 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
 /// Emits delegate protocols for OpenAPI callbacks.
 public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -> String {
     guard let callbacks = callbacks, !callbacks.isEmpty else { return "" }
-    /// Documentation for output
+    // Initialize the output string for the generated method.
     var output = ""
-    /// Documentation for protocolName
+    // protocolName
     let protocolName = "\(operationId.prefix(1).uppercased())\(operationId.dropFirst())Callbacks"
     output += "/// Callbacks for \(operationId)\n"
     output += "public protocol \(protocolName) {\n"
 
-    /// Documentation for sortedCallbacks
+    // sortedCallbacks
     let sortedCallbacks = callbacks.sorted { $0.key < $1.key }
     for (callbackName, callbackDict) in sortedCallbacks {
         for (_, pathItem) in callbackDict {
-            /// Documentation for methods
+            // methods
             let methods: [(String, Operation?)] = [
                 ("GET", pathItem.get), ("POST", pathItem.post), ("PUT", pathItem.put),
                 ("DELETE", pathItem.delete), ("PATCH", pathItem.patch)
             ]
             for (_, opOpt) in methods {
                 if let op = opOpt {
-                    /// Documentation for funcName
+                    // Generate the function name, using operationId if available, otherwise constructing it from method and path.
                     let funcName = op.operationId ?? "on\(callbackName.prefix(1).uppercased())\(callbackName.dropFirst())"
-                    /// Documentation for args
+                    // Initialize an array to collect function arguments.
                     var args: [String] = []
                     if let reqBody = op.requestBody {
                         if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
-                            /// Documentation for type
+                            // Determine the mapped Swift type for the parameter.
                             let type = mapType(schema: schema)
-                            /// Documentation for isRequired
+                            // Determine if the parameter is required.
                             let isRequired = reqBody.required ?? false
-                            /// Documentation for optionalSuffix
+                            // Determine the optional suffix based on required status.
                             let optionalSuffix = isRequired ? "" : "?"
                             args.append("payload: \(type)\(optionalSuffix)")
                         }
                     }
-                    /// Documentation for argsString
+                    // Combine all arguments into a single string for the function signature.
                     let argsString = args.joined(separator: ", ")
                     output += "    func \(funcName)(\(argsString)) async throws\n"
                 }

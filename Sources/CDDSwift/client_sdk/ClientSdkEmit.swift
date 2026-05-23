@@ -2,17 +2,17 @@ import Foundation
 
 /// A builder to construct an OpenAPI Document in Swift.
 public class OpenAPIDocumentBuilder {
-    /// Documentation for openapi
+    // The OpenAPI specification version.
     private var openapi: String = "3.2.0"
-    /// Documentation for info
+    // Metadata about the API.
     private var info: Info
-    /// Documentation for paths
+    // The available paths and operations.
     private var paths: [String: PathItem] = [:]
-    /// Documentation for webhooks
+    // The incoming webhooks defined by the API.
     private var webhooks: [String: PathItem] = [:]
-    /// Documentation for schemas
+    // Reusable data models.
     private var schemas: [String: Schema] = [:]
-    /// Documentation for securitySchemes
+    // Reusable security schemes.
     private var securitySchemes: [String: SecurityScheme] = [:]
 
     /// Initializes a builder with required API Info.
@@ -46,7 +46,7 @@ public class OpenAPIDocumentBuilder {
 
     /// Builds the final OpenAPIDocument.
     public func build() -> OpenAPIDocument {
-        /// Documentation for components
+        // Package schemas and security schemes into the Components object.
         let components = Components(
             schemas: schemas.isEmpty ? nil : schemas,
             securitySchemes: securitySchemes.isEmpty ? nil : securitySchemes
@@ -62,10 +62,10 @@ public class OpenAPIDocumentBuilder {
 
     /// Serializes the document to JSON.
     public func serialize() throws -> String {
-        /// Documentation for encoder
+        // Configure JSON encoder for pretty printing.
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-        /// Documentation for data
+        // Encode the constructed document to JSON data.
         let data = try encoder.encode(build())
         return String(data: data, encoding: .utf8) ?? ""
     }
@@ -78,11 +78,11 @@ public enum OpenAPIToSwiftGenerator {
     /// - Parameter tests: A boolean flag indicating whether to generate tests along with the SDK files.
     /// - Returns: A dictionary of filenames to their generated Swift source code.
     public static func generateFiles(from document: OpenAPIDocument, tests: Bool = false) -> [String: String] {
-        /// Documentation for modelsOutput
+        // Initialize the output string for the Models file.
         var modelsOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
         modelsOutput += "// MARK: - Models\n\n"
         if let schemas = document.components?.schemas ?? document.definitions {
-            /// Documentation for sortedSchemas
+            // Sort schemas alphabetically to ensure deterministic output.
             let sortedSchemas = schemas.sorted { $0.key < $1.key }
             for (name, schema) in sortedSchemas {
                 modelsOutput += emitModel(name: name, schema: schema)
@@ -90,7 +90,7 @@ public enum OpenAPIToSwiftGenerator {
             }
         }
 
-        /// Documentation for clientOutput
+        // Initialize the output string for the API Client file.
         var clientOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
         clientOutput += "// MARK: - API Client\n\n"
         clientOutput += emitDocstring("API Client for \(document.info.title) (v\(document.info.version))", indent: 0)
@@ -99,20 +99,20 @@ public enum OpenAPIToSwiftGenerator {
         clientOutput += "    public let baseURL: URL\n"
         clientOutput += "    public let session: URLSession\n"
 
-        /// Documentation for securitySchemes
+        // Reusable security schemes.
         let securitySchemes = document.components?.securitySchemes ?? document.securityDefinitions ?? [:]
 
         if !securitySchemes.isEmpty {
             for (key, scheme) in securitySchemes where scheme.type != nil {
-                /// Documentation for propName
+                // Derive a Swift-friendly property name from the security scheme key.
                 let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                 clientOutput += "    public let \(propName): String?\n"
             }
             clientOutput += "\n"
-            /// Documentation for initParams
+            // Build the initialization parameter list including security tokens.
             var initParams = "baseURL: URL, session: URLSession = .shared"
             for (key, scheme) in securitySchemes where scheme.type != nil {
-                /// Documentation for propName
+                // Derive a Swift-friendly property name from the security scheme key.
                 let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                 initParams += ", \(propName): String? = nil"
             }
@@ -120,7 +120,7 @@ public enum OpenAPIToSwiftGenerator {
             clientOutput += "        self.baseURL = baseURL\n"
             clientOutput += "        self.session = session\n"
             for (key, scheme) in securitySchemes where scheme.type != nil {
-                /// Documentation for propName
+                // Derive a Swift-friendly property name from the security scheme key.
                 let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                 clientOutput += "        self.\(propName) = \(propName)\n"
             }
@@ -133,7 +133,7 @@ public enum OpenAPIToSwiftGenerator {
         }
 
         if let paths = document.paths {
-            /// Documentation for sortedPaths
+            // Sort paths alphabetically to ensure deterministic output.
             let sortedPaths = paths.sorted { $0.key < $1.key }
             for (path, item) in sortedPaths {
                 if let getOp = item.get {
@@ -163,10 +163,10 @@ public enum OpenAPIToSwiftGenerator {
 
         // Generate Callbacks
         if let paths = document.paths {
-            /// Documentation for sortedPaths
+            // Sort paths alphabetically to ensure deterministic output.
             let sortedPaths = paths.sorted { $0.key < $1.key }
             for (_, item) in sortedPaths {
-                /// Documentation for ops
+                // Collect all operations for the path.
                 let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
                 for op in ops {
                     if let cbs = op.callbacks, !cbs.isEmpty {
@@ -228,14 +228,14 @@ public enum OpenAPIToSwiftGenerator {
     /// - Parameter document: The OpenAPI document to process.
     /// - Returns: A string containing the generated Swift source code.
     public static func generate(from document: OpenAPIDocument) -> String {
-        /// Documentation for files
+        // Generate individual file contents.
         let files = generateFiles(from: document)
-        /// Documentation for models
+        // Extract models source.
         let models = files["models.swift"] ?? ""
-        /// Documentation for client
+        // Extract client source.
         let client = files["client.swift"] ?? ""
         // Strip the redundant "import Foundation\n\n" from the client file
-        /// Documentation for clientStripped
+        // Clean up redundant imports when merging files into a single output.
         let clientStripped = client.replacingOccurrences(of: "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n", with: "")
         return models + "\n" + clientStripped
     }
@@ -249,13 +249,13 @@ import SwiftSyntax
 public enum SwiftCodeMerger {
     /// Merges generated Swift code into an existing Swift file using AST.
     public static func merge(generatedCode: String, into destinationSource: String) -> String {
-        /// Documentation for destFile
+        // Parse the existing destination source code.
         let destFile = Parser.parse(source: destinationSource)
-        /// Documentation for genFile
+        // Parse the newly generated source code.
         let genFile = Parser.parse(source: generatedCode)
 
         // Extract all generated declarations (structs, enums, protocols, etc)
-        /// Documentation for generatedDecls
+        // Map generated declarations by their name for easy lookup.
         var generatedDecls: [String: DeclSyntax] = [:]
         for statement in genFile.statements {
             if let structDecl = statement.item.as(StructDeclSyntax.self) {
@@ -267,13 +267,13 @@ public enum SwiftCodeMerger {
             }
         }
 
-        /// Documentation for rewriter
+        // Initialize the AST rewriter with the generated declarations.
         let rewriter = MergerRewriter(generatedDecls: generatedDecls)
-        /// Documentation for mergedFile
+        // Apply the rewrites to the destination file.
         let mergedFile = rewriter.rewrite(destFile)
 
         // Find any new declarations that were not in the destination
-        /// Documentation for finalSource
+        // Extract the rewritten string representation.
         var finalSource = mergedFile.description
 
         for (name, decl) in generatedDecls where !rewriter.visitedDecls.contains(name) {
@@ -289,26 +289,26 @@ public enum SwiftCodeMerger {
     }
 }
 
-/// Documentation for MergerRewriter
+/// A syntax rewriter that replaces existing declarations with generated ones.
 class MergerRewriter: SyntaxRewriter {
-    /// Documentation for generatedDecls
+    /// The mapped generated declarations available for injection.
     let generatedDecls: [String: DeclSyntax]
-    /// Documentation for visitedDecls
+    /// Tracks which generated declarations were injected to append remainders later.
     var visitedDecls: Set<String> = []
 
-    /// Documentation for initializer
+    /// Initializes the rewriter.
     init(generatedDecls: [String: DeclSyntax]) {
         self.generatedDecls = generatedDecls
     }
 
-    /// Documentation for visit
+    /// Visits and replaces struct declarations.
     override func visit(_ node: StructDeclSyntax) -> DeclSyntax {
-        /// Documentation for name
+        // Extract the struct name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
             // Replace the node but keep the original leading trivia (comments, whitespace)
-            /// Documentation for newDecl
+            // Preserve comments and whitespace formatting from the original node.
             var newDecl = generated
             newDecl.leadingTrivia = node.leadingTrivia
             newDecl.trailingTrivia = node.trailingTrivia
@@ -317,13 +317,13 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
-    /// Documentation for visit
+    /// Visits and replaces struct declarations.
     override func visit(_ node: EnumDeclSyntax) -> DeclSyntax {
-        /// Documentation for name
+        // Extract the struct name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
-            /// Documentation for newDecl
+            // Preserve comments and whitespace formatting from the original node.
             var newDecl = generated
             newDecl.leadingTrivia = node.leadingTrivia
             newDecl.trailingTrivia = node.trailingTrivia
@@ -332,13 +332,13 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
-    /// Documentation for visit
+    /// Visits and replaces struct declarations.
     override func visit(_ node: ProtocolDeclSyntax) -> DeclSyntax {
-        /// Documentation for name
+        // Extract the struct name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
-            /// Documentation for newDecl
+            // Preserve comments and whitespace formatting from the original node.
             var newDecl = generated
             newDecl.leadingTrivia = node.leadingTrivia
             newDecl.trailingTrivia = node.trailingTrivia

@@ -39,13 +39,13 @@ public enum DocsJsonGenerator {
     ///   - includeWrapping: Whether to wrap the snippet in a class/function.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
     public static func generate(from document: OpenAPIDocument, includeImports: Bool, includeWrapping: Bool) -> String {
-        /// Documentation for baseUrl
+        // Extract the base URL from the servers block, or fallback to localhost.
         let baseUrl = document.servers?.first?.url ?? "https://api.example.com"
-        /// Documentation for operations
+        // Collect the generated operations.
         var operations = [DocsJsonOperation]()
 
         for (path, pathItem) in document.paths ?? [:] {
-            /// Documentation for methods
+            // Map HTTP methods to their optional Operation representations.
             let methods: [(String, Operation?)] = [
                 ("get", pathItem.get),
                 ("post", pathItem.post),
@@ -60,30 +60,30 @@ public enum DocsJsonGenerator {
             for (method, operation) in methods {
                 guard let op = operation else { continue }
 
-                /// Documentation for opName
+                // Determine the operation identifier.
                 let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
 
-                /// Documentation for imports
+                // Collect necessary framework imports.
                 var imports: String?
                 if includeImports {
                     imports = "import Foundation"
                 }
 
-                /// Documentation for wrapperStart
+                // Generate the wrapping setup code.
                 var wrapperStart: String?
-                /// Documentation for wrapperEnd
+                // Generate the wrapping teardown code.
                 var wrapperEnd: String?
                 if includeWrapping {
                     wrapperStart = "class APIClient {\n    func \(opName)() async throws {"
                     wrapperEnd = "    }\n}"
                 }
 
-                /// Documentation for indent
+                // Determine indentation based on wrapping.
                 let indent = includeWrapping ? "        " : ""
 
-                /// Documentation for snippetLines
+                // Collect lines of the actual request snippet.
                 var snippetLines = [String]()
-                /// Documentation for urlString
+                // Construct the full URL string.
                 let urlString = "\(baseUrl)\(path)"
                 snippetLines.append("\(indent)let url = URL(string: \"\(urlString)\")!")
                 snippetLines.append("\(indent)var request = URLRequest(url: url)")
@@ -98,7 +98,7 @@ public enum DocsJsonGenerator {
                 snippetLines.append("\(indent)let (data, response) = try await URLSession.shared.data(for: request)")
                 snippetLines.append("\(indent)let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0")
 
-                /// Documentation for code
+                // Package the code segments into the model.
                 let code = DocsJsonCode(
                     imports: imports,
                     wrapper_start: wrapperStart,
@@ -106,7 +106,7 @@ public enum DocsJsonGenerator {
                     wrapper_end: wrapperEnd
                 )
 
-                /// Documentation for jsonOp
+                // Package the operation details.
                 let jsonOp = DocsJsonOperation(
                     method: method,
                     path: path,
@@ -117,17 +117,17 @@ public enum DocsJsonGenerator {
             }
         }
 
-        /// Documentation for output
+        // Serialize the models to JSON string.
         let output = DocsJsonOutput(language: "swift", operations: operations)
-        /// Documentation for root
+        // Wrap operations in the root output model.
         let root = [output]
 
-        /// Documentation for encoder
+        // Configure JSON encoder with pretty printing.
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
 
         // This force unwrap is safe as the objects are easily encodable.
-        /// Documentation for data
+        // Encode the model to JSON data.
         let data = try! encoder.encode(root)
         return String(data: data, encoding: .utf8)!
     }

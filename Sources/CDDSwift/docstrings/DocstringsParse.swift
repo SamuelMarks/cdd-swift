@@ -5,12 +5,12 @@ import SwiftSyntax
 /// - Parameter node: The SwiftSyntax node to parse.
 /// - Returns: The extracted doc comment as a string, or nil.
 public func parseDocstring(from node: Syntax) -> String? {
-    /// Documentation for docComment
+    // docComment
     var docComment = ""
     for piece in node.leadingTrivia {
         switch piece {
         case let .docLineComment(text):
-            /// Documentation for cleaned
+            // cleaned
             let cleaned = text.trimmingCharacters(in: .whitespaces).dropFirst(3).trimmingCharacters(in: .whitespaces)
             docComment += cleaned + "\n"
         case let .docBlockComment(text):
@@ -19,7 +19,7 @@ public func parseDocstring(from node: Syntax) -> String? {
             break
         }
     }
-    /// Documentation for trimmed
+    // trimmed
     let trimmed = docComment.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.isEmpty ? nil : trimmed
 }

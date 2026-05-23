@@ -45,4 +45,60 @@ final class SwiftCodeMergerTests: XCTestCase {
 
         XCTAssertEqual(merged, expected)
     }
+
+    func testMergeEnumsAndProtocols() {
+        let existing = """
+        /// Old Enum Doc
+        enum MyEnum {
+            case a
+        }
+
+        /// Old Protocol Doc
+        protocol MyProto {
+            func doThing()
+        }
+
+        enum UnchangedEnum {}
+        protocol UnchangedProto {}
+        """
+
+        let generated = """
+        enum MyEnum {
+            case a
+            case b
+        }
+
+        protocol MyProto {
+            func doThing()
+            func doAnother()
+        }
+        """
+
+        let merged = SwiftCodeMerger.merge(generatedCode: generated, into: existing)
+
+        XCTAssertTrue(merged.contains("case b"))
+        XCTAssertTrue(merged.contains("func doAnother()"))
+        XCTAssertTrue(merged.contains("UnchangedEnum"))
+        XCTAssertTrue(merged.contains("UnchangedProto"))
+        XCTAssertTrue(merged.contains("/// Old Enum Doc"))
+        XCTAssertTrue(merged.contains("/// Old Protocol Doc"))
+    }
+
+    func testMergeFormattingOneNewline() {
+        let existing = "struct UserCode {}\n"
+        let generated = "struct AutoGen {}"
+        let merged = SwiftCodeMerger.merge(generatedCode: generated, into: existing)
+
+        let expected = "struct UserCode {}\n\nstruct AutoGen {}\n"
+        XCTAssertEqual(merged, expected)
+    }
+
+    func testMergeFormattingNoNewline() {
+        let existing = "struct UserCode {}"
+        let generated = "struct AutoGen {}"
+        let merged = SwiftCodeMerger.merge(generatedCode: generated, into: existing)
+
+        let expected = "struct UserCode {}\n\nstruct AutoGen {}\n"
+        XCTAssertEqual(merged, expected)
+    }
 }

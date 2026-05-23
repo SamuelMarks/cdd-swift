@@ -1,14 +1,14 @@
 import Foundation
 import SwiftSyntax
 
-/// Documentation for ServerVisitor
+/// Parses Vapor server routes into OpenAPI definitions.
 public class ServerVisitor: SyntaxVisitor {
-    /// Documentation for paths
+    /// Dictionary of inferred OpenAPI PathItems.
     public var paths: [String: PathItem] = [:]
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Documentation for visit
+    /// Visits function call expressions to identify route registrations.
     override public func visit(_: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
         // Mock implementation to find vapor routes like app.get("path")
         return .visitChildren

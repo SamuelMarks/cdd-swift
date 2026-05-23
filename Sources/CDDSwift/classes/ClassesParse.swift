@@ -4,20 +4,20 @@ import SwiftSyntax
 
 /// Model visitor to extract Codable structs into OpenAPI Schemas.
 public class ModelVisitor: SyntaxVisitor {
-    /// Documentation for schemas
+    /// Dictionary of extracted schemas mapped by name.
     public var schemas: [String: Schema] = [:]
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Documentation for visit
+    /// Visits and parses Struct declarations.
     override public func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for enumName
+        // Extract the name of the Enum.
         let enumName = node.name.text
-        /// Documentation for isCodable
+        // Check if the struct conforms to Codable, Encodable, or Decodable.
         var isCodable = false
         if let inheritanceClause = node.inheritanceClause {
             for type in inheritanceClause.inheritedTypes {
-                /// Documentation for typeName
+                // Extract the name of the inherited type.
                 let typeName = type.type.trimmedDescription
                 if typeName == "Codable" || typeName == "Encodable" || typeName == "Decodable" || typeName == "String" {
                     isCodable = true
@@ -27,11 +27,11 @@ public class ModelVisitor: SyntaxVisitor {
         }
 
         if isCodable {
-            /// Documentation for stringCases
+            // Collect the raw string values for string-backed enums.
             var stringCases: [String] = []
-            /// Documentation for oneOfSchemas
+            // Collect the associated type schemas for polymorphic enums.
             var oneOfSchemas: [Schema] = []
-            /// Documentation for hasAssociatedValues
+            // Flag to determine if the enum is polymorphic.
             var hasAssociatedValues = false
 
             for member in node.memberBlock.members {
@@ -40,7 +40,7 @@ public class ModelVisitor: SyntaxVisitor {
                         if let assocValue = element.parameterClause {
                             hasAssociatedValues = true
                             if let firstParam = assocValue.parameters.first {
-                                /// Documentation for declaration
+                                // declaration
                                 let (schema, _) = parseType(firstParam.type)
                                 oneOfSchemas.append(schema)
                             }
@@ -59,7 +59,7 @@ public class ModelVisitor: SyntaxVisitor {
                 }
             }
 
-            /// Documentation for enumDescription
+            // enumDescription
             let enumDescription = parseDocstring(from: Syntax(node))
 
             if hasAssociatedValues {
@@ -78,16 +78,16 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    /// Documentation for visit
+    /// Visits and parses Struct declarations.
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for structName
+        // Extract the name of the Struct.
         let structName = node.name.text
 
-        /// Documentation for isCodable
+        // Check if the struct conforms to Codable, Encodable, or Decodable.
         var isCodable = false
         if let inheritanceClause = node.inheritanceClause {
             for type in inheritanceClause.inheritedTypes {
-                /// Documentation for typeName
+                // Extract the name of the inherited type.
                 let typeName = type.type.trimmedDescription
                 if typeName == "Codable" || typeName == "Encodable" || typeName == "Decodable" {
                     isCodable = true
@@ -97,42 +97,42 @@ public class ModelVisitor: SyntaxVisitor {
         }
 
         if isCodable {
-            /// Documentation for properties
+            // Map property names to their corresponding schemas.
             var properties: [String: Schema] = [:]
-            /// Documentation for required
+            // required
             var required: [String] = []
-            /// Documentation for structDescription
+            // structDescription
             let structDescription = parseDocstring(from: Syntax(node))
 
             for member in node.memberBlock.members {
                 if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                    /// Documentation for propDescription
+                    /// Properationdescription.
                     let propDescription = parseDocstring(from: Syntax(varDecl))
                     for binding in varDecl.bindings {
                         if let pattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                            /// Documentation for propName
+                            // The name of the property.
                             let propName = pattern.identifier.text
-                            /// Documentation for typeSyntax
+                            // typeSyntax
                             let typeSyntax = typeAnnotation.type
 
-                            /// Documentation for declaration
+                            // declaration
                             var (schema, isOptional) = parseType(typeSyntax)
 
-                            /// Documentation for min
+                            // min
                             var min: Double?
-                            /// Documentation for max
+                            // max
                             var max: Double?
-                            /// Documentation for minLen
+                            /// Minlen.
                             var minLen: Int?
-                            /// Documentation for maxLen
+                            /// Maxlen.
                             var maxLen: Int?
-                            /// Documentation for patternStr
+                            // patternStr
                             var patternStr: String?
 
                             if let attributes = binding.parent?.parent?.as(VariableDeclSyntax.self)?.attributes {
                                 for attr in attributes {
                                     if let customAttr = attr.as(AttributeSyntax.self) {
-                                        /// Documentation for attrName
+                                        // attrName
                                         let attrName = customAttr.attributeName.trimmedDescription
                                         if let args = customAttr.arguments?.as(LabeledExprListSyntax.self), let firstArg = args.first {
                                             if attrName == "Minimum", let val = Double(firstArg.expression.trimmedDescription) { min = val }
@@ -194,7 +194,7 @@ public class ModelVisitor: SyntaxVisitor {
                 }
             }
 
-            /// Documentation for schema
+            // Parse schema
             let schema = Schema(
                 type: "object",
                 properties: properties.isEmpty ? nil : properties,
@@ -207,7 +207,7 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    /// Documentation for visit
+    /// Visits and parses Struct declarations.
     override public func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
         let name = node.name.text
         let (schema, _) = parseType(node.initializer.value)
@@ -242,21 +242,21 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    /// Documentation for parseType
+    // parseType
     private func parseType(_ type: TypeSyntax) -> (Schema, Bool) {
         if let optType = type.as(OptionalTypeSyntax.self) {
-            /// Documentation for declaration
+            // declaration
             let (schema, _) = parseType(optType.wrappedType)
             return (schema, true)
         } else if let identType = type.as(IdentifierTypeSyntax.self) {
-            /// Documentation for typeName
+            /// Typename.
             let typeName = identType.name.text
             return (mapPrimitive(typeName), false)
         } else if let arrayType = type.as(ArrayTypeSyntax.self) {
-            /// Documentation for declaration
+            // declaration
             let (itemSchema, _) = parseType(arrayType.element)
 
-            /// Documentation for items
+            // items
             let items: SchemaItem
             if let ref = itemSchema.ref {
                 items = SchemaItem(ref: ref)
@@ -264,13 +264,13 @@ public class ModelVisitor: SyntaxVisitor {
                 items = SchemaItem(type: itemSchema.type)
             }
 
-            /// Documentation for arraySchema
+            // arraySchema
             let arraySchema = Schema(type: "array", items: items)
             return (arraySchema, false)
         } else if let dictType = type.as(DictionaryTypeSyntax.self) {
-            /// Documentation for declaration
+            // declaration
             let (valueSchema, _) = parseType(dictType.value)
-            /// Documentation for item
+            // item
             let item: SchemaItem
             if let ref = valueSchema.ref {
                 item = SchemaItem(ref: ref)
@@ -279,10 +279,10 @@ public class ModelVisitor: SyntaxVisitor {
             }
             return (Schema(type: "object", additionalProperties: item), false)
         } else if let tupleType = type.as(TupleTypeSyntax.self) {
-            /// Documentation for prefixItems
+            // prefixItems
             var prefixItems: [Schema] = []
             for element in tupleType.elements {
-                /// Documentation for declaration
+                // declaration
                 let (elemSchema, _) = parseType(element.type)
                 prefixItems.append(elemSchema)
             }
@@ -292,7 +292,7 @@ public class ModelVisitor: SyntaxVisitor {
         return (Schema(type: "string"), false)
     }
 
-    /// Documentation for mapPrimitive
+    // mapPrimitive
     private func mapPrimitive(_ name: String) -> Schema {
         switch name {
         case "String": return Schema(type: "string")

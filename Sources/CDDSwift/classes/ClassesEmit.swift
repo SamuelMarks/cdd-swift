@@ -2,12 +2,12 @@ import Foundation
 
 /// Emits Swift models from OpenAPI schemas.
 public func emitModel(name: String, schema: Schema) -> String {
-    /// Documentation for output
+    // Initialize the output string for the Swift model.
     var output = ""
     output += emitDocstring(schema.description, indent: 0)
 
     // Process validations for docstrings
-    /// Documentation for validationDocs
+    // Collect validation constraints to include in the docstring.
     var validationDocs: [String] = []
     if let min = schema.minimum { validationDocs.append("Minimum: \(min)") }
     if let max = schema.maximum { validationDocs.append("Maximum: \(max)") }
@@ -52,17 +52,17 @@ public func emitModel(name: String, schema: Schema) -> String {
 
     if schema.anyOf != nil || schema.oneOf != nil {
         output += "public enum \(name): Codable, Equatable {\n"
-        /// Documentation for options
+        // Resolve the options for polymorphism.
         let options = schema.anyOf ?? schema.oneOf!
-        /// Documentation for i
+        // Counter for generating cases without associated values.
         var i = 1
 
         if let discriminator = schema.discriminator {
             // Generate polymorphic enum based on discriminator
-            /// Documentation for propName
+            // Extract the discriminator property name.
             let propName = discriminator.propertyName
             for option in options {
-                /// Documentation for typeName
+                // Determine the mapped Swift type for the enum case.
                 let typeName = mapType(schema: option)
                 output += "    case \(typeName.lowercased())(\(typeName))\n"
             }
@@ -72,9 +72,9 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "        let type = try container.decode(String.self, forKey: .\(propName))\n"
             output += "        switch type {\n"
             for option in options {
-                /// Documentation for typeName
+                // Determine the mapped Swift type for the enum case.
                 let typeName = mapType(schema: option)
-                /// Documentation for mappingKey
+                // mappingKey
                 let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" || $0.value == "#/definitions/\(typeName)" })?.key ?? typeName
                 output += "        case \"\(mappingKey)\":\n"
                 output += "            let singleContainer = try decoder.singleValueContainer()\n"
@@ -89,7 +89,7 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "        var container = encoder.singleValueContainer()\n"
             output += "        switch self {\n"
             for option in options {
-                /// Documentation for typeName
+                // Determine the mapped Swift type for the enum case.
                 let typeName = mapType(schema: option)
                 output += "        case .\(typeName.lowercased())(let value):\n"
                 output += "            try container.encode(value)\n"
@@ -102,7 +102,7 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "    }\n"
         } else {
             for option in options {
-                /// Documentation for typeName
+                // Determine the mapped Swift type for the enum case.
                 let typeName = mapType(schema: option)
                 output += "    case option\(i)(\(typeName))\n"
                 i += 1
@@ -112,7 +112,7 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "        let container = try decoder.singleValueContainer()\n"
             i = 1
             for option in options {
-                /// Documentation for typeName
+                // Determine the mapped Swift type for the enum case.
                 let typeName = mapType(schema: option)
                 output += "        if let value = try? container.decode(\(typeName).self) {\n"
                 output += "            self = .option\(i)(value)\n"
@@ -148,7 +148,7 @@ public func emitModel(name: String, schema: Schema) -> String {
         for subSchema in allOf {
             if let props = subSchema.properties {
                 for (propName, propSchema) in props {
-                    /// Documentation for isReq
+                    // isReq
                     let isReq = subSchema.required?.contains(propName) ?? false
                     allProperties.append((propName, propSchema, isReq))
                 }
@@ -158,27 +158,27 @@ public func emitModel(name: String, schema: Schema) -> String {
 
     if let properties = schema.properties {
         for (propName, propSchema) in properties {
-            /// Documentation for isReq
+            // isReq
             let isReq = schema.required?.contains(propName) ?? false
             allProperties.append((propName, propSchema, isReq))
         }
     }
 
-    /// Documentation for uniquePropsMap
+    // uniquePropsMap
     var uniquePropsMap: [String: (Schema, Bool)] = [:]
     for prop in allProperties {
         uniquePropsMap[prop.name] = (prop.schema, prop.isRequired)
     }
 
-    /// Documentation for sortedProps
+    // Sort properties alphabetically for consistent generation.
     let sortedProps = uniquePropsMap.sorted { $0.key < $1.key }
 
     for (propName, propData) in sortedProps {
-        /// Documentation for propSchema
+        /// Properationschema.
         let propSchema = propData.0
         output += emitDocstring(propSchema.description, indent: 4)
 
-        /// Documentation for valDocs
+        // valDocs
         var valDocs: [String] = []
         if let min = propSchema.minimum { valDocs.append("Minimum: \(min)") }
         if let max = propSchema.maximum { valDocs.append("Maximum: \(max)") }
@@ -190,14 +190,14 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "    /// - \(vDoc)\n"
         }
 
-        /// Documentation for swiftType
+        // swiftType
         let swiftType = mapType(schema: propSchema)
-        /// Documentation for isRequired
+        /// Isrequired.
         let isRequired = propData.1
-        /// Documentation for optionalSuffix
+        /// Operationtionalsuffix.
         let optionalSuffix = isRequired ? "" : "?"
 
-        /// Documentation for propertyWrappers
+        // propertyWrappers
         var propertyWrappers: [String] = []
         if let min = propSchema.minimum { propertyWrappers.append("@Minimum(\(min))") }
         if let max = propSchema.maximum { propertyWrappers.append("@Maximum(\(max))") }
@@ -214,13 +214,13 @@ public func emitModel(name: String, schema: Schema) -> String {
 
     if !sortedProps.isEmpty {
         output += "\n"
-        /// Documentation for params
+        // params
         let params = sortedProps.map { propName, propData -> String in
-            /// Documentation for swiftType
+            // swiftType
             let swiftType = mapType(schema: propData.0)
-            /// Documentation for isRequired
+            // Check if the property is in the required set.
             let isRequired = propData.1
-            /// Documentation for optionalSuffix
+            // Apply the optional suffix if not required.
             let optionalSuffix = isRequired ? "" : "?"
             return "\(propName): \(swiftType)\(optionalSuffix)\(isRequired ? "" : " = nil")"
         }.joined(separator: ", ")
@@ -255,7 +255,7 @@ public func mapType(schema: Schema) -> String {
     case "boolean": return "Bool"
     case "array":
         if let prefixItems = schema.prefixItems {
-            /// Documentation for types
+            // types
             let types = prefixItems.map { mapType(schema: $0) }.joined(separator: ", ")
             return "(\(types))"
         }
@@ -263,7 +263,7 @@ public func mapType(schema: Schema) -> String {
             if let ref = items.ref {
                 return "[\(ref.components(separatedBy: "/").last ?? "Unknown")]"
             } else if let type = items.type {
-                /// Documentation for primitive
+                // primitive
                 let primitive = Schema(type: type)
                 return "[\(mapType(schema: primitive))]"
             }
@@ -272,13 +272,13 @@ public func mapType(schema: Schema) -> String {
     case "object":
         if let additional = schema.additionalProperties {
             if let ref = additional.ref {
-                /// Documentation for valueType
+                // valueType
                 let valueType = ref.components(separatedBy: "/").last ?? "Unknown"
                 return "[String: \(valueType)]"
             } else if let type = additional.type {
-                /// Documentation for primitive
+                // primitive
                 let primitive = Schema(type: type)
-                /// Documentation for valueType
+                // valueType
                 let valueType = mapType(schema: primitive)
                 return "[String: \(valueType)]"
             }

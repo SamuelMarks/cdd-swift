@@ -4,52 +4,52 @@ import Foundation
 
 /// Represents an OpenAPI Document.
 public struct OpenAPIDocument: Codable, Equatable {
-    /// Documentation for openapi
+    /// The `openapi` property.
     public let openapi: String?
-    /// Documentation for swagger
+    /// The `swagger` property.
     public let swagger: String?
-    /// Documentation for selfRef
+    /// The `selfRef` property.
     public let selfRef: String?
-    /// Documentation for info
+    /// The `info` property.
     public let info: Info
-    /// Documentation for jsonSchemaDialect
+    /// The `jsonSchemaDialect` property.
     public let jsonSchemaDialect: String?
-    /// Documentation for servers
+    /// The `servers` property.
     public let servers: [Server]?
-    /// Documentation for paths
+    /// The `paths` property.
     public let paths: [String: PathItem]?
-    /// Documentation for webhooks
+    /// The `webhooks` property.
     public let webhooks: [String: PathItem]?
-    /// Documentation for components
+    /// The `components` property.
     public let components: Components?
-    /// Documentation for security
+    /// The `security` property.
     public let security: [SecurityRequirement]?
-    /// Documentation for tags
+    /// The `tags` property.
     public let tags: [Tag]?
-    /// Documentation for externalDocs
+    /// The `externalDocs` property.
     public let externalDocs: ExternalDocumentation?
 
     // Swagger 2.0 properties
-    /// Documentation for host
+    /// The `host` property.
     public let host: String?
-    /// Documentation for basePath
+    /// The `basePath` property.
     public let basePath: String?
-    /// Documentation for schemes
+    /// The `schemes` property.
     public let schemes: [String]?
-    /// Documentation for consumes
+    /// The `consumes` property.
     public let consumes: [String]?
-    /// Documentation for produces
+    /// The `produces` property.
     public let produces: [String]?
-    /// Documentation for definitions
+    /// The `definitions` property.
     public let definitions: [String: Schema]?
-    /// Documentation for parameters
+    /// The `parameters` property.
     public let parameters: [String: Parameter]?
-    /// Documentation for responses
+    /// The `responses` property.
     public let responses: [String: Response]?
-    /// Documentation for securityDefinitions
+    /// The `securityDefinitions` property.
     public let securityDefinitions: [String: SecurityScheme]?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case openapi
         case swagger
@@ -74,7 +74,7 @@ public struct OpenAPIDocument: Codable, Equatable {
         case securityDefinitions
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(openapi: String? = nil, swagger: String? = nil, selfRef: String? = nil, info: Info, jsonSchemaDialect: String? = nil, servers: [Server]? = nil, paths: [String: PathItem]? = nil, webhooks: [String: PathItem]? = nil, components: Components? = nil, security: [SecurityRequirement]? = nil, tags: [Tag]? = nil, externalDocs: ExternalDocumentation? = nil, host: String? = nil, basePath: String? = nil, schemes: [String]? = nil, consumes: [String]? = nil, produces: [String]? = nil, definitions: [String: Schema]? = nil, parameters: [String: Parameter]? = nil, responses: [String: Response]? = nil, securityDefinitions: [String: SecurityScheme]? = nil) {
         self.openapi = openapi
         self.swagger = swagger
@@ -102,24 +102,24 @@ public struct OpenAPIDocument: Codable, Equatable {
 
 // MARK: - Info Object
 
-/// Documentation for Info
+/// The `Info` property.
 public struct Info: Codable, Equatable {
-    /// Documentation for title
+    /// The `title` property.
     public let title: String
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for termsOfService
+    /// The `termsOfService` property.
     public let termsOfService: String?
-    /// Documentation for contact
+    /// The `contact` property.
     public let contact: Contact?
-    /// Documentation for license
+    /// The `license` property.
     public let license: License?
-    /// Documentation for version
+    /// The `version` property.
     public let version: String
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(title: String, summary: String? = nil, description: String? = nil, termsOfService: String? = nil, contact: Contact? = nil, license: License? = nil, version: String) {
         self.title = title
         self.summary = summary
@@ -133,16 +133,16 @@ public struct Info: Codable, Equatable {
 
 // MARK: - Contact Object
 
-/// Documentation for Contact
+/// The `Contact` property.
 public struct Contact: Codable, Equatable {
-    /// Documentation for name
+    /// The `name` property.
     public let name: String?
-    /// Documentation for url
+    /// The `url` property.
     public let url: String?
-    /// Documentation for email
+    /// The `email` property.
     public let email: String?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(name: String? = nil, url: String? = nil, email: String? = nil) {
         self.name = name
         self.url = url
@@ -152,16 +152,16 @@ public struct Contact: Codable, Equatable {
 
 // MARK: - License Object
 
-/// Documentation for License
+/// The `License` property.
 public struct License: Codable, Equatable {
-    /// Documentation for name
+    /// The `name` property.
     public let name: String
-    /// Documentation for identifier
+    /// The `identifier` property.
     public let identifier: String?
-    /// Documentation for url
+    /// The `url` property.
     public let url: String?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(name: String, identifier: String? = nil, url: String? = nil) {
         self.name = name
         self.identifier = identifier
@@ -171,18 +171,18 @@ public struct License: Codable, Equatable {
 
 // MARK: - Server Object
 
-/// Documentation for Server
+/// The `Server` property.
 public struct Server: Codable, Equatable {
-    /// Documentation for url
+    /// The `url` property.
     public let url: String
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for name
+    /// The `name` property.
     public let name: String?
-    /// Documentation for variables
+    /// The `variables` property.
     public let variables: [String: ServerVariable]?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(url: String, description: String? = nil, name: String? = nil, variables: [String: ServerVariable]? = nil) {
         self.url = url
         self.description = description
@@ -193,16 +193,16 @@ public struct Server: Codable, Equatable {
 
 // MARK: - Server Variable Object
 
-/// Documentation for ServerVariable
+/// The `ServerVariable` property.
 public struct ServerVariable: Codable, Equatable {
-    /// Documentation for enum
+    /// The `enum` property.
     public let `enum`: [String]?
-    /// Documentation for default
+    /// The `default` property.
     public let `default`: String
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(enum: [String]? = nil, default: String, description: String? = nil) {
         self.enum = `enum`
         self.default = `default`
@@ -212,32 +212,32 @@ public struct ServerVariable: Codable, Equatable {
 
 // MARK: - Components Object
 
-/// Documentation for Components
+/// The `Components` property.
 public struct Components: Codable, Equatable {
-    /// Documentation for schemas
+    /// The `schemas` property.
     public let schemas: [String: Schema]?
-    /// Documentation for responses
+    /// The `responses` property.
     public let responses: [String: Response]?
-    /// Documentation for parameters
+    /// The `parameters` property.
     public let parameters: [String: Parameter]?
-    /// Documentation for examples
+    /// The `examples` property.
     public let examples: [String: Example]?
-    /// Documentation for requestBodies
+    /// The `requestBodies` property.
     public let requestBodies: [String: RequestBody]?
-    /// Documentation for headers
+    /// The `headers` property.
     public let headers: [String: Header]?
-    /// Documentation for securitySchemes
+    /// The `securitySchemes` property.
     public let securitySchemes: [String: SecurityScheme]?
-    /// Documentation for links
+    /// The `links` property.
     public let links: [String: Link]?
-    /// Documentation for callbacks
+    /// The `callbacks` property.
     public let callbacks: [String: Callback]?
-    /// Documentation for pathItems
+    /// The `pathItems` property.
     public let pathItems: [String: PathItem]?
-    /// Documentation for mediaTypes
+    /// The `mediaTypes` property.
     public let mediaTypes: [String: MediaType]?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(schemas: [String: Schema]? = nil, responses: [String: Response]? = nil, parameters: [String: Parameter]? = nil, examples: [String: Example]? = nil, requestBodies: [String: RequestBody]? = nil, headers: [String: Header]? = nil, securitySchemes: [String: SecurityScheme]? = nil, links: [String: Link]? = nil, callbacks: [String: Callback]? = nil, pathItems: [String: PathItem]? = nil, mediaTypes: [String: MediaType]? = nil) {
         self.schemas = schemas
         self.responses = responses
@@ -255,40 +255,40 @@ public struct Components: Codable, Equatable {
 
 // MARK: - Path Item Object
 
-/// Documentation for PathItem
+/// The `PathItem` property.
 public struct PathItem: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for get
+    /// The `get` property.
     public var get: Operation?
-    /// Documentation for put
+    /// The `put` property.
     public var put: Operation?
-    /// Documentation for post
+    /// The `post` property.
     public var post: Operation?
-    /// Documentation for delete
+    /// The `delete` property.
     public var delete: Operation?
-    /// Documentation for options
+    /// The `options` property.
     public let options: Operation?
-    /// Documentation for head
+    /// The `head` property.
     public let head: Operation?
-    /// Documentation for patch
+    /// The `patch` property.
     public var patch: Operation?
-    /// Documentation for trace
+    /// The `trace` property.
     public let trace: Operation?
-    /// Documentation for query
+    /// The `query` property.
     public let query: Operation?
-    /// Documentation for additionalOperations
+    /// The `additionalOperations` property.
     public let additionalOperations: [String: Operation]?
-    /// Documentation for servers
+    /// The `servers` property.
     public let servers: [Server]?
-    /// Documentation for parameters
+    /// The `parameters` property.
     public let parameters: [Parameter]?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -307,7 +307,7 @@ public struct PathItem: Codable, Equatable {
         case parameters
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, description: String? = nil, get: Operation? = nil, put: Operation? = nil, post: Operation? = nil, delete: Operation? = nil, options: Operation? = nil, head: Operation? = nil, patch: Operation? = nil, trace: Operation? = nil, query: Operation? = nil, additionalOperations: [String: Operation]? = nil, servers: [Server]? = nil, parameters: [Parameter]? = nil) {
         self.ref = ref
         self.summary = summary
@@ -329,34 +329,34 @@ public struct PathItem: Codable, Equatable {
 
 // MARK: - Operation Object
 
-/// Documentation for Operation
+/// The `Operation` property.
 public struct Operation: Codable, Equatable {
-    /// Documentation for tags
+    /// The `tags` property.
     public let tags: [String]?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for externalDocs
+    /// The `externalDocs` property.
     public let externalDocs: ExternalDocumentation?
-    /// Documentation for operationId
+    /// The `operationId` property.
     public let operationId: String?
-    /// Documentation for parameters
+    /// The `parameters` property.
     public let parameters: [Parameter]?
-    /// Documentation for requestBody
+    /// The `requestBody` property.
     public let requestBody: RequestBody?
-    /// Documentation for responses
+    /// The `responses` property.
     public let responses: [String: Response]?
-    /// Documentation for callbacks
+    /// The `callbacks` property.
     public let callbacks: [String: Callback]?
-    /// Documentation for deprecated
+    /// The `deprecated` property.
     public let deprecated: Bool?
-    /// Documentation for security
+    /// The `security` property.
     public let security: [SecurityRequirement]?
-    /// Documentation for servers
+    /// The `servers` property.
     public let servers: [Server]?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(tags: [String]? = nil, summary: String? = nil, description: String? = nil, externalDocs: ExternalDocumentation? = nil, operationId: String? = nil, parameters: [Parameter]? = nil, requestBody: RequestBody? = nil, responses: [String: Response]? = nil, callbacks: [String: Callback]? = nil, deprecated: Bool? = nil, security: [SecurityRequirement]? = nil, servers: [Server]? = nil) {
         self.tags = tags
         self.summary = summary
@@ -375,14 +375,14 @@ public struct Operation: Codable, Equatable {
 
 // MARK: - External Documentation Object
 
-/// Documentation for ExternalDocumentation
+/// The `ExternalDocumentation` property.
 public struct ExternalDocumentation: Codable, Equatable {
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for url
+    /// The `url` property.
     public let url: String
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(description: String? = nil, url: String) {
         self.description = description
         self.url = url
@@ -391,40 +391,40 @@ public struct ExternalDocumentation: Codable, Equatable {
 
 // MARK: - Parameter Object
 
-/// Documentation for Parameter
+/// The `Parameter` property.
 public struct Parameter: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for name
+    /// The `name` property.
     public let name: String?
-    /// Documentation for in
+    /// The `in` property.
     public let `in`: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for required
+    /// The `required` property.
     public let required: Bool?
-    /// Documentation for deprecated
+    /// The `deprecated` property.
     public let deprecated: Bool?
-    /// Documentation for allowEmptyValue
+    /// The `allowEmptyValue` property.
     public let allowEmptyValue: Bool?
-    /// Documentation for style
+    /// The `style` property.
     public let style: String?
-    /// Documentation for explode
+    /// The `explode` property.
     public let explode: Bool?
-    /// Documentation for allowReserved
+    /// The `allowReserved` property.
     public let allowReserved: Bool?
-    /// Documentation for schema
+    /// The `schema` property.
     public let schema: Schema?
-    /// Documentation for example
+    /// The `example` property.
     public let example: AnyCodable?
-    /// Documentation for examples
+    /// The `examples` property.
     public let examples: [String: Example]?
-    /// Documentation for content
+    /// The `content` property.
     public let content: [String: MediaType]?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -443,7 +443,7 @@ public struct Parameter: Codable, Equatable {
         case content
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, name: String? = nil, in location: String? = nil, description: String? = nil, required: Bool? = nil, deprecated: Bool? = nil, allowEmptyValue: Bool? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil, schema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, content: [String: MediaType]? = nil) {
         self.ref = ref
         self.summary = summary
@@ -465,20 +465,20 @@ public struct Parameter: Codable, Equatable {
 
 // MARK: - Request Body Object
 
-/// Documentation for RequestBody
+/// The `RequestBody` property.
 public struct RequestBody: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for content
+    /// The `content` property.
     public let content: [String: MediaType]?
-    /// Documentation for required
+    /// The `required` property.
     public let required: Bool?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -487,7 +487,7 @@ public struct RequestBody: Codable, Equatable {
         case required
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, description: String? = nil, content: [String: MediaType]? = nil, required: Bool? = nil) {
         self.ref = ref
         self.summary = summary
@@ -499,28 +499,28 @@ public struct RequestBody: Codable, Equatable {
 
 // MARK: - Media Type Object
 
-/// Documentation for MediaType
+/// The `MediaType` property.
 public struct MediaType: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for schema
+    /// The `schema` property.
     public let schema: Schema?
-    /// Documentation for itemSchema
+    /// The `itemSchema` property.
     public let itemSchema: Schema?
-    /// Documentation for example
+    /// The `example` property.
     public let example: AnyCodable?
-    /// Documentation for examples
+    /// The `examples` property.
     public let examples: [String: Example]?
-    /// Documentation for encoding
+    /// The `encoding` property.
     public let encoding: [String: EncodingObject]?
-    /// Documentation for prefixEncoding
+    /// The `prefixEncoding` property.
     public let prefixEncoding: [EncodingObject]?
-    /// Documentation for itemEncoding
+    /// The `itemEncoding` property.
     public let itemEncoding: EncodingObject?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -533,7 +533,7 @@ public struct MediaType: Codable, Equatable {
         case itemEncoding
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, schema: Schema? = nil, itemSchema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, encoding: [String: EncodingObject]? = nil, prefixEncoding: [EncodingObject]? = nil, itemEncoding: EncodingObject? = nil) {
         self.ref = ref
         self.summary = summary
@@ -549,26 +549,26 @@ public struct MediaType: Codable, Equatable {
 
 // MARK: - Encoding Object
 
-/// Documentation for EncodingObject
+/// The `EncodingObject` property.
 public final class EncodingObject: Codable, Equatable {
-    /// Documentation for contentType
+    /// The `contentType` property.
     public let contentType: String?
-    /// Documentation for headers
+    /// The `headers` property.
     public let headers: [String: Header]?
-    /// Documentation for encoding
+    /// The `encoding` property.
     public let encoding: [String: EncodingObject]?
-    /// Documentation for prefixEncoding
+    /// The `prefixEncoding` property.
     public let prefixEncoding: [EncodingObject]?
-    /// Documentation for itemEncoding
+    /// The `itemEncoding` property.
     public let itemEncoding: EncodingObject?
-    /// Documentation for style
+    /// The `style` property.
     public let style: String?
-    /// Documentation for explode
+    /// The `explode` property.
     public let explode: Bool?
-    /// Documentation for allowReserved
+    /// The `allowReserved` property.
     public let allowReserved: Bool?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(contentType: String? = nil, headers: [String: Header]? = nil, encoding: [String: EncodingObject]? = nil, prefixEncoding: [EncodingObject]? = nil, itemEncoding: EncodingObject? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil) {
         self.contentType = contentType
         self.headers = headers
@@ -587,22 +587,22 @@ public final class EncodingObject: Codable, Equatable {
 
 // MARK: - Response Object
 
-/// Documentation for Response
+/// The `Response` property.
 public struct Response: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for headers
+    /// The `headers` property.
     public let headers: [String: Header]?
-    /// Documentation for content
+    /// The `content` property.
     public let content: [String: MediaType]?
-    /// Documentation for links
+    /// The `links` property.
     public let links: [String: Link]?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -612,7 +612,7 @@ public struct Response: Codable, Equatable {
         case links
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, description: String? = nil, headers: [String: Header]? = nil, content: [String: MediaType]? = nil, links: [String: Link]? = nil) {
         self.ref = ref
         self.summary = summary
@@ -625,29 +625,29 @@ public struct Response: Codable, Equatable {
 
 // MARK: - Callback Object
 
-/// Documentation for Callback
+/// The `Callback` property.
 public typealias Callback = [String: PathItem]
 
 // MARK: - Example Object
 
-/// Documentation for Example
+/// The `Example` property.
 public struct Example: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for dataValue
+    /// The `dataValue` property.
     public let dataValue: AnyCodable?
-    /// Documentation for serializedValue
+    /// The `serializedValue` property.
     public let serializedValue: String?
-    /// Documentation for value
+    /// The `value` property.
     public let value: AnyCodable?
-    /// Documentation for externalValue
+    /// The `externalValue` property.
     public let externalValue: String?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -658,7 +658,7 @@ public struct Example: Codable, Equatable {
         case externalValue
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, description: String? = nil, dataValue: AnyCodable? = nil, serializedValue: String? = nil, value: AnyCodable? = nil, externalValue: String? = nil) {
         self.ref = ref
         self.summary = summary
@@ -672,26 +672,26 @@ public struct Example: Codable, Equatable {
 
 // MARK: - Link Object
 
-/// Documentation for Link
+/// The `Link` property.
 public struct Link: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for operationRef
+    /// The `operationRef` property.
     public let operationRef: String?
-    /// Documentation for operationId
+    /// The `operationId` property.
     public let operationId: String?
-    /// Documentation for parameters
+    /// The `parameters` property.
     public let parameters: [String: AnyCodable]?
-    /// Documentation for requestBody
+    /// The `requestBody` property.
     public let requestBody: AnyCodable?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for server
+    /// The `server` property.
     public let server: Server?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -703,7 +703,7 @@ public struct Link: Codable, Equatable {
         case server
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, operationRef: String? = nil, operationId: String? = nil, parameters: [String: AnyCodable]? = nil, requestBody: AnyCodable? = nil, description: String? = nil, server: Server? = nil) {
         self.ref = ref
         self.summary = summary
@@ -718,36 +718,36 @@ public struct Link: Codable, Equatable {
 
 // MARK: - Header Object
 
-/// Documentation for Header
+/// The `Header` property.
 public struct Header: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for required
+    /// The `required` property.
     public let required: Bool?
-    /// Documentation for deprecated
+    /// The `deprecated` property.
     public let deprecated: Bool?
-    /// Documentation for allowEmptyValue
+    /// The `allowEmptyValue` property.
     public let allowEmptyValue: Bool?
-    /// Documentation for style
+    /// The `style` property.
     public let style: String?
-    /// Documentation for explode
+    /// The `explode` property.
     public let explode: Bool?
-    /// Documentation for allowReserved
+    /// The `allowReserved` property.
     public let allowReserved: Bool?
-    /// Documentation for schema
+    /// The `schema` property.
     public let schema: Schema?
-    /// Documentation for example
+    /// The `example` property.
     public let example: AnyCodable?
-    /// Documentation for examples
+    /// The `examples` property.
     public let examples: [String: Example]?
-    /// Documentation for content
+    /// The `content` property.
     public let content: [String: MediaType]?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -764,7 +764,7 @@ public struct Header: Codable, Equatable {
         case content
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, description: String? = nil, required: Bool? = nil, deprecated: Bool? = nil, allowEmptyValue: Bool? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil, schema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, content: [String: MediaType]? = nil) {
         self.ref = ref
         self.summary = summary
@@ -784,22 +784,22 @@ public struct Header: Codable, Equatable {
 
 // MARK: - Tag Object
 
-/// Documentation for Tag
+/// The `Tag` property.
 public struct Tag: Codable, Equatable {
-    /// Documentation for name
+    /// The `name` property.
     public let name: String
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for parent
+    /// The `parent` property.
     public let parent: String?
-    /// Documentation for kind
+    /// The `kind` property.
     public let kind: String?
-    /// Documentation for externalDocs
+    /// The `externalDocs` property.
     public let externalDocs: ExternalDocumentation?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(name: String, description: String? = nil, summary: String? = nil, parent: String? = nil, kind: String? = nil, externalDocs: ExternalDocumentation? = nil) {
         self.name = name
         self.description = description
@@ -812,39 +812,39 @@ public struct Tag: Codable, Equatable {
 
 // MARK: - Security Requirement Object
 
-/// Documentation for SecurityRequirement
+/// The `SecurityRequirement` property.
 public typealias SecurityRequirement = [String: [String]]
 
 // MARK: - Security Scheme Object
 
-/// Documentation for SecurityScheme
+/// The `SecurityScheme` property.
 public struct SecurityScheme: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for type
+    /// The `type` property.
     public let type: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for name
+    /// The `name` property.
     public let name: String?
-    /// Documentation for in
+    /// The `in` property.
     public let `in`: String?
-    /// Documentation for scheme
+    /// The `scheme` property.
     public let scheme: String?
-    /// Documentation for bearerFormat
+    /// The `bearerFormat` property.
     public let bearerFormat: String?
-    /// Documentation for flows
+    /// The `flows` property.
     public let flows: OAuthFlows?
-    /// Documentation for openIdConnectUrl
+    /// The `openIdConnectUrl` property.
     public let openIdConnectUrl: String?
-    /// Documentation for oauth2MetadataUrl
+    /// The `oauth2MetadataUrl` property.
     public let oauth2MetadataUrl: String?
-    /// Documentation for deprecated
+    /// The `deprecated` property.
     public let deprecated: Bool?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary
@@ -860,7 +860,7 @@ public struct SecurityScheme: Codable, Equatable {
         case deprecated
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(ref: String? = nil, summary: String? = nil, type: String? = nil, description: String? = nil, name: String? = nil, in location: String? = nil, scheme: String? = nil, bearerFormat: String? = nil, flows: OAuthFlows? = nil, openIdConnectUrl: String? = nil, oauth2MetadataUrl: String? = nil, deprecated: Bool? = nil) {
         self.ref = ref
         self.summary = summary
@@ -879,20 +879,20 @@ public struct SecurityScheme: Codable, Equatable {
 
 // MARK: - OAuth Flows Object
 
-/// Documentation for OAuthFlows
+/// The `OAuthFlows` property.
 public struct OAuthFlows: Codable, Equatable {
-    /// Documentation for implicit
+    /// The `implicit` property.
     public let implicit: OAuthFlow?
-    /// Documentation for password
+    /// The `password` property.
     public let password: OAuthFlow?
-    /// Documentation for clientCredentials
+    /// The `clientCredentials` property.
     public let clientCredentials: OAuthFlow?
-    /// Documentation for authorizationCode
+    /// The `authorizationCode` property.
     public let authorizationCode: OAuthFlow?
-    /// Documentation for deviceAuthorization
+    /// The `deviceAuthorization` property.
     public let deviceAuthorization: OAuthFlow?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(implicit: OAuthFlow? = nil, password: OAuthFlow? = nil, clientCredentials: OAuthFlow? = nil, authorizationCode: OAuthFlow? = nil, deviceAuthorization: OAuthFlow? = nil) {
         self.implicit = implicit
         self.password = password
@@ -904,20 +904,20 @@ public struct OAuthFlows: Codable, Equatable {
 
 // MARK: - OAuth Flow Object
 
-/// Documentation for OAuthFlow
+/// The `OAuthFlow` property.
 public struct OAuthFlow: Codable, Equatable {
-    /// Documentation for authorizationUrl
+    /// The `authorizationUrl` property.
     public let authorizationUrl: String?
-    /// Documentation for tokenUrl
+    /// The `tokenUrl` property.
     public let tokenUrl: String?
-    /// Documentation for refreshUrl
+    /// The `refreshUrl` property.
     public let refreshUrl: String?
-    /// Documentation for deviceAuthorizationUrl
+    /// The `deviceAuthorizationUrl` property.
     public let deviceAuthorizationUrl: String?
-    /// Documentation for scopes
+    /// The `scopes` property.
     public let scopes: [String: String]?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(authorizationUrl: String? = nil, tokenUrl: String? = nil, refreshUrl: String? = nil, deviceAuthorizationUrl: String? = nil, scopes: [String: String]? = nil) {
         self.authorizationUrl = authorizationUrl
         self.tokenUrl = tokenUrl
@@ -929,143 +929,143 @@ public struct OAuthFlow: Codable, Equatable {
 
 // MARK: - Schema Object
 
-/// Documentation for Schema
+/// The `Schema` property.
 public struct Schema: Codable, Equatable {
     // Basic types
-    /// Documentation for type
+    /// The `type` property.
     public let type: String?
-    /// Documentation for properties
+    /// The `properties` property.
     public let properties: [String: Schema]?
-    /// Documentation for additionalProperties
+    /// The `additionalProperties` property.
     public let additionalProperties: SchemaItem?
-    /// Documentation for items
+    /// The `items` property.
     public let items: SchemaItem?
-    /// Documentation for prefixItems
+    /// The `prefixItems` property.
     public let prefixItems: [Schema]?
-    /// Documentation for required
+    /// The `required` property.
     public let required: [String]?
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
 
     // JSON Schema metadata and validation keywords
-    /// Documentation for title
+    /// The `title` property.
     public let title: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
-    /// Documentation for format
+    /// The `format` property.
     public let format: String?
-    /// Documentation for default_value
+    /// The `default_value` property.
     public let default_value: AnyCodable?
-    /// Documentation for const_value
+    /// The `const_value` property.
     public let const_value: AnyCodable?
 
-    /// Documentation for multipleOf
+    /// The `multipleOf` property.
     public let multipleOf: Double?
-    /// Documentation for maximum
+    /// The `maximum` property.
     public let maximum: Double?
-    /// Documentation for exclusiveMaximum
+    /// The `exclusiveMaximum` property.
     public let exclusiveMaximum: Double?
-    /// Documentation for minimum
+    /// The `minimum` property.
     public let minimum: Double?
-    /// Documentation for exclusiveMinimum
+    /// The `exclusiveMinimum` property.
     public let exclusiveMinimum: Double?
 
-    /// Documentation for maxLength
+    /// The `maxLength` property.
     public let maxLength: Int?
-    /// Documentation for minLength
+    /// The `minLength` property.
     public let minLength: Int?
-    /// Documentation for pattern
+    /// The `pattern` property.
     public let pattern: String?
 
-    /// Documentation for maxItems
+    /// The `maxItems` property.
     public let maxItems: Int?
-    /// Documentation for minItems
+    /// The `minItems` property.
     public let minItems: Int?
-    /// Documentation for uniqueItems
+    /// The `uniqueItems` property.
     public let uniqueItems: Bool?
-    /// Documentation for contains
+    /// The `contains` property.
     public let contains: SchemaItem?
-    /// Documentation for minContains
+    /// The `minContains` property.
     public let minContains: Int?
-    /// Documentation for maxContains
+    /// The `maxContains` property.
     public let maxContains: Int?
 
-    /// Documentation for maxProperties
+    /// The `maxProperties` property.
     public let maxProperties: Int?
-    /// Documentation for minProperties
+    /// The `minProperties` property.
     public let minProperties: Int?
-    /// Documentation for dependentRequired
+    /// The `dependentRequired` property.
     public let dependentRequired: [String: [String]]?
-    /// Documentation for dependentSchemas
+    /// The `dependentSchemas` property.
     public let dependentSchemas: [String: Schema]?
-    /// Documentation for propertyNames
+    /// The `propertyNames` property.
     public let propertyNames: SchemaItem?
-    /// Documentation for patternProperties
+    /// The `patternProperties` property.
     public let patternProperties: [String: Schema]?
-    /// Documentation for unevaluatedItems
+    /// The `unevaluatedItems` property.
     public let unevaluatedItems: SchemaItem?
-    /// Documentation for unevaluatedProperties
+    /// The `unevaluatedProperties` property.
     public let unevaluatedProperties: SchemaItem?
 
-    /// Documentation for enum_values
+    /// The `enum_values` property.
     public let enum_values: [AnyCodable]?
 
     // Media type and content encoding
-    /// Documentation for contentEncoding
+    /// The `contentEncoding` property.
     public let contentEncoding: String?
-    /// Documentation for contentMediaType
+    /// The `contentMediaType` property.
     public let contentMediaType: String?
-    /// Documentation for contentSchema
+    /// The `contentSchema` property.
     public let contentSchema: SchemaItem?
 
     // Polymorphism
-    /// Documentation for allOf
+    /// The `allOf` property.
     public let allOf: [Schema]?
-    /// Documentation for oneOf
+    /// The `oneOf` property.
     public let oneOf: [Schema]?
-    /// Documentation for anyOf
+    /// The `anyOf` property.
     public let anyOf: [Schema]?
-    /// Documentation for not
+    /// The `not` property.
     public let not: SchemaItem?
 
-    /// Documentation for if_schema
+    /// The `if_schema` property.
     public let if_schema: SchemaItem?
-    /// Documentation for then_schema
+    /// The `then_schema` property.
     public let then_schema: SchemaItem?
-    /// Documentation for else_schema
+    /// The `else_schema` property.
     public let else_schema: SchemaItem?
 
     // Identifiers and Dialects
-    /// Documentation for id
+    /// The `id` property.
     public let id: String?
-    /// Documentation for anchor
+    /// The `anchor` property.
     public let anchor: String?
-    /// Documentation for dynamicAnchor
+    /// The `dynamicAnchor` property.
     public let dynamicAnchor: String?
-    /// Documentation for vocabulary
+    /// The `vocabulary` property.
     public let vocabulary: [String: Bool]?
-    /// Documentation for dynamicRef
+    /// The `dynamicRef` property.
     public let dynamicRef: String?
-    /// Documentation for defs
+    /// The `defs` property.
     public let defs: [String: Schema]?
 
     // OpenAPI specific
-    /// Documentation for discriminator
+    /// The `discriminator` property.
     public let discriminator: Discriminator?
-    /// Documentation for xml
+    /// The `xml` property.
     public let xml: XML?
-    /// Documentation for externalDocs
+    /// The `externalDocs` property.
     public let externalDocs: ExternalDocumentation?
-    /// Documentation for example
+    /// The `example` property.
     public let example: AnyCodable?
-    /// Documentation for deprecated
+    /// The `deprecated` property.
     public let deprecated: Bool?
-    /// Documentation for readOnly
+    /// The `readOnly` property.
     public let readOnly: Bool?
-    /// Documentation for writeOnly
+    /// The `writeOnly` property.
     public let writeOnly: Bool?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case type
         case properties
@@ -1138,7 +1138,7 @@ public struct Schema: Codable, Equatable {
         case writeOnly
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(
         type: String? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil, prefixItems: [Schema]? = nil, required: [String]? = nil, ref: String? = nil,
         title: String? = nil, description: String? = nil, format: String? = nil, default_value: AnyCodable? = nil, const_value: AnyCodable? = nil,
@@ -1227,16 +1227,16 @@ public struct Schema: Codable, Equatable {
 
 // MARK: - Discriminator Object
 
-/// Documentation for Discriminator
+/// The `Discriminator` property.
 public struct Discriminator: Codable, Equatable {
-    /// Documentation for propertyName
+    /// The `propertyName` property.
     public let propertyName: String
-    /// Documentation for mapping
+    /// The `mapping` property.
     public let mapping: [String: String]?
-    /// Documentation for defaultMapping
+    /// The `defaultMapping` property.
     public let defaultMapping: String?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(propertyName: String, mapping: [String: String]? = nil, defaultMapping: String? = nil) {
         self.propertyName = propertyName
         self.mapping = mapping
@@ -1246,22 +1246,22 @@ public struct Discriminator: Codable, Equatable {
 
 // MARK: - XML Object
 
-/// Documentation for XML
+/// The `XML` property.
 public struct XML: Codable, Equatable {
-    /// Documentation for name
+    /// The `name` property.
     public let name: String?
-    /// Documentation for namespace
+    /// The `namespace` property.
     public let namespace: String?
-    /// Documentation for prefix
+    /// The `prefix` property.
     public let prefix: String?
-    /// Documentation for attribute
+    /// The `attribute` property.
     public let attribute: Bool?
-    /// Documentation for wrapped
+    /// The `wrapped` property.
     public let wrapped: Bool?
-    /// Documentation for nodeType
+    /// The `nodeType` property.
     public let nodeType: String?
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(name: String? = nil, namespace: String? = nil, prefix: String? = nil, attribute: Bool? = nil, wrapped: Bool? = nil, nodeType: String? = nil) {
         self.name = name
         self.namespace = namespace
@@ -1274,20 +1274,20 @@ public struct XML: Codable, Equatable {
 
 // MARK: - Schema Item Object
 
-/// Documentation for SchemaItem
+/// The `SchemaItem` property.
 public struct SchemaItem: Codable, Equatable {
-    /// Documentation for type
+    /// The `type` property.
     public let type: String?
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case type
         case ref = "$ref"
     }
 
-    /// Documentation for initializer
+    /// The `initializer` property.
     public init(type: String? = nil, ref: String? = nil) {
         self.type = type
         self.ref = ref
@@ -1296,26 +1296,26 @@ public struct SchemaItem: Codable, Equatable {
 
 // MARK: - Paths Object
 
-/// Documentation for Paths
+/// The `Paths` property.
 public typealias Paths = [String: PathItem]
 
 // MARK: - Responses Object
 
-/// Documentation for Responses
+/// The `Responses` property.
 public typealias Responses = [String: Response]
 
 // MARK: - Reference Object
 
-/// Documentation for Reference
+/// The `Reference` property.
 public struct Reference: Codable, Equatable {
-    /// Documentation for ref
+    /// The `ref` property.
     public let ref: String
-    /// Documentation for summary
+    /// The `summary` property.
     public let summary: String?
-    /// Documentation for description
+    /// The `description` property.
     public let description: String?
 
-    /// Documentation for CodingKeys
+    /// The `CodingKeys` property.
     enum CodingKeys: String, CodingKey {
         case ref = "$ref"
         case summary

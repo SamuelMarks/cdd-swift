@@ -7,7 +7,7 @@ public enum OpenAPIParser {
         guard let data = json.data(using: .utf8) else {
             throw NSError(domain: "OpenAPIParser", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON string"])
         }
-        /// Documentation for decoder
+        // Decode the JSON data using standard Codable.
         let decoder = JSONDecoder()
         return try decoder.decode(OpenAPIDocument.self, from: data)
     }
@@ -18,14 +18,14 @@ import SwiftSyntax
 
 /// A utility to parse Swift source code and generate OpenAPI definitions.
 public class SwiftASTParser {
-    /// Documentation for initializer
+    /// Default initializer.
     public init() {}
 
     /// Parses a Swift source file and extracts `Codable` structs into OpenAPI `Schema` objects.
     public func parseModels(from source: String) throws -> [String: Schema] {
-        /// Documentation for sourceFile
+        // Parse the raw Swift source into a syntax tree.
         let sourceFile = Parser.parse(source: source)
-        /// Documentation for visitor
+        // Extract models using the ModelVisitor.
         let visitor = ModelVisitor(viewMode: .sourceAccurate)
         visitor.walk(sourceFile)
         return visitor.schemas
@@ -33,41 +33,41 @@ public class SwiftASTParser {
 
     /// Parses a Swift source file and extracts everything: models, routes, tests, mocks.
     public func parseDocument(from source: String) throws -> OpenAPIDocument {
-        /// Documentation for sourceFile
+        // Parse the raw Swift source into a syntax tree.
         let sourceFile = Parser.parse(source: source)
 
         // Models
-        /// Documentation for modelVisitor
+        // Initialize visitor for Codable data models.
         let modelVisitor = ModelVisitor(viewMode: .sourceAccurate)
         modelVisitor.walk(sourceFile)
 
         // Routes
-        /// Documentation for routeVisitor
+        // Initialize visitor for API client functions.
         let routeVisitor = RouteVisitor(viewMode: .sourceAccurate)
         routeVisitor.walk(sourceFile)
 
         // Mocks
-        /// Documentation for mockVisitor
+        // Initialize visitor for Mock API functions.
         let mockVisitor = MockVisitor(viewMode: .sourceAccurate)
         mockVisitor.walk(sourceFile)
 
         // Tests
-        /// Documentation for testVisitor
+        // Initialize visitor for XCTest test cases.
         let testVisitor = TestVisitor(viewMode: .sourceAccurate)
         testVisitor.walk(sourceFile)
 
         // Functions (webhooks/callbacks)
-        /// Documentation for functionVisitor
+        // Initialize visitor for Webhooks and Callbacks.
         let functionVisitor = FunctionVisitor(viewMode: .sourceAccurate)
         functionVisitor.walk(sourceFile)
 
-        /// Documentation for cliVisitor
+        // Initialize visitor for ArgumentParser commands.
         let cliVisitor = CliVisitor(viewMode: .sourceAccurate)
         cliVisitor.walk(sourceFile)
 
         // Combine into one document
         // Merge `mockVisitor.inferredPaths` and `routeVisitor.paths`
-        /// Documentation for finalPaths
+        // Create a mutable copy of paths found in routes.
         var finalPaths = routeVisitor.paths
         for (path, cliItem) in cliVisitor.paths {
             finalPaths[path] = cliItem
@@ -75,7 +75,7 @@ public class SwiftASTParser {
         for (path, mockItem) in mockVisitor.inferredPaths {
             if let existing = finalPaths[path] {
                 // Merge operations
-                /// Documentation for merged
+                // Merge operations from the mock into the existing path item.
                 let merged = PathItem(
                     ref: existing.ref ?? mockItem.ref,
                     summary: existing.summary ?? mockItem.summary,
@@ -101,34 +101,34 @@ public class SwiftASTParser {
 
         // Apply callbacks to operations if they match by operationId
         for (pathName, pathItem) in finalPaths {
-            /// Documentation for updatedItem
+            // Create a mutable copy of the path item.
             var updatedItem = pathItem
             if let getOp = updatedItem.get, let cb = functionVisitor.callbacks[getOp.operationId ?? ""] {
-                /// Documentation for newOp
+                // Duplicate the operation and inject the parsed callbacks.
                 var newOp = getOp
                 newOp = Operation(tags: getOp.tags, summary: getOp.summary, description: getOp.description, externalDocs: getOp.externalDocs, operationId: getOp.operationId, parameters: getOp.parameters, requestBody: getOp.requestBody, responses: getOp.responses, callbacks: ["onEvent": cb], deprecated: getOp.deprecated, security: getOp.security, servers: getOp.servers)
                 updatedItem.get = newOp
             }
             if let postOp = updatedItem.post, let cb = functionVisitor.callbacks[postOp.operationId ?? ""] {
-                /// Documentation for newOp
+                // Duplicate the operation and inject the parsed callbacks.
                 var newOp = postOp
                 newOp = Operation(tags: postOp.tags, summary: postOp.summary, description: postOp.description, externalDocs: postOp.externalDocs, operationId: postOp.operationId, parameters: postOp.parameters, requestBody: postOp.requestBody, responses: postOp.responses, callbacks: ["onEvent": cb], deprecated: postOp.deprecated, security: postOp.security, servers: postOp.servers)
                 updatedItem.post = newOp
             }
             if let putOp = updatedItem.put, let cb = functionVisitor.callbacks[putOp.operationId ?? ""] {
-                /// Documentation for newOp
+                // Duplicate the operation and inject the parsed callbacks.
                 var newOp = putOp
                 newOp = Operation(tags: putOp.tags, summary: putOp.summary, description: putOp.description, externalDocs: putOp.externalDocs, operationId: putOp.operationId, parameters: putOp.parameters, requestBody: putOp.requestBody, responses: putOp.responses, callbacks: ["onEvent": cb], deprecated: putOp.deprecated, security: putOp.security, servers: putOp.servers)
                 updatedItem.put = newOp
             }
             if let deleteOp = updatedItem.delete, let cb = functionVisitor.callbacks[deleteOp.operationId ?? ""] {
-                /// Documentation for newOp
+                // Duplicate the operation and inject the parsed callbacks.
                 var newOp = deleteOp
                 newOp = Operation(tags: deleteOp.tags, summary: deleteOp.summary, description: deleteOp.description, externalDocs: deleteOp.externalDocs, operationId: deleteOp.operationId, parameters: deleteOp.parameters, requestBody: deleteOp.requestBody, responses: deleteOp.responses, callbacks: ["onEvent": cb], deprecated: deleteOp.deprecated, security: deleteOp.security, servers: deleteOp.servers)
                 updatedItem.delete = newOp
             }
             if let patchOp = updatedItem.patch, let cb = functionVisitor.callbacks[patchOp.operationId ?? ""] {
-                /// Documentation for newOp
+                // Duplicate the operation and inject the parsed callbacks.
                 var newOp = patchOp
                 newOp = Operation(tags: patchOp.tags, summary: patchOp.summary, description: patchOp.description, externalDocs: patchOp.externalDocs, operationId: patchOp.operationId, parameters: patchOp.parameters, requestBody: patchOp.requestBody, responses: patchOp.responses, callbacks: ["onEvent": cb], deprecated: patchOp.deprecated, security: patchOp.security, servers: patchOp.servers)
                 updatedItem.patch = newOp
@@ -136,8 +136,7 @@ public class SwiftASTParser {
             finalPaths[pathName] = updatedItem
         }
 
-        /// Documentation for components
-        /// Documentation for components
+        // Construct the Components object from parsed schemas and security.
         let components = Components(
             schemas: modelVisitor.schemas.isEmpty ? nil : modelVisitor.schemas,
             securitySchemes: routeVisitor.securitySchemes.isEmpty ? nil : routeVisitor.securitySchemes,

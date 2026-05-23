@@ -10,51 +10,46 @@ public class FunctionVisitor: SyntaxVisitor {
 
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Documentation for visit
     override public func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-        /// Documentation for name
+        // Extract the name of the protocol being visited.
         let name = node.name.text
 
         if name == "WebhooksDelegate" {
             for member in node.memberBlock.members {
                 if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                    /// Documentation for funcName
+                    // The name of the function acts as the webhook's operation ID.
                     let funcName = funcDecl.name.text
-                    /// Documentation for operation
+                    // Create an OpenAPI Operation representing this webhook's payload structure.
                     let operation = Operation(operationId: funcName, requestBody: RequestBody(content: ["application/json": MediaType(schema: Schema(type: "object"))]))
 
-                    /// Documentation for pathItem
-                    /// Documentation for pathItem
+                    // Wrap the operation in a POST PathItem since webhooks are typically delivered via POST.
                     var pathItem = PathItem()
                     pathItem.post = operation
 
-                    /// Documentation for webhookName
+                    // Derive the webhook path/name by stripping the 'on' prefix and lowercasing.
                     let webhookName = funcName.replacingOccurrences(of: "on", with: "").lowercased()
                     webhooks[webhookName] = pathItem
                 }
             }
         } else if name.hasSuffix("Callbacks") {
-            /// Documentation for operationId
+            // Extract the original operation ID by stripping the 'Callbacks' suffix.
             let operationId = name.replacingOccurrences(of: "Callbacks", with: "")
-            /// Documentation for callbackKey
-            /// Documentation for callbackKey
+            // Format the key to match the camelCase operation ID it belongs to.
             let callbackKey = operationId.prefix(1).lowercased() + operationId.dropFirst()
-            /// Documentation for callbackItem
+            // Initialize the callback mapping (Callback URLs to PathItems).
             var callbackItem: [String: PathItem] = [:]
 
             for member in node.memberBlock.members {
                 if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                    /// Documentation for funcName
-                    /// Documentation for funcName
+                    // The name of the callback function represents the event being emitted.
                     let funcName = funcDecl.name.text
-                    /// Documentation for operation
+                    // Create an OpenAPI Operation representing this webhook's payload structure.
                     let operation = Operation(operationId: funcName, requestBody: RequestBody(content: ["application/json": MediaType(schema: Schema(type: "object"))]))
 
-                    /// Documentation for pathItem
+                    // Create the PathItem representing the callback request.
                     var pathItem = PathItem()
                     pathItem.post = operation
-                    /// Documentation for urlPath
-                    /// Documentation for urlPath
+                    // Use a standardized OpenAPI runtime expression for the callback URL.
                     let urlPath = "{$request.query.callbackUrl}"
                     callbackItem[urlPath] = pathItem
                 }
