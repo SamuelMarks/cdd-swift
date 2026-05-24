@@ -4,9 +4,7 @@ import Foundation
 public enum OpenAPIParser {
     /// Parses a JSON string into an OpenAPIDocument.
     public static func parse(json: String) throws -> OpenAPIDocument {
-        guard let data = json.data(using: .utf8) else {
-            throw NSError(domain: "OpenAPIParser", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON string"])
-        }
+        let data = Data(json.utf8)
         // Decode the JSON data using standard Codable.
         let decoder = JSONDecoder()
         return try decoder.decode(OpenAPIDocument.self, from: data)
@@ -103,31 +101,31 @@ public class SwiftASTParser {
         for (pathName, pathItem) in finalPaths {
             // Create a mutable copy of the path item.
             var updatedItem = pathItem
-            if let getOp = updatedItem.get, let cb = functionVisitor.callbacks[getOp.operationId ?? ""] {
+            if let getOp = updatedItem.get, let cb = functionVisitor.callbacks[getOp.operationId!] {
                 // Duplicate the operation and inject the parsed callbacks.
                 var newOp = getOp
                 newOp = Operation(tags: getOp.tags, summary: getOp.summary, description: getOp.description, externalDocs: getOp.externalDocs, operationId: getOp.operationId, parameters: getOp.parameters, requestBody: getOp.requestBody, responses: getOp.responses, callbacks: ["onEvent": cb], deprecated: getOp.deprecated, security: getOp.security, servers: getOp.servers)
                 updatedItem.get = newOp
             }
-            if let postOp = updatedItem.post, let cb = functionVisitor.callbacks[postOp.operationId ?? ""] {
+            if let postOp = updatedItem.post, let cb = functionVisitor.callbacks[postOp.operationId!] {
                 // Duplicate the operation and inject the parsed callbacks.
                 var newOp = postOp
                 newOp = Operation(tags: postOp.tags, summary: postOp.summary, description: postOp.description, externalDocs: postOp.externalDocs, operationId: postOp.operationId, parameters: postOp.parameters, requestBody: postOp.requestBody, responses: postOp.responses, callbacks: ["onEvent": cb], deprecated: postOp.deprecated, security: postOp.security, servers: postOp.servers)
                 updatedItem.post = newOp
             }
-            if let putOp = updatedItem.put, let cb = functionVisitor.callbacks[putOp.operationId ?? ""] {
+            if let putOp = updatedItem.put, let cb = functionVisitor.callbacks[putOp.operationId!] {
                 // Duplicate the operation and inject the parsed callbacks.
                 var newOp = putOp
                 newOp = Operation(tags: putOp.tags, summary: putOp.summary, description: putOp.description, externalDocs: putOp.externalDocs, operationId: putOp.operationId, parameters: putOp.parameters, requestBody: putOp.requestBody, responses: putOp.responses, callbacks: ["onEvent": cb], deprecated: putOp.deprecated, security: putOp.security, servers: putOp.servers)
                 updatedItem.put = newOp
             }
-            if let deleteOp = updatedItem.delete, let cb = functionVisitor.callbacks[deleteOp.operationId ?? ""] {
+            if let deleteOp = updatedItem.delete, let cb = functionVisitor.callbacks[deleteOp.operationId!] {
                 // Duplicate the operation and inject the parsed callbacks.
                 var newOp = deleteOp
                 newOp = Operation(tags: deleteOp.tags, summary: deleteOp.summary, description: deleteOp.description, externalDocs: deleteOp.externalDocs, operationId: deleteOp.operationId, parameters: deleteOp.parameters, requestBody: deleteOp.requestBody, responses: deleteOp.responses, callbacks: ["onEvent": cb], deprecated: deleteOp.deprecated, security: deleteOp.security, servers: deleteOp.servers)
                 updatedItem.delete = newOp
             }
-            if let patchOp = updatedItem.patch, let cb = functionVisitor.callbacks[patchOp.operationId ?? ""] {
+            if let patchOp = updatedItem.patch, let cb = functionVisitor.callbacks[patchOp.operationId!] {
                 // Duplicate the operation and inject the parsed callbacks.
                 var newOp = patchOp
                 newOp = Operation(tags: patchOp.tags, summary: patchOp.summary, description: patchOp.description, externalDocs: patchOp.externalDocs, operationId: patchOp.operationId, parameters: patchOp.parameters, requestBody: patchOp.requestBody, responses: patchOp.responses, callbacks: ["onEvent": cb], deprecated: patchOp.deprecated, security: patchOp.security, servers: patchOp.servers)

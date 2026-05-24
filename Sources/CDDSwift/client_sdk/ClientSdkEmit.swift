@@ -67,7 +67,7 @@ public class OpenAPIDocumentBuilder {
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         // Encode the constructed document to JSON data.
         let data = try encoder.encode(build())
-        return String(data: data, encoding: .utf8) ?? ""
+        return String(data: data, encoding: .utf8)!
     }
 }
 
@@ -231,9 +231,9 @@ public enum OpenAPIToSwiftGenerator {
         // Generate individual file contents.
         let files = generateFiles(from: document)
         // Extract models source.
-        let models = files["models.swift"] ?? ""
+        let models = files["models.swift"]!
         // Extract client source.
-        let client = files["client.swift"] ?? ""
+        let client = files["client.swift"]!
         // Strip the redundant "import Foundation\n\n" from the client file
         // Clean up redundant imports when merging files into a single output.
         let clientStripped = client.replacingOccurrences(of: "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n", with: "")

@@ -241,7 +241,7 @@ public func emitModel(name: String, schema: Schema) -> String {
 /// Helper mapping schema types to Swift.
 public func mapType(schema: Schema) -> String {
     if let ref = schema.ref ?? schema.dynamicRef {
-        return ref.components(separatedBy: "/").last ?? "Unknown"
+        return ref.components(separatedBy: "/").last!
     }
     switch schema.type {
     case "string":
@@ -261,7 +261,7 @@ public func mapType(schema: Schema) -> String {
         }
         if let items = schema.items {
             if let ref = items.ref {
-                return "[\(ref.components(separatedBy: "/").last ?? "Unknown")]"
+                return "[\(ref.components(separatedBy: "/").last!)]"
             } else if let type = items.type {
                 // primitive
                 let primitive = Schema(type: type)
@@ -273,7 +273,7 @@ public func mapType(schema: Schema) -> String {
         if let additional = schema.additionalProperties {
             if let ref = additional.ref {
                 // valueType
-                let valueType = ref.components(separatedBy: "/").last ?? "Unknown"
+                let valueType = ref.components(separatedBy: "/").last!
                 return "[String: \(valueType)]"
             } else if let type = additional.type {
                 // primitive

@@ -1,3 +1,4 @@
+cov_html*
 test_cli*
 .build/
 .swiftpm/

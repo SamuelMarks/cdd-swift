@@ -43,6 +43,10 @@ let package = Package(
         .testTarget(
             name: "CDDSwiftTests",
             dependencies: ["CDDSwift"]
+        ),
+        .testTarget(
+            name: "CDDSwiftCliTests",
+            dependencies: ["cdd-swift-cli"]
         )
     ]
 )

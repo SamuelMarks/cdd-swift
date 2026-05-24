@@ -63,6 +63,7 @@ public struct AnyCodable: Codable, Equatable {
         switch (lhs.value, rhs.value) {
         case is (Void, Void): return true
         case is (NSNull, NSNull): return true
+        case let (l as AnyCodable, r as AnyCodable): return l == r
         case let (l as Bool, r as Bool): return l == r
         case let (l as Int, r as Int): return l == r
         case let (l as Double, r as Double): return l == r

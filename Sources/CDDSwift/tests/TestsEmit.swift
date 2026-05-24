@@ -11,9 +11,9 @@ import Foundation
 ///   - schemas: All definitions
 ///   - visited: Set of visited refs to prevent infinite recursion
 /// - Returns: A string representation of the dummy JSON
-private func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
+func generateDummyJSON(type: String?, ref: String?, properties: [String: Schema]?, required: [String]?, items: SchemaItem?, schemas: [String: Schema]?, visited: Set<String> = []) -> String {
     if let ref = ref {
-        let name = ref.components(separatedBy: "/").last ?? ""
+        let name = ref.components(separatedBy: "/").last!
         if visited.contains(name) { return "{}" } // break cycle
         if let s = schemas?[name] {
             var newVisited = visited
@@ -35,8 +35,9 @@ private func generateDummyJSON(type: String?, ref: String?, properties: [String:
         if let items = items {
             let itemStr = generateDummyJSON(type: items.type, ref: items.ref, properties: nil, required: nil, items: nil, schemas: schemas, visited: visited)
             return "[\(itemStr)]"
+        } else {
+            return "[]"
         }
-        return "[]"
     case "object":
         var dict: [String] = []
         var req = required ?? []
@@ -101,7 +102,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
         for (path, item) in sortedPaths {
             let operations: [(String, Operation?)] = [
                 ("GET", item.get), ("POST", item.post), ("PUT", item.put),
-                ("DELETE", item.delete), ("PATCH", item.patch)
+                ("DELETE", item.delete), ("PATCH", item.patch), ("HEAD", item.head)
             ]
             for (method, opOpt) in operations {
                 if let op = opOpt {
