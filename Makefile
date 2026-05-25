@@ -1,8 +1,6 @@
-.PHONY: install_base install_deps build_docs build build_wasm build_docker run_docker test run help all
+.PHONY: install_base install_deps docs build build_wasm build_docker run_docker test run help all
 
 PYTHON ?= $(shell command -v python3 || command -v python)
-
-DOCS_DIR ?= docs
 
 default: help
 
@@ -13,9 +11,12 @@ install_base:
 install_deps:
 	swift package resolve
 
-build_docs:
-	@echo "Building docs to $(DOCS_DIR)..."
-	swift package --allow-writing-to-directory $(DOCS_DIR) generate-documentation --target CDDSwift --output-path $(DOCS_DIR)
+docs:
+	@echo "Building docs to .build/docs..."
+	@rm -rf .build/docs
+	swift package --allow-writing-to-directory .build/docs generate-documentation --target CDDSwift --output-path .build/docs
+	@mkdir -p docs
+	@cd docs && ln -sfn ../.build/docs html
 
 build:
 	@echo "Building CLI binary..."
@@ -49,7 +50,7 @@ help:
 	@echo "Available tasks:"
 	@echo "  install_base  : install language runtime"
 	@echo "  install_deps  : install dependencies"
-	@echo "  build_docs    : build the API docs (override with DOCS_DIR=docs)"
+	@echo "  docs          : build the API docs and symlink to docs/html"
 	@echo "  build         : build the CLI binary"
 	@echo "  build_wasm    : build the WASM binary"
 	@echo "  build_docker  : build docker images"

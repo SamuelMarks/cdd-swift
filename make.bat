@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 if "%1"=="" goto help
 if "%1"=="install_base" goto install_base
 if "%1"=="install_deps" goto install_deps
-if "%1"=="build_docs" goto build_docs
+if "%1"=="docs" goto docs
 if "%1"=="build" goto build
 if "%1"=="build_wasm" goto build_wasm
 if "%1"=="build_docker" goto build_docker
@@ -26,11 +26,13 @@ goto :eof
 swift package resolve
 goto :eof
 
-:build_docs
-set DOCS_DIR=docs
-if not "%2"=="" set DOCS_DIR=%2
-echo Building docs to %DOCS_DIR%...
-swift package --allow-writing-to-directory %DOCS_DIR% generate-documentation --target CDDSwift --output-path %DOCS_DIR%
+:docs
+echo Building docs to .build\docs...
+if exist .build\docs rmdir /s /q .build\docs 2>nul
+swift package --allow-writing-to-directory .build\docs generate-documentation --target CDDSwift --output-path .build\docs
+if not exist docs mkdir docs
+if exist docs\html rmdir /s /q docs\html 2>nul
+mklink /J docs\html ..\.build\docs
 goto :eof
 
 :build
@@ -74,7 +76,7 @@ goto :eof
 echo Available tasks:
 echo   install_base  : install language runtime
 echo   install_deps  : install dependencies
-echo   build_docs    : build the API docs
+echo   docs          : build the API docs and symlink to docs\html
 echo   build         : build the CLI binary
 echo   build_wasm    : build the WASM binary
 echo   build_docker  : build docker images
