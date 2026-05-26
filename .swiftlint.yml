@@ -1,5 +1,6 @@
 excluded:
   - .build
+  - test_cli/.build
   - .swiftpm
   - Package.resolved
   - test_out

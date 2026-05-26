@@ -40,7 +40,7 @@ final class CDDSwiftCliTests: XCTestCase {
         setenv("CDD_SWIFT_OTHER_FLAG", "hello", 1)
         // just to trigger the Env mapping
 
-        let args = Array(CommandLine.arguments.dropFirst())
+        _ = Array(CommandLine.arguments.dropFirst())
         // Main is tricky to test since it blocks on parseAsRoot. We'll just test the code structure with unit tests.
     }
 
