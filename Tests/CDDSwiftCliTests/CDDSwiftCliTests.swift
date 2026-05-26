@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 @testable import cdd_swift_cli
 import ArgumentParser
 
