@@ -242,7 +242,7 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    // parseType
+    /// Parses a Swift type into an OpenAPI Schema.
     private func parseType(_ type: TypeSyntax) -> (Schema, Bool) {
         if let optType = type.as(OptionalTypeSyntax.self) {
             // declaration
@@ -292,7 +292,7 @@ public class ModelVisitor: SyntaxVisitor {
         return (Schema(type: "string"), false)
     }
 
-    // mapPrimitive
+    /// Maps a primitive Swift type to an OpenAPI Schema.
     private func mapPrimitive(_ name: String) -> Schema {
         switch name {
         case "String": return Schema(type: "string")

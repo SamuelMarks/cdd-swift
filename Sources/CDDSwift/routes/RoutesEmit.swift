@@ -10,7 +10,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     // Initialize the path interpolation string, to be modified with parameter variables.
     var pathInterpolation = path
 
-    // A helper struct to store parsed parameter metadata.
+    /// A helper struct to store parsed parameter metadata.
     struct ParamData {
         // The name of the parameter.
         let name: String
@@ -138,7 +138,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         }
     } else if let params = operation.parameters {
         for param in params {
-            if param.in == "body", let schema = param.schema {
+            if param.in == "body", param.schema != nil {
                 let pName = param.name ?? "body"
                 bodyParamName = pName
                 break

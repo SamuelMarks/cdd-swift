@@ -10,15 +10,15 @@
     #endif
 
     /// JSON RPC Server command
-    struct ServerJsonRpc: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(commandName: "serve_json_rpc", abstract: "Run a JSON-RPC HTTP server exposing the CLI capabilities.")
+    struct ServeJsonRpc: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(commandName: "serve_json_rpc", abstract: "Expose CLI interface as a JSON-RPC server")
 
-        @Option(help: "Port to listen on")
+        @Option(name: [.customShort("p"), .customLong("port")], help: "Port to listen on")
         /// port
         /// Documentation for port
         var port: UInt16 = 8082
 
-        @Option(help: "Host to listen on")
+        @Option(name: [.customShort("l"), .customLong("listen")], help: "Host to listen on")
         /// listen host
         /// Documentation for listen
         var listen: String = "0.0.0.0"
