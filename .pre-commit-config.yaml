@@ -36,22 +36,22 @@ repos:
         pass_filenames: false
     -   id: build-wasm
         name: Build WASM
-        entry: python scripts/build_wasm.py
+        entry: python3 scripts/build_wasm.py
         language: python
         pass_filenames: false
     -   id: swagger-2-0-petstore
         name: Swagger 2.0 Petstore test
-        entry: python scripts/test_swagger_2_0.py
+        entry: python3 scripts/test_swagger_2_0.py
         language: python
         pass_filenames: false
     -   id: openapi-3-2-0-petstore
         name: OpenAPI 3.2.0 Petstore test
-        entry: python scripts/test_openapi_3_2_0.py
+        entry: python3 scripts/test_openapi_3_2_0.py
         language: python
         pass_filenames: false
     -   id: update-badges
         name: Update Badges (Doc & Test Coverage)
-        entry: python scripts/update_badges.py
+        entry: python3 scripts/update_badges.py
         language: python
         pass_filenames: false
         always_run: true

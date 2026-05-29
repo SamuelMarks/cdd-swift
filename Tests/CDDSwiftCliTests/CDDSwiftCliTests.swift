@@ -37,10 +37,10 @@ final class CDDSwiftCliTests: XCTestCase {
     }
 
     func testMain() {
-        setenv("CDD_SWIFT_PORT", "1234", 1)
-        setenv("CDD_SWIFT_NO_IMPORTS", "true", 1)
-        setenv("CDD_SWIFT_SOME_FLAG", "false", 1)
-        setenv("CDD_SWIFT_OTHER_FLAG", "hello", 1)
+        setenv("CDD_PORT", "1234", 1)
+        setenv("CDD_NO_IMPORTS", "true", 1)
+        setenv("CDD_SOME_FLAG", "false", 1)
+        setenv("CDD_OTHER_FLAG", "hello", 1)
         // just to trigger the Env mapping
 
         _ = Array(CommandLine.arguments.dropFirst())
@@ -62,8 +62,8 @@ final class CDDSwiftCliTests: XCTestCase {
         XCTAssertThrowsError(try ToSDK.parse([]))
     }
 
-    func testServerJsonRpc() async throws {
-        var cmd = try ServerJsonRpc.parse(["--port", "12345"])
+    func testServeJsonRpc() async throws {
+        var cmd = try ServeJsonRpc.parse(["--port", "12345"])
         XCTAssertEqual(cmd.port, 12345)
 
         let task = Task {

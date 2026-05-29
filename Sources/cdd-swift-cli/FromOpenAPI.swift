@@ -54,7 +54,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// Documentation for noInstallablePackage
     var noInstallablePackage: Bool = false
 
-    @Flag(name: [.customLong("create-composable-tests-mocks"), .customLong("tests")], help: "Create composable tests & mocks.")
+    @Flag(name: .customLong("tests"), help: "Generate composable tests and mocks.")
     /// Documentation for testsMocks
     var testsMocks: Bool = false
 
@@ -174,7 +174,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
 
 /// Documentation for ToSDK
 struct ToSDK: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "to_sdk", abstract: "Generate a Swift SDK from an OpenAPI document.")
+    static let configuration = CommandConfiguration(commandName: "to_sdk", abstract: "Generate a Client SDK from an OpenAPI specification.")
 
     @OptionGroup var options: BaseFromOpenAPIOptions
 
@@ -222,7 +222,7 @@ struct ToSDK: AsyncParsableCommand {
 
 /// Documentation for ToSDKCLI
 struct ToSDKCLI: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "to_sdk_cli", abstract: "Generate a typed Swift CLI from an OpenAPI document.")
+    static let configuration = CommandConfiguration(commandName: "to_sdk_cli", abstract: "Generate a Client SDK CLI from an OpenAPI specification.")
 
     @OptionGroup var options: BaseFromOpenAPIOptions
 
@@ -250,7 +250,7 @@ struct ToSDKCLI: AsyncParsableCommand {
 
 /// Documentation for ToServer
 struct ToServer: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "to_server", abstract: "Generate a Swift server stub from an OpenAPI document.")
+    static let configuration = CommandConfiguration(commandName: "to_server", abstract: "Generate a Server stub from an OpenAPI specification.")
 
     @OptionGroup var options: BaseFromOpenAPIOptions
 

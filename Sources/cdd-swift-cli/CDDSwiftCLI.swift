@@ -11,10 +11,11 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         /// env
         let env = ProcessInfo.processInfo.environment
 
-        // Map env vars like CDD_SWIFT_PORT to --port
-        for (key, value) in env where key.hasPrefix("CDD_SWIFT_") {
+        // Map env vars like CDD_PORT to --port
+        for (key, value) in env where key.hasPrefix("CDD_") {
+            if key == "CDD_COMMAND" || key == "CDD_ARGS" { continue }
             /// argName
-            let argName = key.dropFirst("CDD_SWIFT_".count).lowercased().replacingOccurrences(of: "_", with: "-")
+            let argName = key.dropFirst("CDD_".count).lowercased().replacingOccurrences(of: "_", with: "-")
             /// flag
             let flag = "--\(argName)"
             if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
@@ -38,7 +39,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
             #if os(WASI)
                 return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self]
             #else
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServerJsonRpc.self]
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self]
             #endif
         }()
     )
@@ -176,4 +177,32 @@ struct GenerateOpenAPI: AsyncParsableCommand {
             print(jsonString)
         }
     }
+}
+
+public enum CDDCLI {
+    public static func generateFromOpenApi(_ args: [String]) async throws {
+        var commandArgs = ["from_openapi"]
+        commandArgs.append(contentsOf: args)
+        try await CDDSwiftCLI.main(commandArgs)
+    }
+
+    public static func generateToOpenApi(_ args: [String]) async throws {
+        var commandArgs = ["to_openapi"]
+        commandArgs.append(contentsOf: args)
+        try await CDDSwiftCLI.main(commandArgs)
+    }
+
+    public static func generateDocsJson(_ args: [String]) async throws {
+        var commandArgs = ["to_docs_json"]
+        commandArgs.append(contentsOf: args)
+        try await CDDSwiftCLI.main(commandArgs)
+    }
+
+    #if !os(WASI)
+        public static func serveJsonRpc(_ args: [String]) async throws {
+            var commandArgs = ["serve_json_rpc"]
+            commandArgs.append(contentsOf: args)
+            try await CDDSwiftCLI.main(commandArgs)
+        }
+    #endif
 }

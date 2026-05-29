@@ -9,7 +9,7 @@ import Foundation
 struct ToDocsJson: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "to_docs_json",
-        abstract: "Generate a JSON document containing idiomatic Swift code examples for an OpenAPI specification."
+        abstract: "Generate JSON documentation with code snippets for an OpenAPI specification."
     )
 
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path or URL to the input OpenAPI specification.")
