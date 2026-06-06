@@ -21,7 +21,7 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     public init(inputStream: InputStream, outputStream: OutputStream) {
         self.inputStream = inputStream
         self.outputStream = outputStream
-        self.encoder.outputFormatting = [.withoutEscapingSlashes]
+        encoder.outputFormatting = [.withoutEscapingSlashes]
     }
 
     /// Convenience initializer using standard input/output.
@@ -35,7 +35,7 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     public func send<T: Encodable>(_ message: T) async throws {
         var data = try encoder.encode(message)
         data.append(contentsOf: [0x0A]) // Newline
-        
+
         try data.withUnsafeBytes { buffer in
             guard let pointer = buffer.bindMemory(to: UInt8.self).baseAddress else {
                 throw NSError(domain: "MCPStdioTransport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to bind memory"])
@@ -56,7 +56,7 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
         isReading = true
         inputStream.open()
         outputStream.open()
-        
+
         let bufferSize = 1024 * 8
         var buffer = [UInt8](repeating: 0, count: bufferSize)
         var messageData = Data()
@@ -67,14 +67,14 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
                 if bytesRead > 0 {
                     let readData = Data(bytes: buffer, count: bytesRead)
                     messageData.append(readData)
-                    
+
                     // Process newline separated messages
                     while let newlineRange = messageData.firstRange(of: Data([0x0A])) {
-                        let message = messageData.subdata(in: 0..<newlineRange.lowerBound)
+                        let message = messageData.subdata(in: 0 ..< newlineRange.lowerBound)
                         if !message.isEmpty {
                             await onMessage(message)
                         }
-                        messageData.removeSubrange(0..<newlineRange.upperBound)
+                        messageData.removeSubrange(0 ..< newlineRange.upperBound)
                     }
                 } else if bytesRead < 0 {
                     // Error

@@ -168,7 +168,7 @@ public enum PromptMessageContent: Codable, Equatable {
     case text(TextContent)
     case image(ImageContent)
     case resource(EmbeddedResource)
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let text = try? container.decode(TextContent.self) {
@@ -181,13 +181,13 @@ public enum PromptMessageContent: Codable, Equatable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid PromptMessageContent")
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .text(let t): try container.encode(t)
-        case .image(let i): try container.encode(i)
-        case .resource(let r): try container.encode(r)
+        case let .text(t): try container.encode(t)
+        case let .image(i): try container.encode(i)
+        case let .resource(r): try container.encode(r)
         }
     }
 }
@@ -284,12 +284,12 @@ public struct RootsListChangedNotificationParams: Codable, Equatable {
 public struct CompleteRequestParams: Codable, Equatable {
     public let ref: CompleteReference
     public let argument: CompleteArgument
-    
+
     public init(ref: CompleteReference, argument: CompleteArgument) {
         self.ref = ref
         self.argument = argument
     }
-    
+
     public struct CompleteArgument: Codable, Equatable {
         public let name: String
         public let value: String
@@ -303,7 +303,7 @@ public struct CompleteRequestParams: Codable, Equatable {
 public enum CompleteReference: Codable, Equatable {
     case prompt(PromptReference)
     case resource(ResourceReference)
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let p = try? container.decode(PromptReference.self) {
@@ -314,12 +314,12 @@ public enum CompleteReference: Codable, Equatable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid CompleteReference")
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .prompt(let p): try container.encode(p)
-        case .resource(let r): try container.encode(r)
+        case let .prompt(p): try container.encode(p)
+        case let .resource(r): try container.encode(r)
         }
     }
 }
@@ -335,12 +335,12 @@ public struct ResourceReference: Codable, Equatable {
 public struct CompleteResult: Codable, Equatable {
     public let _meta: Meta?
     public let completion: Completion
-    
+
     public init(_meta: Meta? = nil, completion: Completion) {
         self._meta = _meta
         self.completion = completion
     }
-    
+
     public struct Completion: Codable, Equatable {
         public let values: [String]
         public let total: Int?
@@ -376,7 +376,7 @@ public struct ModelPreferences: Codable, Equatable {
     public let costPriority: Double?
     public let speedPriority: Double?
     public let intelligencePriority: Double?
-    
+
     public init(hints: [ModelHint]? = nil, costPriority: Double? = nil, speedPriority: Double? = nil, intelligencePriority: Double? = nil) {
         self.hints = hints
         self.costPriority = costPriority
@@ -394,7 +394,7 @@ public struct CreateMessageRequestParams: Codable, Equatable {
     public let maxTokens: Int
     public let stopSequences: [String]?
     public let metadata: [String: AnyCodable]?
-    
+
     public init(messages: [SamplingMessage], modelPreferences: ModelPreferences? = nil, systemPrompt: String? = nil, includeContext: String? = nil, temperature: Double? = nil, maxTokens: Int, stopSequences: [String]? = nil, metadata: [String: AnyCodable]? = nil) {
         self.messages = messages
         self.modelPreferences = modelPreferences
@@ -413,7 +413,7 @@ public struct CreateMessageResult: Codable, Equatable {
     public let content: PromptMessageContent
     public let model: String
     public let stopReason: String?
-    
+
     public init(_meta: Meta? = nil, role: Role, content: PromptMessageContent, model: String, stopReason: String? = nil) {
         self._meta = _meta
         self.role = role

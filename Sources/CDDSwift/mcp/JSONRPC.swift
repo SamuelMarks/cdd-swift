@@ -21,9 +21,9 @@ public enum JSONRPCId: Codable, Equatable, Hashable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .string(let str):
+        case let .string(str):
             try container.encode(str)
-        case .integer(let int):
+        case let .integer(int):
             try container.encode(int)
         }
     }
@@ -109,7 +109,7 @@ public struct JSONRPCErrorDetail: Codable, Equatable, Error, Sendable {
         self.message = message
         self.data = data
     }
-    
+
     public init(code: JSONRPCErrorCode, message: String, data: AnyCodable? = nil) {
         self.code = code.rawValue
         self.message = message

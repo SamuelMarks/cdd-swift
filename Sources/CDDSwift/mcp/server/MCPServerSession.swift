@@ -12,7 +12,7 @@ public actor MCPServerSession {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private var pendingRequests: [JSONRPCId: Continuation] = [:]
-    
+
     private struct Continuation {
         // We'll use this when the server sends requests to the client and awaits a response.
         // For now, the server mainly handles requests from the client.
@@ -21,9 +21,9 @@ public actor MCPServerSession {
     public init(transport: MCPTransport, router: MCPServerRouter) {
         self.transport = transport
         self.router = router
-        self.encoder = JSONEncoder()
-        self.encoder.outputFormatting = [.withoutEscapingSlashes]
-        self.decoder = JSONDecoder()
+        encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        decoder = JSONDecoder()
     }
 
     public func start() async throws {
@@ -38,32 +38,32 @@ public actor MCPServerSession {
     public func close() async throws {
         try await transport.close()
     }
-    
+
     private func processIncomingData(_ data: Data) async {
         // Try decoding as a Request first
         if let request = try? decoder.decode(JSONRPCRequest<AnyCodable>.self, from: data) {
             await handleRequest(request)
             return
         }
-        
+
         // Try decoding as Notification
         if let notification = try? decoder.decode(JSONRPCNotification<AnyCodable>.self, from: data) {
             await handleNotification(notification)
             return
         }
-        
+
         // Try decoding as Response (if we sent requests to the client)
         if let response = try? decoder.decode(JSONRPCResponse<AnyCodable>.self, from: data) {
             await handleResponse(response)
             return
         }
-        
+
         if let error = try? decoder.decode(JSONRPCError.self, from: data) {
             await handleError(error)
             return
         }
     }
-    
+
     private func handleRequest(_ request: JSONRPCRequest<AnyCodable>) async {
         let reqId = request.id
         do {
@@ -79,7 +79,7 @@ public actor MCPServerSession {
             try? await transport.send(response)
         }
     }
-    
+
     private func handleNotification(_ notification: JSONRPCNotification<AnyCodable>) async {
         do {
             try await router.handleNotification(notification: notification)
@@ -87,12 +87,12 @@ public actor MCPServerSession {
             // Notifications don't get responses, but we could log
         }
     }
-    
-    private func handleResponse(_ response: JSONRPCResponse<AnyCodable>) async {
+
+    private func handleResponse(_: JSONRPCResponse<AnyCodable>) async {
         // Handle responses to requests we sent
     }
-    
-    private func handleError(_ error: JSONRPCError) async {
+
+    private func handleError(_: JSONRPCError) async {
         // Handle error responses to requests we sent
     }
 }

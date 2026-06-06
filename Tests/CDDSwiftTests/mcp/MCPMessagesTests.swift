@@ -28,7 +28,7 @@ final class MCPMessagesTests: XCTestCase {
     func testMeta() throws {
         let meta = Meta(progressToken: .string("abc"))
         XCTAssertEqual(meta.progressToken, .string("abc"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(meta)
@@ -60,7 +60,7 @@ final class MCPMessagesTests: XCTestCase {
         let impl = Implementation(name: "test-client", version: "1.0")
         XCTAssertEqual(impl.name, "test-client")
         XCTAssertEqual(impl.version, "1.0")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(impl)
@@ -76,7 +76,7 @@ final class MCPMessagesTests: XCTestCase {
         )
         XCTAssertEqual(cap.experimental?["foo"]?.value as? String, "bar")
         XCTAssertEqual(cap.roots?.listChanged, true)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(cap)
@@ -97,7 +97,7 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(cap.resources?.listChanged, false)
         XCTAssertEqual(cap.resources?.subscribe, true)
         XCTAssertEqual(cap.tools?.listChanged, true)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(cap)
@@ -109,10 +109,10 @@ final class MCPMessagesTests: XCTestCase {
         let clientInfo = Implementation(name: "test", version: "1.0")
         let cap = ClientCapabilities()
         let req = InitializeRequestParams(protocolVersion: "2024-11-05", capabilities: cap, clientInfo: clientInfo)
-        
+
         XCTAssertEqual(req.protocolVersion, "2024-11-05")
         XCTAssertEqual(req.clientInfo.name, "test")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(req)
@@ -124,12 +124,12 @@ final class MCPMessagesTests: XCTestCase {
         let serverInfo = Implementation(name: "test-server", version: "1.0")
         let cap = ServerCapabilities()
         let res = InitializeResult(_meta: Meta(progressToken: .string("p")), protocolVersion: "2024-11-05", capabilities: cap, serverInfo: serverInfo, instructions: "Hello")
-        
+
         XCTAssertEqual(res.protocolVersion, "2024-11-05")
         XCTAssertEqual(res.serverInfo.name, "test-server")
         XCTAssertEqual(res.instructions, "Hello")
         XCTAssertEqual(res._meta?.progressToken, .string("p"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(res)

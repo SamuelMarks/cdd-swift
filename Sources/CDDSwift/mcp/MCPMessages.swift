@@ -19,9 +19,9 @@ public enum ProgressToken: Codable, Equatable, Hashable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .string(let str):
+        case let .string(str):
             try container.encode(str)
-        case .integer(let int):
+        case let .integer(int):
             try container.encode(int)
         }
     }

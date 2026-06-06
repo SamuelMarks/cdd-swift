@@ -104,9 +104,9 @@ public enum ResourceContents: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .text(let text):
+        case let .text(text):
             try container.encode(text)
-        case .blob(let blob):
+        case let .blob(blob):
             try container.encode(blob)
         }
     }

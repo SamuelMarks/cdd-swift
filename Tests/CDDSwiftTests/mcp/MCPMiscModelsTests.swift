@@ -5,7 +5,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testAnnotated() throws {
         let annotated = Annotated(annotations: ["a": AnyCodable("b")])
         XCTAssertEqual(annotated.annotations?["a"]?.value as? String, "b")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(annotated)
@@ -16,7 +16,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testCancelledNotificationParams() throws {
         let params = CancelledNotificationParams(requestId: .string("1"), reason: "Timeout")
         XCTAssertEqual(params.requestId, .string("1"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -27,7 +27,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testProgressNotificationParams() throws {
         let params = ProgressNotificationParams(progressToken: .integer(1), progress: 0.5, total: 1.0)
         XCTAssertEqual(params.progress, 0.5)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -38,7 +38,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPaginatedRequestParams() throws {
         let params = PaginatedRequestParams(cursor: "c")
         XCTAssertEqual(params.cursor, "c")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -49,7 +49,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPaginatedResult() throws {
         let result = PaginatedResult(_meta: Meta(progressToken: .string("p")), nextCursor: "n")
         XCTAssertEqual(result.nextCursor, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)
@@ -60,7 +60,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPingRequestParams() throws {
         let params = PingRequestParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -71,7 +71,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testTextContent() throws {
         let text = TextContent(text: "Hello", annotations: ["a": AnyCodable("b")])
         XCTAssertEqual(text.text, "Hello")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(text)
@@ -82,7 +82,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testImageContent() throws {
         let img = ImageContent(data: "base64", mimeType: "image/png", annotations: ["a": AnyCodable("b")])
         XCTAssertEqual(img.data, "base64")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(img)
@@ -93,7 +93,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testEmbeddedResource() throws {
         let resource = EmbeddedResource(resource: .text(TextResourceContents(uri: "u", mimeType: "m", text: "t")), annotations: ["a": AnyCodable("b")])
         XCTAssertEqual(resource.type, "resource")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(resource)
@@ -104,7 +104,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testSetLevelRequestParams() throws {
         let params = SetLevelRequestParams(level: .debug)
         XCTAssertEqual(params.level, .debug)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -115,7 +115,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testLoggingMessageNotificationParams() throws {
         let params = LoggingMessageNotificationParams(level: .info, logger: "main", data: AnyCodable("msg"))
         XCTAssertEqual(params.level, .info)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -126,7 +126,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPromptArgument() throws {
         let arg = PromptArgument(name: "n", description: "d", required: true)
         XCTAssertEqual(arg.name, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(arg)
@@ -137,7 +137,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPrompt() throws {
         let prompt = Prompt(name: "p", description: "d", arguments: [PromptArgument(name: "n")])
         XCTAssertEqual(prompt.name, "p")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(prompt)
@@ -149,7 +149,7 @@ final class MCPMiscModelsTests: XCTestCase {
         let textContent = TextContent(text: "hello")
         let msg = PromptMessage(role: .user, content: .text(textContent))
         XCTAssertEqual(msg.role, .user)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(msg)
@@ -178,7 +178,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPromptReference() throws {
         let ref = PromptReference(name: "p")
         XCTAssertEqual(ref.name, "p")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(ref)
@@ -189,7 +189,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testGetPromptRequestParams() throws {
         let params = GetPromptRequestParams(name: "n", arguments: ["a": "b"])
         XCTAssertEqual(params.name, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -200,7 +200,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testGetPromptResult() throws {
         let result = GetPromptResult(_meta: Meta(progressToken: .string("p")), description: "d", messages: [PromptMessage(role: .user, content: .text(TextContent(text: "t")))])
         XCTAssertEqual(result.description, "d")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)
@@ -211,7 +211,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testListPromptsRequestParams() throws {
         let params = ListPromptsRequestParams(cursor: "c")
         XCTAssertEqual(params.cursor, "c")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -222,7 +222,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testListPromptsResult() throws {
         let result = ListPromptsResult(_meta: Meta(progressToken: .string("p")), nextCursor: "n", prompts: [Prompt(name: "p")])
         XCTAssertEqual(result.nextCursor, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)
@@ -233,7 +233,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testPromptListChangedNotificationParams() throws {
         let params = PromptListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -244,7 +244,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testRoot() throws {
         let root = Root(uri: "u", name: "n")
         XCTAssertEqual(root.uri, "u")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(root)
@@ -255,7 +255,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testListRootsRequestParams() throws {
         let params = ListRootsRequestParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -266,7 +266,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testListRootsResult() throws {
         let result = ListRootsResult(_meta: Meta(progressToken: .string("p")), roots: [Root(uri: "u")])
         XCTAssertEqual(result.roots.count, 1)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)
@@ -277,7 +277,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testRootsListChangedNotificationParams() throws {
         let params = RootsListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -290,7 +290,7 @@ final class MCPMiscModelsTests: XCTestCase {
         let arg = CompleteRequestParams.CompleteArgument(name: "n", value: "v")
         let params = CompleteRequestParams(ref: ref, argument: arg)
         XCTAssertEqual(params.argument.name, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -313,7 +313,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testResourceReference() throws {
         let ref = ResourceReference(uri: "u")
         XCTAssertEqual(ref.uri, "u")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(ref)
@@ -325,7 +325,7 @@ final class MCPMiscModelsTests: XCTestCase {
         let completion = CompleteResult.Completion(values: ["v1", "v2"], total: 2, hasMore: false)
         let result = CompleteResult(_meta: Meta(progressToken: .string("p")), completion: completion)
         XCTAssertEqual(result.completion.values, ["v1", "v2"])
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)
@@ -336,7 +336,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testSamplingMessage() throws {
         let msg = SamplingMessage(role: .assistant, content: .text(TextContent(text: "t")))
         XCTAssertEqual(msg.role, .assistant)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(msg)
@@ -347,7 +347,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testModelHint() throws {
         let hint = ModelHint(name: "n")
         XCTAssertEqual(hint.name, "n")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(hint)
@@ -358,7 +358,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testModelPreferences() throws {
         let prefs = ModelPreferences(hints: [ModelHint(name: "n")], costPriority: 1.0, speedPriority: 0.5, intelligencePriority: 0.8)
         XCTAssertEqual(prefs.costPriority, 1.0)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(prefs)
@@ -371,7 +371,7 @@ final class MCPMiscModelsTests: XCTestCase {
         let prefs = ModelPreferences(hints: [ModelHint(name: "n")])
         let params = CreateMessageRequestParams(messages: [msg], modelPreferences: prefs, systemPrompt: "s", includeContext: "i", temperature: 0.7, maxTokens: 100, stopSequences: ["stop"], metadata: ["a": AnyCodable("b")])
         XCTAssertEqual(params.maxTokens, 100)
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(params)
@@ -382,7 +382,7 @@ final class MCPMiscModelsTests: XCTestCase {
     func testCreateMessageResult() throws {
         let result = CreateMessageResult(_meta: Meta(progressToken: .string("p")), role: .assistant, content: .text(TextContent(text: "t")), model: "m", stopReason: "stop")
         XCTAssertEqual(result.model, "m")
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         let data = try encoder.encode(result)

@@ -11,9 +11,9 @@ struct MCPServe: AsyncParsableCommand {
 
     mutating func run() async throws {
         let transport = MCPServe.mockTransport ?? MCPStdioTransport()
-        
+
         var router = DefaultMCPServerRouter()
-        
+
         // Setup initial MCP capabilities
         let serverInfo = Implementation(name: "cdd-swift", version: "0.0.1")
         let capabilities = ServerCapabilities(
@@ -21,24 +21,22 @@ struct MCPServe: AsyncParsableCommand {
             resources: .init(listChanged: false, subscribe: false),
             tools: .init(listChanged: false)
         )
-        
-        router.requestHandlers["initialize"] = { req in
+
+        router.requestHandlers["initialize"] = { _ in
             let result = InitializeResult(protocolVersion: "2024-11-05", capabilities: capabilities, serverInfo: serverInfo)
             let encoder = JSONEncoder()
             let data = try encoder.encode(result)
-            let anyCodable = try JSONDecoder().decode(AnyCodable.self, from: data)
-            return anyCodable
+            return try JSONDecoder().decode(AnyCodable.self, from: data)
         }
-        
-        router.requestHandlers["ping"] = { req in
+
+        router.requestHandlers["ping"] = { _ in
             let result = EmptyResult()
             let encoder = JSONEncoder()
             let data = try encoder.encode(result)
-            let anyCodable = try JSONDecoder().decode(AnyCodable.self, from: data)
-            return anyCodable
+            return try JSONDecoder().decode(AnyCodable.self, from: data)
         }
 
-        router.requestHandlers["tools/list"] = { req in
+        router.requestHandlers["tools/list"] = { _ in
             let tools = [
                 Tool(
                     name: "generate_from_openapi",
@@ -61,21 +59,23 @@ struct MCPServe: AsyncParsableCommand {
 
         router.requestHandlers["tools/call"] = { req in
             guard let paramsAny = req.params?.value as? [String: Any],
-                  let name = paramsAny["name"] as? String else {
+                  let name = paramsAny["name"] as? String
+            else {
                 throw JSONRPCErrorDetail(code: .invalidParams, message: "Missing or invalid tool name")
             }
-            
+
             if name == "generate_from_openapi" {
                 let arguments = paramsAny["arguments"] as? [String: Any] ?? [:]
                 guard let inputPath = arguments["input_path"] as? String,
-                      let outputDir = arguments["output_dir"] as? String else {
+                      let outputDir = arguments["output_dir"] as? String
+                else {
                     throw JSONRPCErrorDetail(code: .invalidParams, message: "Missing required arguments for generate_from_openapi")
                 }
-                
+
                 // Execute the actual SDK method/command
                 var commandArgs = ["from_openapi"]
                 commandArgs.append(contentsOf: ["--input-path", inputPath, "--output-dir", outputDir])
-                
+
                 do {
                     await CDDSwiftCLI.main(commandArgs)
                     let textContent = TextContent(text: "Successfully executed generate_from_openapi to \(outputDir)")
@@ -85,17 +85,17 @@ struct MCPServe: AsyncParsableCommand {
                     return try JSONDecoder().decode(AnyCodable.self, from: data)
                 }
             }
-            
+
             throw JSONRPCErrorDetail(code: .methodNotFound, message: "Tool \(name) not found")
         }
-        
-        router.notificationHandlers["notifications/initialized"] = { notif in
+
+        router.notificationHandlers["notifications/initialized"] = { _ in
             // Client is ready
         }
-        
+
         let session = MCPServerSession(transport: transport, router: router)
         try await session.start()
-        
+
         // Wait indefinitely for stdio transport
         if MCPServe.mockTransport == nil {
             while true {

@@ -6,5 +6,8 @@ final class ClientSdkCliEmitTests: XCTestCase {
         let doc = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: ["/users": PathItem(get: Operation(operationId: "getUsers"))])
         let code = emitSDKCLI(document: doc)
         XCTAssertTrue(code.contains("struct GetUsersCommand: AsyncParsableCommand"))
+        XCTAssertTrue(code.contains("MCPCommand.self"))
+        XCTAssertTrue(code.contains("struct MCPCommand: AsyncParsableCommand"))
+        XCTAssertTrue(code.contains("Start the MCP server via stdio"))
     }
 }

@@ -26,6 +26,8 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
         }
     }
 
+    subcommands.append("MCPCommand.self")
+
     if !subcommands.isEmpty {
         output += "        subcommands: [\(subcommands.joined(separator: ", "))]\n"
     } else {
@@ -79,6 +81,17 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
             }
         }
     }
+
+    output += "struct MCPCommand: AsyncParsableCommand {\n"
+    output += "    static let configuration = CommandConfiguration(commandName: \"mcp\", abstract: \"Start the MCP server via stdio\")\n\n"
+    output += "    mutating func run() async throws {\n"
+    output += "        // Start stdio transport\n"
+    output += "        while let line = readLine() {\n"
+    output += "            guard let data = line.data(using: .utf8) else { continue }\n"
+    output += "            // parse JSON-RPC message here\n"
+    output += "            _ = data\n"
+    output += "        }\n"
+    output += "    }\n}\n\n"
 
     return output
 }

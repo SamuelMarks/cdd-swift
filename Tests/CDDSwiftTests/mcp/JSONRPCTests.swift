@@ -31,10 +31,10 @@ final class JSONRPCTests: XCTestCase {
         XCTAssertEqual(req.id, .integer(1))
         XCTAssertEqual(req.method, "test")
         XCTAssertEqual(req.params?.value as? String, "param")
-        
+
         let encoder = JSONEncoder()
         let data = try encoder.encode(req)
-        
+
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(JSONRPCRequest<AnyCodable>.self, from: data)
         XCTAssertEqual(decoded.method, "test")
@@ -45,10 +45,10 @@ final class JSONRPCTests: XCTestCase {
         XCTAssertEqual(notif.jsonrpc, "2.0")
         XCTAssertEqual(notif.method, "test")
         XCTAssertEqual(notif.params?.value as? Int, 123)
-        
+
         let encoder = JSONEncoder()
         let data = try encoder.encode(notif)
-        
+
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(JSONRPCNotification<AnyCodable>.self, from: data)
         XCTAssertEqual(decoded.method, "test")
@@ -59,10 +59,10 @@ final class JSONRPCTests: XCTestCase {
         XCTAssertEqual(resp.jsonrpc, "2.0")
         XCTAssertEqual(resp.id, .string("abc"))
         XCTAssertEqual(resp.result?.value as? String, "ok")
-        
+
         let encoder = JSONEncoder()
         let data = try encoder.encode(resp)
-        
+
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(JSONRPCResponse<AnyCodable>.self, from: data)
         XCTAssertEqual(decoded.id, .string("abc"))
@@ -76,10 +76,10 @@ final class JSONRPCTests: XCTestCase {
         XCTAssertEqual(err.error.code, -32600)
         XCTAssertEqual(err.error.message, "Invalid Request")
         XCTAssertEqual(err.error.data?.value as? String, "details")
-        
+
         let encoder = JSONEncoder()
         let data = try encoder.encode(err)
-        
+
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(JSONRPCError.self, from: data)
         XCTAssertEqual(decoded.error.code, -32600)

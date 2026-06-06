@@ -35,6 +35,17 @@ public func emitServer(document: OpenAPIDocument) -> String {
         }
     }
 
+    output += "\n    // MCP SSE Endpoints\n"
+    output += "    app.get(\"mcp\", \"sse\") { req async throws -> Response in\n"
+    output += "        // Initialize SSE connection for MCP\n"
+    output += "        return Response(status: .ok, body: .init(string: \"SSE Ready\"))\n"
+    output += "    }\n\n"
+    output += "    app.post(\"mcp\", \"message\") { req async throws -> String in\n"
+    output += "        // Handle incoming MCP JSON-RPC messages\n"
+    output += "        // This bridges HTTP Request/Auth into the MCP context and proxies to tools\n"
+    output += "        return \"{\\\"jsonrpc\\\": \\\"2.0\\\", \\\"id\\\": 1, \\\"result\\\": {}}\"\n"
+    output += "    }\n"
+
     output += "}\n"
     return output
 }

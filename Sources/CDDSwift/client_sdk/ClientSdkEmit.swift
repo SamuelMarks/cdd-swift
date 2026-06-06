@@ -159,7 +159,10 @@ public enum OpenAPIToSwiftGenerator {
             }
         }
 
+        clientOutput += "    public var mcp: MCPAdapter { MCPAdapter(client: self) }\n"
         clientOutput += "}\n\n"
+
+        clientOutput += emitMCPAdapter(document: document)
 
         // Generate Callbacks
         if let paths = document.paths {
@@ -384,3 +387,73 @@ class MergerRewriter: SyntaxRewriter {
 
 // ALL MISSING:
 // servers summary termsOfService contact license url email identifier url url variables default responses headers links /{path} ref summary options head trace servers summary requestBody responses servers url style explode allowReserved content content contentType headers style explode allowReserved default summary headers content links summary operationRef requestBody server style explode content summary ref summary discriminator xml propertyName mapping defaultMapping nodeType namespace attribute wrapped bearerFormat flows implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes jsonSchemaDialect selfRef tags externalDocs parameters query deprecated allowEmptyValue
+import Foundation
+
+public func emitMCPAdapter(document: OpenAPIDocument) -> String {
+    var output = "public struct MCPAdapter {\n"
+    output += "    public let client: APIClient\n\n"
+    output += "    public func getTools() -> [[String: Any]] {\n"
+    output += "        var tools: [[String: Any]] = []\n"
+    
+    if let paths = document.paths {
+        for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
+            let ops = [("GET", item.get), ("POST", item.post), ("PUT", item.put), ("DELETE", item.delete), ("PATCH", item.patch)]
+            for (_, opOpt) in ops {
+                guard let op = opOpt, let opId = op.operationId else { continue }
+                let desc = (op.summary ?? op.description ?? "").replacingOccurrences(of: "\"", with: "\\\"").replacingOccurrences(of: "\n", with: " ")
+                output += "        tools.append([\n"
+                output += "            \"name\": \"\(opId)\",\n"
+                output += "            \"description\": \"\(desc)\",\n"
+                output += "            \"inputSchema\": [\n"
+                output += "                \"type\": \"object\",\n"
+                output += "                \"properties\": [:],\n" // Simplified schema for now
+                output += "                \"required\": []\n"
+                output += "            ]\n"
+                output += "        ])\n"
+            }
+        }
+    }
+    
+    output += "        return tools\n"
+    output += "    }\n\n"
+    
+    output += "    public func executeTool(name: String, args: [String: Any]) async throws -> Any {\n"
+    output += "        switch name {\n"
+    
+    if let paths = document.paths {
+        for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
+            let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
+            for op in ops {
+                guard let opId = op.operationId else { continue }
+                output += "        case \"\(opId)\":\n"
+                output += "            // For a complete adapter, we'd extract arguments here and call client.\(opId)\n"
+                output += "            // This acts as a routing stub.\n"
+                output += "            return \"Execution of \(opId) not fully implemented in adapter\"\n"
+            }
+        }
+    }
+    
+    output += "        default:\n"
+    output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown tool \\(name)\"])\n"
+    output += "        }\n"
+    output += "    }\n\n"
+    
+    output += "    public func getResources() -> [[String: Any]] {\n"
+    output += "        return [\n"
+    output += "            [\"uri\": \"api://docs\", \"name\": \"API Documentation\", \"description\": \"OpenAPI documentation\"]\n"
+    output += "        ]\n"
+    output += "    }\n\n"
+    
+    output += "    public func readResource(uri: String) async throws -> String {\n"
+    output += "        switch uri {\n"
+    output += "        case \"api://docs\":\n"
+    output += "            return \"API Docs content\"\n"
+    output += "        default:\n"
+    output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown resource \\(uri)\"])\n"
+    output += "        }\n"
+    output += "    }\n"
+    
+    output += "}\n\n"
+    
+    return output
+}
