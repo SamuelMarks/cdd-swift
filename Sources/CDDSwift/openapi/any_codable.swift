@@ -1,7 +1,7 @@
 import Foundation
 
 /// A type-erased `Codable` value.
-public struct AnyCodable: Codable, Equatable {
+public struct AnyCodable: Codable, Equatable, @unchecked Sendable {
     /// The type-erased value.
     public let value: Any
 

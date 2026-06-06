@@ -37,9 +37,9 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         version: "0.0.1",
         subcommands: {
             #if os(WASI)
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self]
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, MCPServe.self]
             #else
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self]
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self, MCPServe.self]
             #endif
         }()
     )
@@ -183,26 +183,26 @@ public enum CDDCLI {
     public static func generateFromOpenApi(_ args: [String]) async throws {
         var commandArgs = ["from_openapi"]
         commandArgs.append(contentsOf: args)
-        try await CDDSwiftCLI.main(commandArgs)
+        await CDDSwiftCLI.main(commandArgs)
     }
 
     public static func generateToOpenApi(_ args: [String]) async throws {
         var commandArgs = ["to_openapi"]
         commandArgs.append(contentsOf: args)
-        try await CDDSwiftCLI.main(commandArgs)
+        await CDDSwiftCLI.main(commandArgs)
     }
 
     public static func generateDocsJson(_ args: [String]) async throws {
         var commandArgs = ["to_docs_json"]
         commandArgs.append(contentsOf: args)
-        try await CDDSwiftCLI.main(commandArgs)
+        await CDDSwiftCLI.main(commandArgs)
     }
 
     #if !os(WASI)
         public static func serveJsonRpc(_ args: [String]) async throws {
             var commandArgs = ["serve_json_rpc"]
             commandArgs.append(contentsOf: args)
-            try await CDDSwiftCLI.main(commandArgs)
+            await CDDSwiftCLI.main(commandArgs)
         }
     #endif
 }
