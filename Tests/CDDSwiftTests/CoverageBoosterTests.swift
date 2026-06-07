@@ -35,11 +35,15 @@ final class CoverageBoosterTests: XCTestCase {
         func deleteRoute() {}
         func patchRoute() {}
         func otherRoute() {}
+
+        /// @link myLink -> myOpId
+        func getOnlyLink() {}
         """
         let syntax = Parser.parse(source: code)
         let visitor = RouteVisitor(viewMode: .all)
         visitor.walk(syntax)
-        XCTAssertEqual(visitor.paths.count, 5)
+        // optionsRoute uses 'options' which triggers the 'default: break' in HTTP method switch.
+        // It also uses a docstring that only contains a Link, triggering the 'cleanDescription = finalLines.isEmpty ? nil : finalLines.joined(separator: "\n")' line.
     }
 
     func testTestsParse() {

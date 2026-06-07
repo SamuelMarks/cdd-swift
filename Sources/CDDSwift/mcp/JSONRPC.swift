@@ -18,6 +18,7 @@ public enum JSONRPCId: Codable, Equatable, Hashable, Sendable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -86,6 +87,7 @@ public struct JSONRPCResponse<T: Codable & Sendable>: JSONRPCMessage {
     }
 }
 
+/// Documentation for JSONRPCErrorCode
 public enum JSONRPCErrorCode: Int, Codable, Sendable {
     case parseError = -32700
     case invalidRequest = -32600

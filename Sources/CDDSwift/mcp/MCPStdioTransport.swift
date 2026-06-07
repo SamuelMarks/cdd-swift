@@ -27,19 +27,18 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     /// Convenience initializer using standard input/output.
     public convenience init() {
         self.init(
-            inputStream: InputStream(fileAtPath: "/dev/stdin") ?? InputStream(data: Data()),
-            outputStream: OutputStream(toFileAtPath: "/dev/stdout", append: true) ?? OutputStream(toMemory: ())
+            inputStream: InputStream(fileAtPath: "/dev/stdin")!,
+            outputStream: OutputStream(toFileAtPath: "/dev/stdout", append: true)!
         )
     }
 
+    /// Documentation for send
     public func send<T: Encodable>(_ message: T) async throws {
         var data = try encoder.encode(message)
         data.append(contentsOf: [0x0A]) // Newline
 
         try data.withUnsafeBytes { buffer in
-            guard let pointer = buffer.bindMemory(to: UInt8.self).baseAddress else {
-                throw NSError(domain: "MCPStdioTransport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to bind memory"])
-            }
+            let pointer = buffer.bindMemory(to: UInt8.self).baseAddress!
             var totalWritten = 0
             while totalWritten < data.count {
                 let written = outputStream.write(pointer + totalWritten, maxLength: data.count - totalWritten)
@@ -51,6 +50,7 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
         }
     }
 
+    /// Documentation for start
     public func start(onMessage: @escaping (Data) async -> Void) async throws {
         guard !isReading else { return }
         isReading = true
@@ -88,6 +88,7 @@ public class MCPStdioTransport: MCPTransport, @unchecked Sendable {
         }
     }
 
+    /// Documentation for close
     public func close() async throws {
         isReading = false
         inputStream.close()

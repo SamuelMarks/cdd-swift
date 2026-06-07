@@ -5,18 +5,11 @@ import Foundation
 @main
 /// Documentation for CDDSwiftCLI
 struct CDDSwiftCLI: AsyncParsableCommand {
-    static func main() async {
-        /// args
-        var args = Array(CommandLine.arguments.dropFirst())
-        /// env
-        let env = ProcessInfo.processInfo.environment
-
-        // Map env vars like CDD_PORT to --port
+    static func buildArgs(from arguments: [String], env: [String: String]) -> [String] {
+        var args = arguments
         for (key, value) in env where key.hasPrefix("CDD_") {
             if key == "CDD_COMMAND" || key == "CDD_ARGS" { continue }
-            /// argName
             let argName = key.dropFirst("CDD_".count).lowercased().replacingOccurrences(of: "_", with: "-")
-            /// flag
             let flag = "--\(argName)"
             if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
                 if value.lowercased() == "true" {
@@ -27,7 +20,11 @@ struct CDDSwiftCLI: AsyncParsableCommand {
                 }
             }
         }
+        return args
+    }
 
+    static func main() async {
+        let args = buildArgs(from: Array(CommandLine.arguments.dropFirst()), env: ProcessInfo.processInfo.environment)
         await CDDSwiftCLI.main(args)
     }
 
@@ -127,7 +124,7 @@ struct ToOpenAPI: AsyncParsableCommand {
         /// Documentation for data
         let data = try encoder.encode(document)
         /// Documentation for jsonString
-        let jsonString = String(data: data, encoding: .utf8) ?? "{}"
+        let jsonString = String(decoding: data, as: UTF8.self)
 
         if let outputPath = outputPath {
             try WASIFileHelpers.writeString(jsonString, to: outputPath)
@@ -150,7 +147,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
 
     mutating func run() async throws {
         /// Documentation for builder
-        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.1")
+        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.2")
             .addPath("/users", item: PathItem(
                 get: Operation(
                     summary: "Get all users",
@@ -179,6 +176,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
     }
 }
 
+/// Documentation for CDDCLI
 public enum CDDCLI {
     public static func generateFromOpenApi(_ args: [String]) async throws {
         var commandArgs = ["from_openapi"]

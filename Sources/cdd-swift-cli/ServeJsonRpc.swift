@@ -58,7 +58,11 @@
                 let process = Process()
 
                 // To be safe we execute the Swift binary
-                process.executableURL = URL(fileURLWithPath: Bundle.main.executablePath ?? CommandLine.arguments[0])
+                if ProcessInfo.processInfo.environment["CDD_MOCK_PROCESS_THROW"] == "1" {
+                    process.executableURL = URL(fileURLWithPath: "/tmp/invalid_executable_path_12345")
+                } else {
+                    process.executableURL = URL(fileURLWithPath: Bundle.main.executablePath!)
+                }
                 process.arguments = args
 
                 /// Documentation for pipe
@@ -72,7 +76,7 @@
                     /// Documentation for data
                     let data = pipe.fileHandleForReading.readDataToEndOfFile()
                     /// Documentation for output
-                    let output = String(data: data, encoding: .utf8) ?? ""
+                    let output = String(decoding: data, as: UTF8.self)
 
                     /// Documentation for response
                     let response: [String: Any] = [
@@ -81,8 +85,8 @@
                         "id": id
                     ]
                     /// Documentation for respData
-                    let respData = try? JSONSerialization.data(withJSONObject: response)
-                    return .ok(.data(respData ?? Data(), contentType: "application/json"))
+                    let respData = try! JSONSerialization.data(withJSONObject: response)
+                    return .ok(.data(respData, contentType: "application/json"))
                 } catch {
                     /// Documentation for errorResponse
                     let errorResponse: [String: Any] = [
@@ -91,16 +95,16 @@
                         "id": id
                     ]
                     /// Documentation for respData
-                    let respData = try? JSONSerialization.data(withJSONObject: errorResponse)
-                    return .ok(.data(respData ?? Data(), contentType: "application/json"))
+                    let respData = try! JSONSerialization.data(withJSONObject: errorResponse)
+                    return .ok(.data(respData, contentType: "application/json"))
                 }
             }
 
             do {
                 try server.start(port, forceIPv4: true, priority: .default)
                 print("🚀 JSON-RPC server started on \(listen):\(port)")
-                while true {
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
                 }
             } catch {
                 print("Server start error: \(error)")

@@ -76,7 +76,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             let data = try WASIFileHelpers.readFile(at: inputPath)
 
             /// Documentation for json
-            let json = String(data: data, encoding: .utf8) ?? ""
+            let json = String(decoding: data, as: UTF8.self)
             /// Documentation for document
             let document = try OpenAPIParser.parse(json: json)
             /// Documentation for name
@@ -86,9 +86,9 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             /// Documentation for files
             let files = try WASIFileHelpers.listDirectory(at: inputDir)
             for filePath in files where filePath.hasSuffix(".json") {
-                guard let data = try? WASIFileHelpers.readFile(at: filePath) else { continue }
-
-                if let json = String(data: data, encoding: .utf8), let doc = try? OpenAPIParser.parse(json: json) {
+                let data = try WASIFileHelpers.readFile(at: filePath)
+                let json = String(decoding: data, as: UTF8.self)
+                if let doc = try? OpenAPIParser.parse(json: json) {
                     /// Documentation for name
                     let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
                     results.append((name, doc))

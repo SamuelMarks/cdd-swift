@@ -58,6 +58,16 @@ final class AnyCodableBoosterTests: XCTestCase {
         }
     }
 
+    func testAnyCodableNativeEquality() {
+        let arr1 = AnyCodable([AnyCodable(1), AnyCodable(2)])
+        let arr2 = AnyCodable([AnyCodable(1), AnyCodable(2)])
+        XCTAssertEqual(arr1, arr2)
+
+        let dict1 = AnyCodable(["a": AnyCodable(1)])
+        let dict2 = AnyCodable(["a": AnyCodable(1)])
+        XCTAssertEqual(dict1, dict2)
+    }
+
     func testAnyCodableDecodeFailure() {
         let decoder = MockDecoder()
         XCTAssertThrowsError(try AnyCodable(from: decoder)) { error in

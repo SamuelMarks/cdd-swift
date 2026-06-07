@@ -2,6 +2,21 @@ import XCTest
 @testable import CDDSwift
 
 final class MCPMessagesTests: XCTestCase {
+    func testCancelledNotificationParams() {
+        let p = CancelledNotificationParams(requestId: .integer(1), reason: "r")
+        XCTAssertEqual(p.reason, "r")
+    }
+
+    func testProgressNotificationParams() {
+        let p = ProgressNotificationParams(progressToken: .integer(1), progress: 1.0)
+        XCTAssertEqual(p.progress, 1.0)
+    }
+
+    func testSetLevelRequestParams() {
+        let p = SetLevelRequestParams(level: .info)
+        XCTAssertEqual(p.level, .info)
+    }
+
     func testProgressToken() throws {
         let stringToken = ProgressToken.string("abc")
         let intToken = ProgressToken.integer(42)

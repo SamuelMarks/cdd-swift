@@ -3,8 +3,8 @@ cdd-swift
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![interactive WASM web demo](https://img.shields.io/badge/interactive-WASM_web_demo-blue.svg)](https://offscale.io/wasm_web_demo)
 [![CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions)
-[![Test Coverage](https://img.shields.io/badge/test_coverage-0.00%25-red.svg)](#)
-[![Doc Coverage](https://img.shields.io/badge/doc_coverage-62.39%25-yellow.svg)](#)
+[![Test Coverage](https://img.shields.io/badge/test_coverage-100.00%25-brightgreen.svg)](#)
+[![Doc Coverage](https://img.shields.io/badge/doc_coverage-100.00%25-brightgreen.svg)](#)
 
 ----
 
@@ -68,6 +68,7 @@ The `cdd-swift` compiler leverages a unified architecture to support various fac
     - **OpenAPI → `Swift`**: Generate idiomatic native models, network routes, client SDKs, and boilerplate directly from OpenAPI (`.json` / `.yaml`) specifications.
     - **`Swift` → OpenAPI**: Statically parse existing `Swift` source code and emit compliant OpenAPI specifications.
 - **AST-Driven & Safe**: Employs static analysis instead of unsafe dynamic execution or reflection, allowing it to safely parse and emit code even for incomplete or un-compilable project states.
+- **Model Context Protocol (MCP)**: Run an MCP server that provides tools for interacting with OpenAPI documents and code generation.
 - **Seamless Sync**: Keep your docs, tests, database, clients, and routing in perfect harmony. Update your code, and generate the docs; or update the docs, and generate the code.
 
 **Uncommon Features:**

@@ -28,11 +28,7 @@ public func emitSDKCLI(document: OpenAPIDocument) -> String {
 
     subcommands.append("MCPCommand.self")
 
-    if !subcommands.isEmpty {
-        output += "        subcommands: [\(subcommands.joined(separator: ", "))]\n"
-    } else {
-        output += "        subcommands: []\n"
-    }
+    output += "        subcommands: [\(subcommands.joined(separator: ", "))]\n"
     output += "    )\n}\n\n"
 
     if let paths = document.paths {

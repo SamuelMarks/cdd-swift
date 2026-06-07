@@ -3,7 +3,7 @@ import XCTest
 
 final class MCPResourceModelsTests: XCTestCase {
     func testResource() throws {
-        let res = Resource(uri: "file://foo", name: "foo", description: "d", mimeType: "text/plain", annotations: ["a": AnyCodable("b")])
+        let res = Resource(uri: "file://foo", name: "foo", description: "d", mimeType: "text/plain", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(res.uri, "file://foo")
 
         let encoder = JSONEncoder()
@@ -14,7 +14,7 @@ final class MCPResourceModelsTests: XCTestCase {
     }
 
     func testResourceTemplate() throws {
-        let res = ResourceTemplate(uriTemplate: "file://{foo}", name: "foo", description: "d", mimeType: "text/plain", annotations: ["a": AnyCodable("b")])
+        let res = ResourceTemplate(uriTemplate: "file://{foo}", name: "foo", description: "d", mimeType: "text/plain", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(res.uriTemplate, "file://{foo}")
 
         let encoder = JSONEncoder()

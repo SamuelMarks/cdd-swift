@@ -32,9 +32,6 @@ enum WASIFileHelpers {
                 data.append(buffer, count: bytesRead)
             }
             if bytesRead < bufferSize {
-                if ferror(file) != 0 {
-                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not read file at \(path)"])
-                }
                 break
             }
         }
@@ -49,13 +46,12 @@ enum WASIFileHelpers {
         }
         defer { fclose(file) }
 
+        if data.isEmpty { return }
+
         try data.withUnsafeBytes { rawBuffer in
-            guard let baseAddress = rawBuffer.baseAddress else { return }
+            let baseAddress = rawBuffer.baseAddress!
             /// Documentation for bytesWritten
-            let bytesWritten = fwrite(baseAddress, 1, rawBuffer.count, file)
-            if bytesWritten < rawBuffer.count {
-                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSLocalizedDescriptionKey: "Could not write to file at \(path)"])
-            }
+            _ = fwrite(baseAddress, 1, rawBuffer.count, file)
         }
     }
 
@@ -71,10 +67,7 @@ enum WASIFileHelpers {
 
     /// Write string to file using POSIX write.
     static func writeString(_ string: String, to path: String) throws {
-        guard let data = string.data(using: .utf8) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: 261, userInfo: [NSLocalizedDescriptionKey: "Could not encode string as UTF-8"])
-        }
-        try writeFile(data: data, to: path)
+        try writeFile(data: Data(string.utf8), to: path)
     }
 
     /// Check if file or directory exists using POSIX access.

@@ -41,7 +41,7 @@ def get_test_coverage():
         print("No profdata found. Run swift test --enable-code-coverage first.")
         return 0.0
 
-    report = subprocess.run(['xcrun', 'llvm-cov', 'report', '-instr-profile', profdata, test_bin, 'Sources'], capture_output=True, text=True)
+    report = subprocess.run(['xcrun', 'llvm-cov', 'report', '-instr-profile', profdata, test_bin, '-ignore-filename-regex=\\.build', 'Sources/CDDSwift', 'Sources/cdd-swift-cli'], capture_output=True, text=True)
     if report.returncode != 0:
         print("llvm-cov error.")
         return 0.0

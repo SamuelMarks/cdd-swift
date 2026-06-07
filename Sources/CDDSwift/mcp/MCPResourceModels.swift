@@ -1,29 +1,33 @@
 import Foundation
 
-public struct Resource: Codable, Equatable {
+/// Documentation for Resource
+public struct Resource: Codable, Equatable, Sendable {
     public let uri: String
     public let name: String
     public let description: String?
     public let mimeType: String?
-    public let annotations: [String: AnyCodable]? // Actually annotations usually have audience, priority, etc. Let's make it unstructured for now or use a dedicated struct if needed.
+    public let size: Int?
+    public let annotations: Annotations?
 
-    public init(uri: String, name: String, description: String? = nil, mimeType: String? = nil, annotations: [String: AnyCodable]? = nil) {
+    public init(uri: String, name: String, description: String? = nil, mimeType: String? = nil, size: Int? = nil, annotations: Annotations? = nil) {
         self.uri = uri
         self.name = name
         self.description = description
         self.mimeType = mimeType
+        self.size = size
         self.annotations = annotations
     }
 }
 
-public struct ResourceTemplate: Codable, Equatable {
+/// Documentation for ResourceTemplate
+public struct ResourceTemplate: Codable, Equatable, Sendable {
     public let uriTemplate: String
     public let name: String
     public let description: String?
     public let mimeType: String?
-    public let annotations: [String: AnyCodable]?
+    public let annotations: Annotations?
 
-    public init(uriTemplate: String, name: String, description: String? = nil, mimeType: String? = nil, annotations: [String: AnyCodable]? = nil) {
+    public init(uriTemplate: String, name: String, description: String? = nil, mimeType: String? = nil, annotations: Annotations? = nil) {
         self.uriTemplate = uriTemplate
         self.name = name
         self.description = description
@@ -32,7 +36,8 @@ public struct ResourceTemplate: Codable, Equatable {
     }
 }
 
-public struct ListResourcesRequestParams: Codable, Equatable {
+/// Documentation for ListResourcesRequestParams
+public struct ListResourcesRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let cursor: String?
 
@@ -42,7 +47,8 @@ public struct ListResourcesRequestParams: Codable, Equatable {
     }
 }
 
-public struct ListResourcesResult: Codable, Equatable {
+/// Documentation for ListResourcesResult
+public struct ListResourcesResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let nextCursor: String?
     public let resources: [Resource]
@@ -54,7 +60,8 @@ public struct ListResourcesResult: Codable, Equatable {
     }
 }
 
-public struct ListResourceTemplatesRequestParams: Codable, Equatable {
+/// Documentation for ListResourceTemplatesRequestParams
+public struct ListResourceTemplatesRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let cursor: String?
 
@@ -64,7 +71,8 @@ public struct ListResourceTemplatesRequestParams: Codable, Equatable {
     }
 }
 
-public struct ListResourceTemplatesResult: Codable, Equatable {
+/// Documentation for ListResourceTemplatesResult
+public struct ListResourceTemplatesResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let nextCursor: String?
     public let resourceTemplates: [ResourceTemplate]
@@ -76,7 +84,8 @@ public struct ListResourceTemplatesResult: Codable, Equatable {
     }
 }
 
-public struct ReadResourceRequestParams: Codable, Equatable {
+/// Documentation for ReadResourceRequestParams
+public struct ReadResourceRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let uri: String
 
@@ -86,7 +95,8 @@ public struct ReadResourceRequestParams: Codable, Equatable {
     }
 }
 
-public enum ResourceContents: Codable, Equatable {
+/// Documentation for ResourceContents
+public enum ResourceContents: Codable, Equatable, Sendable {
     case text(TextResourceContents)
     case blob(BlobResourceContents)
 
@@ -101,6 +111,7 @@ public enum ResourceContents: Codable, Equatable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -112,7 +123,8 @@ public enum ResourceContents: Codable, Equatable {
     }
 }
 
-public struct TextResourceContents: Codable, Equatable {
+/// Documentation for TextResourceContents
+public struct TextResourceContents: Codable, Equatable, Sendable {
     public let uri: String
     public let mimeType: String?
     public let text: String
@@ -124,7 +136,8 @@ public struct TextResourceContents: Codable, Equatable {
     }
 }
 
-public struct BlobResourceContents: Codable, Equatable {
+/// Documentation for BlobResourceContents
+public struct BlobResourceContents: Codable, Equatable, Sendable {
     public let uri: String
     public let mimeType: String?
     public let blob: String
@@ -136,7 +149,8 @@ public struct BlobResourceContents: Codable, Equatable {
     }
 }
 
-public struct ReadResourceResult: Codable, Equatable {
+/// Documentation for ReadResourceResult
+public struct ReadResourceResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let contents: [ResourceContents]
 
@@ -146,7 +160,8 @@ public struct ReadResourceResult: Codable, Equatable {
     }
 }
 
-public struct ResourceListChangedNotificationParams: Codable, Equatable {
+/// Documentation for ResourceListChangedNotificationParams
+public struct ResourceListChangedNotificationParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
 
     public init(_meta: Meta? = nil) {
@@ -154,7 +169,8 @@ public struct ResourceListChangedNotificationParams: Codable, Equatable {
     }
 }
 
-public struct ResourceUpdatedNotificationParams: Codable, Equatable {
+/// Documentation for ResourceUpdatedNotificationParams
+public struct ResourceUpdatedNotificationParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let uri: String
 
@@ -164,7 +180,8 @@ public struct ResourceUpdatedNotificationParams: Codable, Equatable {
     }
 }
 
-public struct SubscribeRequestParams: Codable, Equatable {
+/// Documentation for SubscribeRequestParams
+public struct SubscribeRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let uri: String
 
@@ -174,7 +191,8 @@ public struct SubscribeRequestParams: Codable, Equatable {
     }
 }
 
-public struct UnsubscribeRequestParams: Codable, Equatable {
+/// Documentation for UnsubscribeRequestParams
+public struct UnsubscribeRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let uri: String
 

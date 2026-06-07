@@ -1,7 +1,7 @@
 import Foundation
 
 /// Definition for a tool the client can call.
-public struct Tool: Codable, Equatable {
+public struct Tool: Codable, Equatable, Sendable {
     public let name: String
     public let description: String?
     public let inputSchema: ToolInputSchema
@@ -14,7 +14,7 @@ public struct Tool: Codable, Equatable {
 }
 
 /// JSON Schema for the tool input.
-public struct ToolInputSchema: Codable, Equatable {
+public struct ToolInputSchema: Codable, Equatable, Sendable {
     public let type: String
     public let properties: [String: AnyCodable]?
     public let required: [String]?
@@ -40,7 +40,7 @@ public struct CallToolRequestParams: Codable, Equatable, Sendable {
 }
 
 /// Content returned by tools.
-public struct CallToolResult: Codable, Equatable {
+public struct CallToolResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let content: [AnyCodable]
     public let isError: Bool?
@@ -53,7 +53,7 @@ public struct CallToolResult: Codable, Equatable {
 }
 
 /// ListToolsRequest parameters.
-public struct ListToolsRequestParams: Codable, Equatable {
+public struct ListToolsRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let cursor: String?
 
@@ -64,7 +64,7 @@ public struct ListToolsRequestParams: Codable, Equatable {
 }
 
 /// ListToolsResult.
-public struct ListToolsResult: Codable, Equatable {
+public struct ListToolsResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let nextCursor: String?
     public let tools: [Tool]
@@ -77,7 +77,7 @@ public struct ListToolsResult: Codable, Equatable {
 }
 
 /// ToolListChangedNotification params.
-public struct ToolListChangedNotificationParams: Codable, Equatable {
+public struct ToolListChangedNotificationParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
 
     public init(_meta: Meta? = nil) {

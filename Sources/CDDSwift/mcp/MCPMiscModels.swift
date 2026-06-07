@@ -2,24 +2,43 @@ import Foundation
 
 // MARK: - Core Types
 
+/// Documentation for Cursor
 public typealias Cursor = String
+/// Documentation for RequestId
 public typealias RequestId = JSONRPCId
 
-public struct Annotated: Codable, Equatable {
-    public let annotations: [String: AnyCodable]?
-    public init(annotations: [String: AnyCodable]? = nil) {
+/// Documentation for Annotations
+public struct Annotations: Codable, Equatable, Sendable {
+    /// Documentation for audience
+    public let audience: [Role]?
+    /// Documentation for priority
+    public let priority: Double?
+
+    /// Documentation for init
+    public init(audience: [Role]? = nil, priority: Double? = nil) {
+        self.audience = audience
+        self.priority = priority
+    }
+}
+
+/// Documentation for Annotated
+public struct Annotated: Codable, Equatable, Sendable {
+    public let annotations: Annotations?
+    public init(annotations: Annotations? = nil) {
         self.annotations = annotations
     }
 }
 
-public enum Role: String, Codable, Equatable {
+/// Documentation for Role
+public enum Role: String, Codable, Equatable, Sendable {
     case user
     case assistant
 }
 
 // MARK: - Notifications
 
-public struct CancelledNotificationParams: Codable, Equatable {
+/// Documentation for CancelledNotificationParams
+public struct CancelledNotificationParams: Codable, Equatable, Sendable {
     public let requestId: RequestId
     public let reason: String?
     public init(requestId: RequestId, reason: String? = nil) {
@@ -28,7 +47,8 @@ public struct CancelledNotificationParams: Codable, Equatable {
     }
 }
 
-public struct ProgressNotificationParams: Codable, Equatable {
+/// Documentation for ProgressNotificationParams
+public struct ProgressNotificationParams: Codable, Equatable, Sendable {
     public let progressToken: ProgressToken
     public let progress: Double
     public let total: Double?
@@ -39,25 +59,33 @@ public struct ProgressNotificationParams: Codable, Equatable {
     }
 }
 
+/// Documentation for ClientNotification
 public typealias ClientNotification = JSONRPCNotification<AnyCodable>
+/// Documentation for ServerNotification
 public typealias ServerNotification = JSONRPCNotification<AnyCodable>
 
 // MARK: - Requests & Results
 
+/// Documentation for ClientRequest
 public typealias ClientRequest = JSONRPCRequest<AnyCodable>
+/// Documentation for ClientResult
 public typealias ClientResult = JSONRPCResponse<AnyCodable>
 
+/// Documentation for ServerRequest
 public typealias ServerRequest = JSONRPCRequest<AnyCodable>
+/// Documentation for ServerResult
 public typealias ServerResult = JSONRPCResponse<AnyCodable>
 
-public struct PaginatedRequestParams: Codable, Equatable {
+/// Documentation for PaginatedRequestParams
+public struct PaginatedRequestParams: Codable, Equatable, Sendable {
     public let cursor: Cursor?
     public init(cursor: Cursor? = nil) {
         self.cursor = cursor
     }
 }
 
-public struct PaginatedResult: Codable, Equatable {
+/// Documentation for PaginatedResult
+public struct PaginatedResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let nextCursor: Cursor?
     public init(_meta: Meta? = nil, nextCursor: Cursor? = nil) {
@@ -66,7 +94,8 @@ public struct PaginatedResult: Codable, Equatable {
     }
 }
 
-public struct PingRequestParams: Codable, Equatable {
+/// Documentation for PingRequestParams
+public struct PingRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public init(_meta: Meta? = nil) {
         self._meta = _meta
@@ -75,33 +104,36 @@ public struct PingRequestParams: Codable, Equatable {
 
 // MARK: - Content Types
 
-public struct TextContent: Codable, Equatable {
+/// Documentation for TextContent
+public struct TextContent: Codable, Equatable, Sendable {
     public var type = "text"
     public let text: String
-    public let annotations: [String: AnyCodable]?
-    public init(text: String, annotations: [String: AnyCodable]? = nil) {
+    public let annotations: Annotations?
+    public init(text: String, annotations: Annotations? = nil) {
         self.text = text
         self.annotations = annotations
     }
 }
 
-public struct ImageContent: Codable, Equatable {
+/// Documentation for ImageContent
+public struct ImageContent: Codable, Equatable, Sendable {
     public var type = "image"
     public let data: String
     public let mimeType: String
-    public let annotations: [String: AnyCodable]?
-    public init(data: String, mimeType: String, annotations: [String: AnyCodable]? = nil) {
+    public let annotations: Annotations?
+    public init(data: String, mimeType: String, annotations: Annotations? = nil) {
         self.data = data
         self.mimeType = mimeType
         self.annotations = annotations
     }
 }
 
-public struct EmbeddedResource: Codable, Equatable {
+/// Documentation for EmbeddedResource
+public struct EmbeddedResource: Codable, Equatable, Sendable {
     public var type = "resource"
     public let resource: ResourceContents
-    public let annotations: [String: AnyCodable]?
-    public init(resource: ResourceContents, annotations: [String: AnyCodable]? = nil) {
+    public let annotations: Annotations?
+    public init(resource: ResourceContents, annotations: Annotations? = nil) {
         self.resource = resource
         self.annotations = annotations
     }
@@ -109,18 +141,21 @@ public struct EmbeddedResource: Codable, Equatable {
 
 // MARK: - Logging
 
-public enum LoggingLevel: String, Codable, Equatable {
+/// Documentation for LoggingLevel
+public enum LoggingLevel: String, Codable, Equatable, Sendable {
     case debug, info, notice, warning, error, critical, alert, emergency
 }
 
-public struct SetLevelRequestParams: Codable, Equatable {
+/// Documentation for SetLevelRequestParams
+public struct SetLevelRequestParams: Codable, Equatable, Sendable {
     public let level: LoggingLevel
     public init(level: LoggingLevel) {
         self.level = level
     }
 }
 
-public struct LoggingMessageNotificationParams: Codable, Equatable {
+/// Documentation for LoggingMessageNotificationParams
+public struct LoggingMessageNotificationParams: Codable, Equatable, Sendable {
     public let level: LoggingLevel
     public let logger: String?
     public let data: AnyCodable
@@ -133,7 +168,8 @@ public struct LoggingMessageNotificationParams: Codable, Equatable {
 
 // MARK: - Prompts
 
-public struct PromptArgument: Codable, Equatable {
+/// Documentation for PromptArgument
+public struct PromptArgument: Codable, Equatable, Sendable {
     public let name: String
     public let description: String?
     public let required: Bool?
@@ -144,7 +180,8 @@ public struct PromptArgument: Codable, Equatable {
     }
 }
 
-public struct Prompt: Codable, Equatable {
+/// Documentation for Prompt
+public struct Prompt: Codable, Equatable, Sendable {
     public let name: String
     public let description: String?
     public let arguments: [PromptArgument]?
@@ -155,7 +192,8 @@ public struct Prompt: Codable, Equatable {
     }
 }
 
-public struct PromptMessage: Codable, Equatable {
+/// Documentation for PromptMessage
+public struct PromptMessage: Codable, Equatable, Sendable {
     public let role: Role
     public let content: PromptMessageContent
     public init(role: Role, content: PromptMessageContent) {
@@ -164,7 +202,8 @@ public struct PromptMessage: Codable, Equatable {
     }
 }
 
-public enum PromptMessageContent: Codable, Equatable {
+/// Documentation for PromptMessageContent
+public enum PromptMessageContent: Codable, Equatable, Sendable {
     case text(TextContent)
     case image(ImageContent)
     case resource(EmbeddedResource)
@@ -182,6 +221,7 @@ public enum PromptMessageContent: Codable, Equatable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -192,7 +232,8 @@ public enum PromptMessageContent: Codable, Equatable {
     }
 }
 
-public struct PromptReference: Codable, Equatable {
+/// Documentation for PromptReference
+public struct PromptReference: Codable, Equatable, Sendable {
     public var type = "ref/prompt"
     public let name: String
     public init(name: String) {
@@ -200,7 +241,8 @@ public struct PromptReference: Codable, Equatable {
     }
 }
 
-public struct GetPromptRequestParams: Codable, Equatable {
+/// Documentation for GetPromptRequestParams
+public struct GetPromptRequestParams: Codable, Equatable, Sendable {
     public let name: String
     public let arguments: [String: String]?
     public init(name: String, arguments: [String: String]? = nil) {
@@ -209,7 +251,8 @@ public struct GetPromptRequestParams: Codable, Equatable {
     }
 }
 
-public struct GetPromptResult: Codable, Equatable {
+/// Documentation for GetPromptResult
+public struct GetPromptResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let description: String?
     public let messages: [PromptMessage]
@@ -220,14 +263,16 @@ public struct GetPromptResult: Codable, Equatable {
     }
 }
 
-public struct ListPromptsRequestParams: Codable, Equatable {
+/// Documentation for ListPromptsRequestParams
+public struct ListPromptsRequestParams: Codable, Equatable, Sendable {
     public let cursor: Cursor?
     public init(cursor: Cursor? = nil) {
         self.cursor = cursor
     }
 }
 
-public struct ListPromptsResult: Codable, Equatable {
+/// Documentation for ListPromptsResult
+public struct ListPromptsResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let nextCursor: Cursor?
     public let prompts: [Prompt]
@@ -238,7 +283,8 @@ public struct ListPromptsResult: Codable, Equatable {
     }
 }
 
-public struct PromptListChangedNotificationParams: Codable, Equatable {
+/// Documentation for PromptListChangedNotificationParams
+public struct PromptListChangedNotificationParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public init(_meta: Meta? = nil) {
         self._meta = _meta
@@ -247,7 +293,8 @@ public struct PromptListChangedNotificationParams: Codable, Equatable {
 
 // MARK: - Roots
 
-public struct Root: Codable, Equatable {
+/// Documentation for Root
+public struct Root: Codable, Equatable, Sendable {
     public let uri: String
     public let name: String?
     public init(uri: String, name: String? = nil) {
@@ -256,14 +303,16 @@ public struct Root: Codable, Equatable {
     }
 }
 
-public struct ListRootsRequestParams: Codable, Equatable {
+/// Documentation for ListRootsRequestParams
+public struct ListRootsRequestParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public init(_meta: Meta? = nil) {
         self._meta = _meta
     }
 }
 
-public struct ListRootsResult: Codable, Equatable {
+/// Documentation for ListRootsResult
+public struct ListRootsResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let roots: [Root]
     public init(_meta: Meta? = nil, roots: [Root]) {
@@ -272,7 +321,8 @@ public struct ListRootsResult: Codable, Equatable {
     }
 }
 
-public struct RootsListChangedNotificationParams: Codable, Equatable {
+/// Documentation for RootsListChangedNotificationParams
+public struct RootsListChangedNotificationParams: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public init(_meta: Meta? = nil) {
         self._meta = _meta
@@ -281,7 +331,8 @@ public struct RootsListChangedNotificationParams: Codable, Equatable {
 
 // MARK: - Completion
 
-public struct CompleteRequestParams: Codable, Equatable {
+/// Documentation for CompleteRequestParams
+public struct CompleteRequestParams: Codable, Equatable, Sendable {
     public let ref: CompleteReference
     public let argument: CompleteArgument
 
@@ -290,7 +341,8 @@ public struct CompleteRequestParams: Codable, Equatable {
         self.argument = argument
     }
 
-    public struct CompleteArgument: Codable, Equatable {
+    /// Documentation for CompleteArgument
+    public struct CompleteArgument: Codable, Equatable, Sendable {
         public let name: String
         public let value: String
         public init(name: String, value: String) {
@@ -300,7 +352,8 @@ public struct CompleteRequestParams: Codable, Equatable {
     }
 }
 
-public enum CompleteReference: Codable, Equatable {
+/// Documentation for CompleteReference
+public enum CompleteReference: Codable, Equatable, Sendable {
     case prompt(PromptReference)
     case resource(ResourceReference)
 
@@ -315,6 +368,7 @@ public enum CompleteReference: Codable, Equatable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -324,7 +378,8 @@ public enum CompleteReference: Codable, Equatable {
     }
 }
 
-public struct ResourceReference: Codable, Equatable {
+/// Documentation for ResourceReference
+public struct ResourceReference: Codable, Equatable, Sendable {
     public var type = "ref/resource"
     public let uri: String
     public init(uri: String) {
@@ -332,7 +387,8 @@ public struct ResourceReference: Codable, Equatable {
     }
 }
 
-public struct CompleteResult: Codable, Equatable {
+/// Documentation for CompleteResult
+public struct CompleteResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let completion: Completion
 
@@ -341,7 +397,8 @@ public struct CompleteResult: Codable, Equatable {
         self.completion = completion
     }
 
-    public struct Completion: Codable, Equatable {
+    /// Documentation for Completion
+    public struct Completion: Codable, Equatable, Sendable {
         public let values: [String]
         public let total: Int?
         public let hasMore: Bool?
@@ -355,7 +412,8 @@ public struct CompleteResult: Codable, Equatable {
 
 // MARK: - Sampling
 
-public struct SamplingMessage: Codable, Equatable {
+/// Documentation for SamplingMessage
+public struct SamplingMessage: Codable, Equatable, Sendable {
     public let role: Role
     public let content: PromptMessageContent
     public init(role: Role, content: PromptMessageContent) {
@@ -364,14 +422,16 @@ public struct SamplingMessage: Codable, Equatable {
     }
 }
 
-public struct ModelHint: Codable, Equatable {
+/// Documentation for ModelHint
+public struct ModelHint: Codable, Equatable, Sendable {
     public let name: String
     public init(name: String) {
         self.name = name
     }
 }
 
-public struct ModelPreferences: Codable, Equatable {
+/// Documentation for ModelPreferences
+public struct ModelPreferences: Codable, Equatable, Sendable {
     public let hints: [ModelHint]?
     public let costPriority: Double?
     public let speedPriority: Double?
@@ -385,7 +445,8 @@ public struct ModelPreferences: Codable, Equatable {
     }
 }
 
-public struct CreateMessageRequestParams: Codable, Equatable {
+/// Documentation for CreateMessageRequestParams
+public struct CreateMessageRequestParams: Codable, Equatable, Sendable {
     public let messages: [SamplingMessage]
     public let modelPreferences: ModelPreferences?
     public let systemPrompt: String?
@@ -407,7 +468,8 @@ public struct CreateMessageRequestParams: Codable, Equatable {
     }
 }
 
-public struct CreateMessageResult: Codable, Equatable {
+/// Documentation for CreateMessageResult
+public struct CreateMessageResult: Codable, Equatable, Sendable {
     public let _meta: Meta?
     public let role: Role
     public let content: PromptMessageContent

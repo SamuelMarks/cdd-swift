@@ -3,8 +3,8 @@ import XCTest
 
 final class MCPMiscModelsTests: XCTestCase {
     func testAnnotated() throws {
-        let annotated = Annotated(annotations: ["a": AnyCodable("b")])
-        XCTAssertEqual(annotated.annotations?["a"]?.value as? String, "b")
+        let annotated = Annotated(annotations: Annotations(audience: [.user], priority: 1.0))
+        XCTAssertEqual(annotated.annotations?.priority, 1.0)
 
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
@@ -69,7 +69,7 @@ final class MCPMiscModelsTests: XCTestCase {
     }
 
     func testTextContent() throws {
-        let text = TextContent(text: "Hello", annotations: ["a": AnyCodable("b")])
+        let text = TextContent(text: "Hello", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(text.text, "Hello")
 
         let encoder = JSONEncoder()
@@ -80,7 +80,7 @@ final class MCPMiscModelsTests: XCTestCase {
     }
 
     func testImageContent() throws {
-        let img = ImageContent(data: "base64", mimeType: "image/png", annotations: ["a": AnyCodable("b")])
+        let img = ImageContent(data: "base64", mimeType: "image/png", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(img.data, "base64")
 
         let encoder = JSONEncoder()
@@ -91,7 +91,7 @@ final class MCPMiscModelsTests: XCTestCase {
     }
 
     func testEmbeddedResource() throws {
-        let resource = EmbeddedResource(resource: .text(TextResourceContents(uri: "u", mimeType: "m", text: "t")), annotations: ["a": AnyCodable("b")])
+        let resource = EmbeddedResource(resource: .text(TextResourceContents(uri: "u", mimeType: "m", text: "t")), annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(resource.type, "resource")
 
         let encoder = JSONEncoder()

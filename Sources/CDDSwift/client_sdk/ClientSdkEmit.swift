@@ -387,14 +387,13 @@ class MergerRewriter: SyntaxRewriter {
 
 // ALL MISSING:
 // servers summary termsOfService contact license url email identifier url url variables default responses headers links /{path} ref summary options head trace servers summary requestBody responses servers url style explode allowReserved content content contentType headers style explode allowReserved default summary headers content links summary operationRef requestBody server style explode content summary ref summary discriminator xml propertyName mapping defaultMapping nodeType namespace attribute wrapped bearerFormat flows implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes jsonSchemaDialect selfRef tags externalDocs parameters query deprecated allowEmptyValue
-import Foundation
-
+/// Documentation for emitMCPAdapter
 public func emitMCPAdapter(document: OpenAPIDocument) -> String {
-    var output = "public struct MCPAdapter {\n"
+    var output = "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\npublic struct MCPAdapter {\n"
     output += "    public let client: APIClient\n\n"
     output += "    public func getTools() -> [[String: Any]] {\n"
     output += "        var tools: [[String: Any]] = []\n"
-    
+
     if let paths = document.paths {
         for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
             let ops = [("GET", item.get), ("POST", item.post), ("PUT", item.put), ("DELETE", item.delete), ("PATCH", item.patch)]
@@ -413,13 +412,13 @@ public func emitMCPAdapter(document: OpenAPIDocument) -> String {
             }
         }
     }
-    
+
     output += "        return tools\n"
     output += "    }\n\n"
-    
+
     output += "    public func executeTool(name: String, args: [String: Any]) async throws -> Any {\n"
     output += "        switch name {\n"
-    
+
     if let paths = document.paths {
         for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
             let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
@@ -432,18 +431,18 @@ public func emitMCPAdapter(document: OpenAPIDocument) -> String {
             }
         }
     }
-    
+
     output += "        default:\n"
     output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown tool \\(name)\"])\n"
     output += "        }\n"
     output += "    }\n\n"
-    
+
     output += "    public func getResources() -> [[String: Any]] {\n"
     output += "        return [\n"
     output += "            [\"uri\": \"api://docs\", \"name\": \"API Documentation\", \"description\": \"OpenAPI documentation\"]\n"
     output += "        ]\n"
     output += "    }\n\n"
-    
+
     output += "    public func readResource(uri: String) async throws -> String {\n"
     output += "        switch uri {\n"
     output += "        case \"api://docs\":\n"
@@ -452,8 +451,8 @@ public func emitMCPAdapter(document: OpenAPIDocument) -> String {
     output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown resource \\(uri)\"])\n"
     output += "        }\n"
     output += "    }\n"
-    
+
     output += "}\n\n"
-    
+
     return output
 }

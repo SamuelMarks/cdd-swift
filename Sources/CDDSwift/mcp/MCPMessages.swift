@@ -16,6 +16,7 @@ public enum ProgressToken: Codable, Equatable, Hashable, Sendable {
         }
     }
 
+    /// Documentation for encode
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -89,6 +90,7 @@ public struct ClientCapabilities: Codable, Equatable, Sendable {
     public let roots: RootsCapability?
     public let sampling: SamplingCapability?
 
+    /// Documentation for RootsCapability
     public struct RootsCapability: Codable, Equatable, Sendable {
         public let listChanged: Bool?
         public init(listChanged: Bool? = nil) {
@@ -96,6 +98,7 @@ public struct ClientCapabilities: Codable, Equatable, Sendable {
         }
     }
 
+    /// Documentation for SamplingCapability
     public struct SamplingCapability: Codable, Equatable, Sendable {
         public init() {}
     }
@@ -115,10 +118,12 @@ public struct ServerCapabilities: Codable, Equatable, Sendable {
     public let resources: ResourcesCapability?
     public let tools: ToolsCapability?
 
+    /// Documentation for LoggingCapability
     public struct LoggingCapability: Codable, Equatable, Sendable {
         public init() {}
     }
 
+    /// Documentation for PromptsCapability
     public struct PromptsCapability: Codable, Equatable, Sendable {
         public let listChanged: Bool?
         public init(listChanged: Bool? = nil) {
@@ -126,6 +131,7 @@ public struct ServerCapabilities: Codable, Equatable, Sendable {
         }
     }
 
+    /// Documentation for ResourcesCapability
     public struct ResourcesCapability: Codable, Equatable, Sendable {
         public let listChanged: Bool?
         public let subscribe: Bool?
@@ -135,6 +141,7 @@ public struct ServerCapabilities: Codable, Equatable, Sendable {
         }
     }
 
+    /// Documentation for ToolsCapability
     public struct ToolsCapability: Codable, Equatable, Sendable {
         public let listChanged: Bool?
         public init(listChanged: Bool? = nil) {

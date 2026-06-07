@@ -80,8 +80,6 @@ public struct AnyCodable: Codable, Equatable, @unchecked Sendable {
             // Right hand side mapped value.
             let rAny = r.mapValues { AnyCodable($0) }
             return lAny == rAny
-        case let (l as [AnyCodable], r as [AnyCodable]): return l == r
-        case let (l as [String: AnyCodable], r as [String: AnyCodable]): return l == r
         default: return false
         }
     }

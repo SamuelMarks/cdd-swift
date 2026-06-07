@@ -58,7 +58,35 @@ final class MCPStdioTransportTests: XCTestCase {
         }
     }
 
-    func testStartAndReceive() async throws {
+    func testSendErrorNoStreamError() async {
+        final class NullErrorOutputStream: OutputStream {
+            override func open() {}
+            override func close() {}
+            override var streamError: Error? {
+                return nil
+            }
+
+            override func write(_: UnsafePointer<UInt8>, maxLength _: Int) -> Int { return -1 }
+        }
+        let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: NullErrorOutputStream(toMemory: ()))
+        do {
+            try await transport.send(JSONRPCRequest<AnyCodable>(id: .integer(1), method: "test"))
+            XCTFail("Expected error")
+        } catch {
+            XCTAssertNotNil(error)
+        }
+    }
+
+    func testStartTwice() async throws {
+        let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
+        Task { try await transport.start { _ in } }
+        try await Task.sleep(nanoseconds: 10_000_000)
+        Task { try await transport.start { _ in } }
+        try await Task.sleep(nanoseconds: 10_000_000)
+        try await transport.close()
+    }
+
+    func testStartAndReceiveWithSleep() async throws {
         let json = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"test\"}\n"
         let data = try XCTUnwrap(json.data(using: .utf8))
         let inputStream = InputStream(data: data)
@@ -75,6 +103,8 @@ final class MCPStdioTransportTests: XCTestCase {
         }
 
         await fulfillment(of: [expectation], timeout: 1.0)
+        // Wait a bit to let it sleep when no bytes available
+        try await Task.sleep(nanoseconds: 50_000_000)
         try await transport.close()
     }
 
