@@ -30,17 +30,12 @@ def start_server_docker():
 def stop_server_docker():
     subprocess.run(["docker", "rm", "-f", "petstore_server_2"], capture_output=True)
 
-def main():
-    docker_used = False
-    server_process = None
+def start_server_jvm(port, host, base_path):
+    print("Attempting to start local JVM server...")
+    petstore_dir = "../swagger-petstore-v2"
+    target_dir = os.path.join(petstore_dir, "target")
 
-    if start_server_docker():
-        docker_used = True
-    else:
-        print("Docker not available or failed to start, falling back to local JVM...")
-        petstore_dir = "../swagger-petstore-v2"
-        target_dir = os.path.join(petstore_dir, "target")
-
+    try:
         if not os.path.exists(target_dir):
             run_cmd(["mvn", "package", "-DskipTests"], cwd=petstore_dir)
 
@@ -49,7 +44,7 @@ def main():
             run_cmd(["mvn", "package", "-DskipTests"], cwd=petstore_dir)
             war_files = [f for f in os.listdir(target_dir) if f.endswith(".war")]
             if not war_files:
-                raise Exception("Could not find packaged WAR file")
+                return None
 
         war_path = os.path.join(target_dir, war_files[0])
         jetty_runner_path = None
@@ -62,15 +57,30 @@ def main():
                 break
 
         if not jetty_runner_path:
-             raise Exception("Could not find jetty-runner jar")
+             return None
 
         env = os.environ.copy()
-        env["SWAGGER_HOST"] = "http://localhost:8081"
-        env["SWAGGER_BASE_PATH"] = "/v2"
+        env["SWAGGER_HOST"] = host
+        env["SWAGGER_BASE_PATH"] = base_path
 
-        # java -jar target/lib/jetty-runner.jar --port 8081 target/swagger-petstore-v2-1.0.8-SNAPSHOT.war
-        server_process = subprocess.Popen(["java", "-jar", jetty_runner_path, "--port", "8081", war_path], env=env)
+        server_process = subprocess.Popen(["java", "-jar", jetty_runner_path, "--port", str(port), war_path], env=env)
         time.sleep(10)
+        return server_process
+    except Exception as e:
+        print(f"JVM start failed: {e}")
+        return None
+
+def main():
+    docker_used = False
+    server_process = None
+
+    server_process = start_server_jvm(8081, "http://localhost:8081", "/v2")
+    if server_process is None:
+        print("JVM failed to start, falling back to Docker...")
+        if start_server_docker():
+            docker_used = True
+        else:
+            raise Exception("Failed to start either JVM or Docker server.")
 
     try:
         client_dir = "../cdd-swift-client-swagger"
