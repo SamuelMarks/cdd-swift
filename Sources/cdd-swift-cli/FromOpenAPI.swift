@@ -58,6 +58,9 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// Documentation for testsMocks
     var testsMocks: Bool = false
 
+    @Flag(name: .customLong("mcp"), help: "Generate Model Context Protocol (MCP) server and adapter.")
+    var mcp: Bool = false
+
     mutating func validate() throws {
         if inputPath == nil, inputDir == nil {
             throw ValidationError("Please provide either --input or --input-dir.")
