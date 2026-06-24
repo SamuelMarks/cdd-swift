@@ -265,7 +265,7 @@ struct ToServer: AsyncParsableCommand {
 
         if !options.noInstallablePackage {
             let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.89.0\")"
-            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery\", from: \"5.1.0\")" : ""
+            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.1.0\")" : ""
 
             let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
             let dbTargetDeps = options.testsMocks ? ",\n                            .product(name: \"Fluent\", package: \"fluent\"),\n                            .product(name: \"FluentSQLiteDriver\", package: \"fluent-sqlite-driver\"),\n                            .product(name: \"Fakery\", package: \"Fakery\")" : ""
@@ -336,7 +336,9 @@ struct ToServer: AsyncParsableCommand {
             import XCTVapor
             @testable import GeneratedServer
 
+            /// Tests for the generated server.
             final class GeneratedServerTests: XCTestCase {
+                /// Tests the stub mode of the server.
                 func testStubMode() async throws {
                     let app = try await Application.make(.testing)
                     defer { Task { try? await app.asyncShutdown() } }
@@ -357,6 +359,7 @@ struct ToServer: AsyncParsableCommand {
 
                 }
 
+                /// Tests the ephemeral mode
                 func testEphemeralMode() async throws {
                     let app = try await Application.make(.testing)
                     defer { Task { try? await app.asyncShutdown() } }
@@ -385,6 +388,7 @@ struct ToServer: AsyncParsableCommand {
 
                 }
 
+                /// Tests the seeded mode
                 func testSeededMode() async throws {
                     let app = try await Application.make(.testing)
                     defer { Task { try? await app.asyncShutdown() } }
@@ -413,6 +417,8 @@ struct ToServer: AsyncParsableCommand {
 
                 }
 
+                /// Tests the auth middleware mock of the server.
+                /// Tests the auth middleware mock
                 func testAuthMiddlewareMock() async throws {
                     let app = try await Application.make(.testing)
                     defer { Task { try? await app.asyncShutdown() } }

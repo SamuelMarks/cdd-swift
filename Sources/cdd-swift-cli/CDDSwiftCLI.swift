@@ -147,7 +147,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
 
     mutating func run() async throws {
         /// Documentation for builder
-        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.2")
+        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.3")
             .addPath("/users", item: PathItem(
                 get: Operation(
                     summary: "Get all users",
@@ -211,6 +211,7 @@ public enum CDDCLI {
     #endif
 }
 
+/// Bi-directional synchronization of OpenAPI models and Swift definitions.
 struct SyncOpenAPI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "sync", abstract: "Bi-directional synchronization of OpenAPI models and Swift definitions.")
 

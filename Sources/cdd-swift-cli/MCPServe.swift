@@ -15,7 +15,7 @@ struct MCPServe: AsyncParsableCommand {
         var router = DefaultMCPServerRouter()
 
         // Setup initial MCP capabilities
-        let serverInfo = Implementation(name: "cdd-swift", version: "0.0.2")
+        let serverInfo = Implementation(name: "cdd-swift", version: "0.0.3")
         let capabilities = ServerCapabilities(
             prompts: .init(listChanged: false),
             resources: .init(listChanged: false, subscribe: false),

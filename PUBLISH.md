@@ -4,8 +4,8 @@
 Since Swift tooling is distributed via GitHub Releases, to publish `cdd-swift` to the most popular location, simply create a new tag and push it:
 
 ```bash
-git tag v0.0.2
-git push origin v0.0.2
+git tag v0.0.3
+git push origin v0.0.3
 ```
 
 The GitHub Actions CI pipeline will automatically compile for Ubuntu, macOS, and WebAssembly, and upload the binaries to a new GitHub Release.

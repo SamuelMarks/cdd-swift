@@ -34,10 +34,10 @@ def main():
             shutil.rmtree(d)
 
     # 2. Generate Server
-    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_server", "-i", petstore_path, "-o", server_dir, "--tests"])
+    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_server", "-i", petstore_path, "-o", server_dir])
 
     # 3. Generate Client
-    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_sdk", "-i", petstore_path, "-o", client_dir, "--tests"])
+    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_sdk", "-i", petstore_path, "-o", client_dir])
 
     server_process = None
     try:

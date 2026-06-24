@@ -52,7 +52,7 @@ def get_test_coverage():
             if len(parts) >= 10:
                 cover_str = parts[9].replace('%', '')
                 try:
-                    return 100.0 if float(cover_str) > 90.0 else float(cover_str)
+                    return float(cover_str)
                 except ValueError:
                     return 0.0
     return 0.0

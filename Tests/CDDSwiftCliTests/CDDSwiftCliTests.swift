@@ -327,6 +327,31 @@ final class CDDSwiftCliTests: XCTestCase {
         } catch {}
     }
 
+    func testSyncOpenAPIMerge() async throws {
+        let existingJSON = """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "Test API", "version": "1.0.0" },
+          "paths": { "/existing": { "get": { "operationId": "getExisting", "responses": { "200": { "description": "OK" } } } } },
+          "components": { "schemas": { "ExistingSchema": { "type": "string" } } }
+        }
+        """
+        try? WASIFileHelpers.writeString(existingJSON, to: "/tmp/sync_merge.json")
+        let swiftCode = """
+        struct NewSchema: Codable {
+            let id: String
+        }
+        """
+        try? WASIFileHelpers.writeString(swiftCode, to: "/tmp/sync_swift.swift")
+        var cmd = try SyncOpenAPI.parse(["--truth", "class", "--input", "/tmp/sync_swift.swift", "-o", "/tmp/sync_merge.json"])
+        try await cmd.run()
+
+        let merged = try WASIFileHelpers.readString(at: "/tmp/sync_merge.json")
+        XCTAssertTrue(merged.contains("NewSchema"))
+        XCTAssertTrue(merged.contains("ExistingSchema"))
+        XCTAssertTrue(merged.contains("/existing"))
+    }
+
     func testSyncOpenAPI() async throws {
         var cmd = try SyncOpenAPI.parse(["--truth", "class", "--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/sync_out.json"])
         try await cmd.run()
