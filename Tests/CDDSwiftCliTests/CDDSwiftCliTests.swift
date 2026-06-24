@@ -61,6 +61,7 @@ final class CDDSwiftCliTests: XCTestCase {
         do { try await CDDCLI.generateFromOpenApi(["to_sdk", "--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-1"]) } catch {}
         do { try await CDDCLI.generateToOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-2.json"]) } catch {}
         do { try await CDDCLI.generateDocsJson(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-3.json"]) } catch {}
+        do { try await CDDCLI.syncOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-4.json"]) } catch {}
         #if !os(WASI)
             let task = Task { try? await CDDCLI.serveJsonRpc(["--port", "12349"]) }
             try await Task.sleep(nanoseconds: 10_000_000)
@@ -320,6 +321,26 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Missing input path
         var cmdMissing = try ToOpenAPI.parse(["--input", "/tmp/non_existent_dir_123_456/non_existent_file.swift"])
+        do {
+            try await cmdMissing.run()
+            XCTFail("Should throw error")
+        } catch {}
+    }
+
+    func testSyncOpenAPI() async throws {
+        var cmd = try SyncOpenAPI.parse(["--truth", "class", "--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/sync_out.json"])
+        try await cmd.run()
+
+        // Sync with existing to keep it valid
+        var cmdWithExisting = try SyncOpenAPI.parse(["--truth", "class", "--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/sync_out.json"])
+        try await cmdWithExisting.run()
+
+        // Missing dir fallback
+        var cmdDir = try SyncOpenAPI.parse(["--input", "/tmp/cdd_test_dir/non_existent.swift", "-o", "/tmp/sync_out2.json"])
+        try await cmdDir.run()
+
+        // Missing input path
+        var cmdMissing = try SyncOpenAPI.parse(["--input", "/tmp/non_existent_dir_123_456/non_existent_file.swift", "-o", "/tmp/sync_out3.json"])
         do {
             try await cmdMissing.run()
             XCTFail("Should throw error")

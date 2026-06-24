@@ -4,7 +4,7 @@ cdd-swift
 [![interactive WASM web demo](https://img.shields.io/badge/interactive-WASM_web_demo-blue.svg)](https://offscale.io/wasm_web_demo)
 [![CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions)
 [![Test Coverage](https://img.shields.io/badge/test_coverage-100.00%25-brightgreen.svg)](#)
-[![Doc Coverage](https://img.shields.io/badge/doc_coverage-100.00%25-brightgreen.svg)](#)
+[![Doc Coverage](https://img.shields.io/badge/doc_coverage-97.96%25-brightgreen.svg)](#)
 
 ----
 
@@ -24,6 +24,27 @@ The CLI—at a minimum—has:
 - `cdd-swift to_openapi -f path/to/code`
 - `cdd-swift to_docs_json --no-imports --no-wrapping -i spec.json`
 - `cdd-swift serve_json_rpc --port 8080 --listen 0.0.0.0`
+
+## Server Scaffolding & Mocking
+
+The `to_server` generator command optionally implements an orthogonal, multi-tiered mock server architecture when the `--tests` flag is provided. This setup utilizes `Vapor` with `Fluent` and `Fakery`.
+
+When running a generated server, you can use orthogonal flags to adjust how the mock behaves:
+
+- `start` (No DB configured): **Stub Mode**. Server runs using traditional scaffolds, endpoints return `501 NotImplemented` or empty bodies depending on generation type.
+- `start` (With `DATABASE_URL`): **Production Mode**. Uses actual ORM interactions against a real database connection.
+- `start --ephemeral`: **Sandbox Mode**. Uses actual ORM interactions against a fresh, throwaway database (`.sqlite(.memory)`).
+- `start --ephemeral --seed`: **Full Mock Mode**. Ephemeral database, automatically populated with a localized fake data graph.
+
+## Contract Sync Tooling
+
+The CLI toolset inherently supports deep, bi-directional synchronization between your code and your OpenAPI definitions.
+
+Use `from_openapi`, `to_openapi`, and `sync --truth <SOURCE>` to maintain absolute harmony between the Server, the OpenAPI spec, the Database, and Test Clients:
+
+- `cdd-swift sync --truth class -i Source/Models.swift -o spec.json`
+
+This guarantees that your models and specifications never drift, making Contract-Driven Development a first-class feature of the deployment loop.
 
 ## SDK Example
 

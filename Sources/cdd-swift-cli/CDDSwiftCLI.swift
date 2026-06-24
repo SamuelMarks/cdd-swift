@@ -34,9 +34,9 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         version: "0.0.1",
         subcommands: {
             #if os(WASI)
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, MCPServe.self]
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, MCPServe.self, SyncOpenAPI.self]
             #else
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self, MCPServe.self]
+                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self, MCPServe.self, SyncOpenAPI.self]
             #endif
         }()
     )
@@ -196,6 +196,12 @@ public enum CDDCLI {
         await CDDSwiftCLI.main(commandArgs)
     }
 
+    public static func syncOpenApi(_ args: [String]) async throws {
+        var commandArgs = ["sync"]
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
     #if !os(WASI)
         public static func serveJsonRpc(_ args: [String]) async throws {
             var commandArgs = ["serve_json_rpc"]
@@ -203,4 +209,126 @@ public enum CDDCLI {
             await CDDSwiftCLI.main(commandArgs)
         }
     #endif
+}
+
+struct SyncOpenAPI: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(commandName: "sync", abstract: "Bi-directional synchronization of OpenAPI models and Swift definitions.")
+
+    @Option(name: .customLong("truth"), help: "Designate the single source of truth ('class', 'sqlalchemy', 'function'). Currently defaults to 'class'.")
+    var truth: String = "class"
+
+    @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input Swift file containing the source of truth.")
+    var inputPath: String
+
+    @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output OpenAPI JSON file to synchronize.")
+    var outputPath: String
+
+    mutating func run() async throws {
+        let parser = SwiftASTParser()
+
+        var sourceCode = ""
+        if WASIFileHelpers.fileExists(at: inputPath) {
+            sourceCode = try WASIFileHelpers.readString(at: inputPath)
+        } else {
+            let parentDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent().path
+            if WASIFileHelpers.fileExists(at: parentDir) {
+                let files = try WASIFileHelpers.listDirectory(at: parentDir)
+                for file in files where file.hasSuffix(".swift") {
+                    if let content = try? WASIFileHelpers.readString(at: file) {
+                        sourceCode += "\n" + content
+                    }
+                }
+            } else {
+                throw NSError(domain: "SyncOpenAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Input file or directory not found: \(inputPath)"])
+            }
+        }
+
+        let document = try parser.parseDocument(from: sourceCode)
+
+        // Read existing spec if it exists to preserve non-code synced data
+        var existingDocument: OpenAPIDocument? = nil
+        if WASIFileHelpers.fileExists(at: outputPath) {
+            let existingJSON = try WASIFileHelpers.readString(at: outputPath)
+            existingDocument = try? OpenAPIParser.parse(json: existingJSON)
+        }
+
+        var finalDocument = document
+        if let existing = existingDocument {
+            // Basic merge keeping existing paths if code doesn't redefine them
+            var mergedPaths = existing.paths ?? [:]
+            if let parsedPaths = document.paths {
+                for (k, v) in parsedPaths {
+                    mergedPaths[k] = v
+                }
+            }
+
+            var mergedComponents = existing.components ?? Components()
+            if let parsedComponents = document.components {
+                var schemas = mergedComponents.schemas ?? [:]
+                if let parsedSchemas = parsedComponents.schemas {
+                    for (k, v) in parsedSchemas {
+                        schemas[k] = v
+                    }
+                }
+                let newComponents = Components(
+                    schemas: schemas,
+                    responses: mergedComponents.responses,
+                    parameters: mergedComponents.parameters,
+                    examples: mergedComponents.examples,
+                    requestBodies: mergedComponents.requestBodies,
+                    headers: mergedComponents.headers,
+                    securitySchemes: mergedComponents.securitySchemes,
+                    links: mergedComponents.links,
+                    callbacks: mergedComponents.callbacks,
+                    pathItems: mergedComponents.pathItems
+                )
+
+                finalDocument = OpenAPIDocument(
+                    openapi: existing.openapi,
+                    swagger: existing.swagger,
+                    selfRef: existing.selfRef,
+                    info: existing.info,
+                    jsonSchemaDialect: existing.jsonSchemaDialect,
+                    servers: existing.servers,
+                    paths: mergedPaths,
+                    webhooks: existing.webhooks,
+                    components: newComponents,
+                    security: existing.security,
+                    tags: existing.tags,
+                    externalDocs: existing.externalDocs,
+                    definitions: existing.definitions,
+                    parameters: existing.parameters,
+                    responses: existing.responses,
+                    securityDefinitions: existing.securityDefinitions
+                )
+            } else {
+                finalDocument = OpenAPIDocument(
+                    openapi: existing.openapi,
+                    swagger: existing.swagger,
+                    selfRef: existing.selfRef,
+                    info: existing.info,
+                    jsonSchemaDialect: existing.jsonSchemaDialect,
+                    servers: existing.servers,
+                    paths: mergedPaths,
+                    webhooks: existing.webhooks,
+                    components: mergedComponents,
+                    security: existing.security,
+                    tags: existing.tags,
+                    externalDocs: existing.externalDocs,
+                    definitions: existing.definitions,
+                    parameters: existing.parameters,
+                    responses: existing.responses,
+                    securityDefinitions: existing.securityDefinitions
+                )
+            }
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        let data = try encoder.encode(finalDocument)
+        let jsonString = String(decoding: data, as: UTF8.self)
+
+        try WASIFileHelpers.writeString(jsonString, to: outputPath)
+        print("✅ Successfully synchronized \(truth) truth to \(outputPath)")
+    }
 }

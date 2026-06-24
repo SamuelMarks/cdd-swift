@@ -264,6 +264,14 @@ struct ToServer: AsyncParsableCommand {
         try createDirRecursive(outDir)
 
         if !options.noInstallablePackage {
+            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.89.0\")"
+            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery\", from: \"5.1.0\")" : ""
+
+            let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
+            let dbTargetDeps = options.testsMocks ? ",\n                            .product(name: \"Fluent\", package: \"fluent\"),\n                            .product(name: \"FluentSQLiteDriver\", package: \"fluent-sqlite-driver\"),\n                            .product(name: \"Fakery\", package: \"Fakery\")" : ""
+
+            let testsTarget = options.testsMocks ? ",\n                    .testTarget(\n                        name: \"GeneratedServerTests\",\n                        dependencies: [\n                            .target(name: \"GeneratedServer\"),\n                            .product(name: \"XCTVapor\", package: \"vapor\")\n                        ]\n                    )" : ""
+
             /// Documentation for packageSwift
             let packageSwift = """
             // swift-tools-version: 5.9
@@ -276,15 +284,15 @@ struct ToServer: AsyncParsableCommand {
                    .macOS(.v13)
                 ],
                 dependencies: [
-                    .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0")
+                    \(vaporDeps)\(dbDeps)
                 ],
                 targets: [
                     .executableTarget(
                         name: "GeneratedServer",
                         dependencies: [
-                            .product(name: "Vapor", package: "vapor")
+                            \(vaporTargetDeps)\(dbTargetDeps)
                         ]
-                    )
+                    )\(testsTarget)
                 ]
             )
             """
@@ -320,6 +328,108 @@ struct ToServer: AsyncParsableCommand {
             try WASIFileHelpers.writeString(workflow, to: workflowUrl.path)
         }
 
+        if !options.noInstallablePackage {
+            let testsDir = URL(fileURLWithPath: outDir).appendingPathComponent("Tests").appendingPathComponent("GeneratedServerTests")
+            try createDirRecursive(testsDir.path)
+
+            var testsCode = """
+            import XCTVapor
+            @testable import GeneratedServer
+
+            final class GeneratedServerTests: XCTestCase {
+                func testStubMode() async throws {
+                    let app = try await Application.make(.testing)
+                    defer { Task { try? await app.asyncShutdown() } }
+                    try routes(app)
+            """
+
+            let sortedSchemas = (try? options.getDocuments().first?.document.components?.schemas?.keys.sorted()) ?? []
+            if let firstSchema = sortedSchemas.first {
+                testsCode += """
+
+                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
+                            XCTAssertEqual(req.status, .notImplemented)
+                        }
+                """
+            }
+
+            testsCode += """
+
+                }
+
+                func testEphemeralMode() async throws {
+                    let app = try await Application.make(.testing)
+                    defer { Task { try? await app.asyncShutdown() } }
+                    app.databases.use(.sqlite(.memory), as: .sqlite)
+            """
+            for schema in sortedSchemas {
+                testsCode += "\n        app.migrations.add(Create\(schema)())"
+            }
+            testsCode += """
+
+                    try await app.autoMigrate()
+                    try routes(app)
+            """
+            if let firstSchema = sortedSchemas.first {
+                testsCode += """
+
+                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
+                            // Without seeder, should be empty array instead of 501
+                            XCTAssertEqual(req.status, .ok)
+                            let body = req.body.string
+                            XCTAssertEqual(body, "[]")
+                        }
+                """
+            }
+            testsCode += """
+
+                }
+
+                func testSeededMode() async throws {
+                    let app = try await Application.make(.testing)
+                    defer { Task { try? await app.asyncShutdown() } }
+                    app.databases.use(.sqlite(.memory), as: .sqlite)
+            """
+            for schema in sortedSchemas {
+                testsCode += "\n        app.migrations.add(Create\(schema)())"
+            }
+            testsCode += """
+
+                    try await app.autoMigrate()
+                    try await DatabaseSeeder.seed(on: app.db)
+                    try routes(app)
+            """
+            if let firstSchema = sortedSchemas.first {
+                testsCode += """
+
+                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
+                            XCTAssertEqual(req.status, .ok)
+                            let body = req.body.string
+                            XCTAssertTrue(body.count > 2) // Should contain json elements
+                        }
+                """
+            }
+            testsCode += """
+
+                }
+
+                func testAuthMiddlewareMock() async throws {
+                    let app = try await Application.make(.testing)
+                    defer { Task { try? await app.asyncShutdown() } }
+
+                    try routes(app)
+
+                    try app.test(.GET, "_mock/trigger-webhook/test") { req in
+                        XCTAssertEqual(req.status, .ok)
+                    }
+                }
+            }
+            """
+
+            let testsFileUrl = testsDir.appendingPathComponent("GeneratedServerTests.swift")
+            try WASIFileHelpers.writeString(testsCode, to: testsFileUrl.path)
+        }
+
         /// Documentation for docs
         let docs = try options.getDocuments()
         /// Documentation for srcDir
@@ -327,7 +437,17 @@ struct ToServer: AsyncParsableCommand {
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
             /// Documentation for code
-            let code = emitServer(document: doc)
+            var code = emitServer(document: doc, testsMocks: options.testsMocks)
+
+            // Also append the models
+            if let schemas = doc.components?.schemas ?? doc.definitions {
+                code += "\n// MARK: - Models\n"
+                for (schemaName, schema) in schemas.sorted(by: { $0.key < $1.key }) {
+                    code += emitModel(name: schemaName, schema: schema)
+                    code += "\n"
+                }
+            }
+
             /// Documentation for fileUrl
             let fileUrl = srcDir.appendingPathComponent("\(name).swift")
             try WASIFileHelpers.writeString(code, to: fileUrl.path)

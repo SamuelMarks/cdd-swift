@@ -49,6 +49,16 @@ repos:
         entry: python3 scripts/test_openapi_3_2_0.py
         language: python
         pass_filenames: false
+    -   id: generated-server-swagger-petstore
+        name: Generated Server (Swagger 2.0) test
+        entry: python3 scripts/test_generated_server_swagger.py
+        language: python
+        pass_filenames: false
+    -   id: generated-server-openapi-petstore
+        name: Generated Server (OpenAPI 3.2.0) test
+        entry: python3 scripts/test_generated_server_openapi.py
+        language: python
+        pass_filenames: false
     -   id: update-badges
         name: Update Badges (Doc & Test Coverage)
         entry: python3 scripts/update_badges.py
