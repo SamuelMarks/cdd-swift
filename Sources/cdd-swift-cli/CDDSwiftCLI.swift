@@ -31,7 +31,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "cdd-swift",
         abstract: "A utility to convert between OpenAPI and Swift.",
-        version: "0.0.1",
+        version: "0.0.3",
         subcommands: {
             #if os(WASI)
                 return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, MCPServe.self, SyncOpenAPI.self]

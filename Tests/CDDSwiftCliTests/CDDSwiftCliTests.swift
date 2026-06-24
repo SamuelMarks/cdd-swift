@@ -238,7 +238,7 @@ final class CDDSwiftCliTests: XCTestCase {
         // We know port 12345 was used, but wait, the previous server might be shut down due to task.cancel().
         // Let's create a dummy server to bind the port.
         let server = Swifter.HttpServer()
-        try? server.start(12346)
+        try? server.start(12346, forceIPv4: true)
         var cmdErr = try ServeJsonRpc.parse(["--port", "12346"])
         do {
             try await cmdErr.run()
@@ -271,8 +271,12 @@ final class CDDSwiftCliTests: XCTestCase {
             {"openapi": "3.1.0", "info": {"title": "Test API", "version": "1.0.0"}, "paths": {}}
             """
             server["/test.json"] = { _ in .ok(.text(validJSON)) }
-            try? server.start(12347)
-            var cmdHttp = try ToDocsJson.parse(["--input", "http://127.0.0.1:12347/test.json"])
+            do {
+                try server.start(12368, forceIPv4: true)
+            } catch {
+                print("Swifter start error: \\(error)")
+            }
+            var cmdHttp = try ToDocsJson.parse(["--input", "http://127.0.0.1:12368/test.json"])
             try await cmdHttp.run()
             server.stop()
         #endif

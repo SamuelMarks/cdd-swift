@@ -124,3 +124,5 @@ prompt.md
 *.profraw
 cdd-test-*/
 cdd_test*
+scripts/fix_*.py
+scripts/refactor_*.py

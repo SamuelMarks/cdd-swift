@@ -264,8 +264,8 @@ struct ToServer: AsyncParsableCommand {
         try createDirRecursive(outDir)
 
         if !options.noInstallablePackage {
-            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.89.0\")"
-            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.1.0\")" : ""
+            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.0.0\")"
+            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.0.0\")" : ""
 
             let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
             let dbTargetDeps = options.testsMocks ? ",\n                            .product(name: \"Fluent\", package: \"fluent\"),\n                            .product(name: \"FluentSQLiteDriver\", package: \"fluent-sqlite-driver\"),\n                            .product(name: \"Fakery\", package: \"Fakery\")" : ""
@@ -332,33 +332,41 @@ struct ToServer: AsyncParsableCommand {
             let testsDir = URL(fileURLWithPath: outDir).appendingPathComponent("Tests").appendingPathComponent("GeneratedServerTests")
             try createDirRecursive(testsDir.path)
 
-            var testsCode = """
+            let sortedSchemas = (try? options.getDocuments().first?.document.components?.schemas?.keys.sorted()) ?? []
+
+            var stubModeCode = """
             import XCTVapor
             @testable import GeneratedServer
 
-            /// Tests for the generated server.
-            final class GeneratedServerTests: XCTestCase {
+            /// Tests for the stub mode.
+            final class StubModeTests: XCTestCase {
                 /// Tests the stub mode of the server.
                 func testStubMode() async throws {
                     let app = try await Application.make(.testing)
                     defer { Task { try? await app.asyncShutdown() } }
                     try routes(app)
             """
-
-            let sortedSchemas = (try? options.getDocuments().first?.document.components?.schemas?.keys.sorted()) ?? []
             if let firstSchema = sortedSchemas.first {
-                testsCode += """
+                stubModeCode += """
 
                         try app.test(.GET, "\(firstSchema.lowercased())s") { req in
                             XCTAssertEqual(req.status, .notImplemented)
                         }
                 """
             }
-
-            testsCode += """
+            stubModeCode += """
 
                 }
+            }
+            """
+            try WASIFileHelpers.writeString(stubModeCode, to: testsDir.appendingPathComponent("StubModeTests.swift").path)
 
+            var ephemeralModeCode = """
+            import XCTVapor
+            @testable import GeneratedServer
+
+            /// Tests for the ephemeral mode.
+            final class EphemeralModeTests: XCTestCase {
                 /// Tests the ephemeral mode
                 func testEphemeralMode() async throws {
                     let app = try await Application.make(.testing)
@@ -366,15 +374,15 @@ struct ToServer: AsyncParsableCommand {
                     app.databases.use(.sqlite(.memory), as: .sqlite)
             """
             for schema in sortedSchemas {
-                testsCode += "\n        app.migrations.add(Create\(schema)())"
+                ephemeralModeCode += "\n        app.migrations.add(Create\(schema)())"
             }
-            testsCode += """
+            ephemeralModeCode += """
 
                     try await app.autoMigrate()
                     try routes(app)
             """
             if let firstSchema = sortedSchemas.first {
-                testsCode += """
+                ephemeralModeCode += """
 
                         try app.test(.GET, "\(firstSchema.lowercased())s") { req in
                             // Without seeder, should be empty array instead of 501
@@ -384,10 +392,19 @@ struct ToServer: AsyncParsableCommand {
                         }
                 """
             }
-            testsCode += """
+            ephemeralModeCode += """
 
                 }
+            }
+            """
+            try WASIFileHelpers.writeString(ephemeralModeCode, to: testsDir.appendingPathComponent("EphemeralModeTests.swift").path)
 
+            var seededModeCode = """
+            import XCTVapor
+            @testable import GeneratedServer
+
+            /// Tests for the seeded mode.
+            final class SeededModeTests: XCTestCase {
                 /// Tests the seeded mode
                 func testSeededMode() async throws {
                     let app = try await Application.make(.testing)
@@ -395,16 +412,16 @@ struct ToServer: AsyncParsableCommand {
                     app.databases.use(.sqlite(.memory), as: .sqlite)
             """
             for schema in sortedSchemas {
-                testsCode += "\n        app.migrations.add(Create\(schema)())"
+                seededModeCode += "\n        app.migrations.add(Create\(schema)())"
             }
-            testsCode += """
+            seededModeCode += """
 
                     try await app.autoMigrate()
                     try await DatabaseSeeder.seed(on: app.db)
                     try routes(app)
             """
             if let firstSchema = sortedSchemas.first {
-                testsCode += """
+                seededModeCode += """
 
                         try app.test(.GET, "\(firstSchema.lowercased())s") { req in
                             XCTAssertEqual(req.status, .ok)
@@ -413,11 +430,19 @@ struct ToServer: AsyncParsableCommand {
                         }
                 """
             }
-            testsCode += """
+            seededModeCode += """
 
                 }
+            }
+            """
+            try WASIFileHelpers.writeString(seededModeCode, to: testsDir.appendingPathComponent("SeededModeTests.swift").path)
 
-                /// Tests the auth middleware mock of the server.
+            let authMiddlewareCode = """
+            import XCTVapor
+            @testable import GeneratedServer
+
+            /// Tests for the auth middleware.
+            final class AuthMiddlewareTests: XCTestCase {
                 /// Tests the auth middleware mock
                 func testAuthMiddlewareMock() async throws {
                     let app = try await Application.make(.testing)
@@ -431,9 +456,7 @@ struct ToServer: AsyncParsableCommand {
                 }
             }
             """
-
-            let testsFileUrl = testsDir.appendingPathComponent("GeneratedServerTests.swift")
-            try WASIFileHelpers.writeString(testsCode, to: testsFileUrl.path)
+            try WASIFileHelpers.writeString(authMiddlewareCode, to: testsDir.appendingPathComponent("AuthMiddlewareTests.swift").path)
         }
 
         /// Documentation for docs
@@ -441,22 +464,28 @@ struct ToServer: AsyncParsableCommand {
         /// Documentation for srcDir
         let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedServer")
         try createDirRecursive(srcDir.path)
-        for (name, doc) in docs {
-            /// Documentation for code
-            var code = emitServer(document: doc, testsMocks: options.testsMocks)
 
-            // Also append the models
-            if let schemas = doc.components?.schemas ?? doc.definitions {
-                code += "\n// MARK: - Models\n"
-                for (schemaName, schema) in schemas.sorted(by: { $0.key < $1.key }) {
-                    code += emitModel(name: schemaName, schema: schema)
-                    code += "\n"
-                }
+        for (_, doc) in docs {
+            let files = emitServerFiles(document: doc, testsMocks: options.testsMocks)
+
+            for (relativePath, fileContent) in files {
+                let fileUrl = srcDir.appendingPathComponent(relativePath)
+                let parentDir = fileUrl.deletingLastPathComponent().path
+                try createDirRecursive(parentDir)
+                try WASIFileHelpers.writeString(fileContent, to: fileUrl.path)
             }
 
-            /// Documentation for fileUrl
-            let fileUrl = srcDir.appendingPathComponent("\(name).swift")
-            try WASIFileHelpers.writeString(code, to: fileUrl.path)
+            if let schemas = doc.components?.schemas ?? doc.definitions {
+                let modelsDir = srcDir.appendingPathComponent("Models").path
+                try createDirRecursive(modelsDir)
+                for (schemaName, schema) in schemas.sorted(by: { $0.key < $1.key }) {
+                    var modelCode = "import Foundation\n\n"
+                    modelCode += emitModel(name: schemaName, schema: schema)
+                    modelCode += "\n"
+                    let modelUrl = srcDir.appendingPathComponent("Models").appendingPathComponent("\(schemaName).swift")
+                    try WASIFileHelpers.writeString(modelCode, to: modelUrl.path)
+                }
+            }
         }
     }
 }

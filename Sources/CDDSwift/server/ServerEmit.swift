@@ -44,208 +44,199 @@ func mapFakeryInitializer(schema: Schema) -> String {
 import Foundation
 
 /// Emits a Swift server stub (e.g., using Vapor) from an OpenAPI Document.
-public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> String {
-    var output = "import Vapor\n"
-    if testsMocks {
-        output += "import Fluent\n"
-        output += "import FluentSQLiteDriver\n"
-        output += "import Fakery\n\n"
-    }
 
+/// Emits Swift server stub files (e.g., using Vapor) from an OpenAPI Document.
+public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false) -> [String: String] {
+    var files: [String: String] = [:]
     let schemas = document.components?.schemas ?? document.definitions ?? [:]
     let sortedSchemas = schemas.sorted(by: { $0.key < $1.key })
 
+    // Extensions
+    var extensionsOutput = "import Vapor\n\n"
+    for (schemaName, _) in sortedSchemas {
+        extensionsOutput += "extension \(schemaName): Content, @unchecked Sendable {}\n"
+    }
     if !schemas.isEmpty {
-        output += "// MARK: - Content Extensions\n"
-        for (schemaName, _) in sortedSchemas {
-            output += "extension \(schemaName): Content {}\n"
+        files["Models/Extensions.swift"] = extensionsOutput
+    }
+
+    if testsMocks, !schemas.isEmpty {
+        files["Mocks/DatabaseSeeder.swift"] = """
+        import Vapor
+        import Fluent
+        import Fakery
+
+        /// Seeder for the application.
+        public struct DatabaseSeeder {
+            /// Seeds the database with fake data.
+            public static func seed(on db: Database) async throws {
+                let faker = Faker()
+        """
+        for (schemaName, schema) in sortedSchemas {
+            files["Mocks/DatabaseSeeder.swift"]! += "\n                for _ in 0..<10 {\n                    let item = Fluent\(schemaName)()\n"
+            if let properties = schema.properties {
+                for (propName, propSchema) in properties {
+                    if propName.lowercased() == "id" { continue }
+                    let initVal = mapFakeryInitializer(schema: propSchema)
+                    files["Mocks/DatabaseSeeder.swift"]! += "                    item.\(propName) = \(initVal)\n"
+                }
+            }
+            files["Mocks/DatabaseSeeder.swift"]! += "                    try await item.create(on: db)\n                }\n"
         }
-        output += "\n"
+        files["Mocks/DatabaseSeeder.swift"]! += "            }\n        }\n"
 
-        if testsMocks {
-            output += "// MARK: - Abstract DAO Interfaces\n"
-            for (schemaName, _) in sortedSchemas {
-                output += """
-                /// Abstract Data Access Object for \(schemaName).
-                public protocol \(schemaName)DAO {
-                    /// Retrieves all \(schemaName) records.
-                    func getAll() async throws -> [\(schemaName)]
-                    /// Retrieves a single \(schemaName) by ID.
-                    func get(id: UUID) async throws -> \(schemaName)?
-                    /// Creates a \(schemaName).
-                    func create(_ model: \(schemaName)) async throws -> \(schemaName)
-                    /// Updates a \(schemaName).
-                    func update(_ model: \(schemaName)) async throws -> \(schemaName)
-                    /// Deletes a \(schemaName).
-                    func delete(id: UUID) async throws
-                }
-                \n
-                """
-            }
+        for (schemaName, schema) in sortedSchemas {
+            var fluentOutput = """
+            import Vapor
+            import Fluent
 
-            output += "// MARK: - Stub DAOs\n"
-            for (schemaName, _) in sortedSchemas {
-                output += """
-                /// Stub Data Access Object for \(schemaName).
-                public struct Stub\(schemaName)DAO: \(schemaName)DAO {
-                    /// Default initializer.
-                    public init() {}
-                    /// Retrieves all \(schemaName) records.
-                    public func getAll() async throws -> [\(schemaName)] { throw Abort(.notImplemented) }
-                    /// Retrieves a single \(schemaName) by ID.
-                    public func get(id: UUID) async throws -> \(schemaName)? { throw Abort(.notImplemented) }
-                    /// Creates a \(schemaName).
-                    public func create(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
-                    /// Updates a \(schemaName).
-                    public func update(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
-                    /// Deletes a \(schemaName).
-                    public func delete(id: UUID) async throws { throw Abort(.notImplemented) }
-                }
-                \n
-                """
-            }
-
-            output += "// MARK: - Concrete Fluent Models\n"
-            for (schemaName, schema) in sortedSchemas {
-                output += """
-                /// Concrete Fluent Model for \(schemaName).
-                public final class Fluent\(schemaName): Model, @unchecked Sendable {
-                    /// Table schema name.
-                    public static let schema = "\(schemaName.lowercased())s"
-                    /// Unique identifier.
-                    @ID(key: .id) public var id: UUID?
-                """
-
-                var fieldsInit = ""
-                var toModelMap = ""
-
-                if let properties = schema.properties {
-                    for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) {
-                        if propName.lowercased() == "id" { continue } // id is handled by default
-                        let swiftType = mapFluentFieldType(schema: propSchema)
-                        let isRequired = schema.required?.contains(propName) ?? false
-
-                        if isRequired {
-                            output += "\n    @Field(key: \"\(propName)\") public var \(propName): \(swiftType)"
-                            fieldsInit += "self.\(propName) = \(propName)\n        "
-                            toModelMap += "\(propName): self.\(propName),\n            "
-                        } else {
-                            output += "\n    @OptionalField(key: \"\(propName)\") public var \(propName): \(swiftType)?"
-                            fieldsInit += "self.\(propName) = \(propName)\n        "
-                            toModelMap += "\(propName): self.\(propName),\n            "
-                        }
-                    }
-                }
-
-                output += """
-
-                    /// Default initializer.
-                    public init() {}
-
-                    /// Maps Fluent model properties to Codable struct.
-                    public func toModel() throws -> \(schemaName) {
-                        // In YOLO mock mode, to avoid breaking initializer dependencies where some models have `id` and others don't,
-                        // we simply return a default empty Codable object or try to decode it from JSON as a fallback for strict init requirements.
-                        let data = "{}"
-                        return try JSONDecoder().decode(\(schemaName).self, from: data.data(using: .utf8)!)
-                    }
-                }
-                \n
-                """
-            }
-
-            output += "// MARK: - Concrete DAOs\n"
-            for (schemaName, _) in sortedSchemas {
-                output += """
-                /// Concrete Data Access Object for \(schemaName) using Fluent.
-                public struct Concrete\(schemaName)DAO: \(schemaName)DAO {
-                    /// The database instance.
-                    public let db: Database
-                    /// Initializes the DAO with a database instance.
-                    public init(db: Database) { self.db = db }
-                    /// Retrieves all \(schemaName) records.
-                    public func getAll() async throws -> [\(schemaName)] {
-                        var results: [\(schemaName)] = []
-                        for item in try await Fluent\(schemaName).query(on: db).all() {
-                            results.append(try item.toModel())
-                        }
-                        return results
-                    }
-                    /// Retrieves a single \(schemaName) by ID.
-                    public func get(id: UUID) async throws -> \(schemaName)? { return try await Fluent\(schemaName).find(id, on: db)?.toModel() }
-                    /// Creates a \(schemaName).
-                    public func create(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
-                    /// Updates a \(schemaName).
-                    public func update(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
-                    /// Deletes a \(schemaName).
-                    public func delete(id: UUID) async throws { try await Fluent\(schemaName).find(id, on: db)?.delete(on: db) }
-                }
-                \n
-                """
-            }
-
-            output += "// MARK: - Migrations\n"
-            for (schemaName, _) in sortedSchemas {
-                output += """
-                /// Database Migration for \(schemaName).
-                public struct Create\(schemaName): AsyncMigration {
-                    /// Applies the migration.
-                    public func prepare(on database: Database) async throws {
-                        try await database.schema("\(schemaName.lowercased())s")
-                            .id()
-                            .create()
-                    }
-                    /// Reverts the migration.
-                    public func revert(on database: Database) async throws {
-                        try await database.schema("\(schemaName.lowercased())s").delete()
-                    }
-                }
-                \n
-                """
-            }
-
-            output += "// MARK: - Seeder\n"
-            output += """
-            /// Seeder for the application.
-            public struct DatabaseSeeder {
-                /// Seeds the database with fake data.
-                public static func seed(on db: Database) async throws {
-                    let faker = Faker()
+            /// Concrete Fluent Model for \(schemaName).
+            public final class Fluent\(schemaName): Model, @unchecked Sendable {
+                /// Table schema name.
+                public static let schema = "\(schemaName.lowercased())s"
+                /// Unique identifier.
+                @ID(key: .id) public var id: UUID?
             """
 
-            for (schemaName, schema) in sortedSchemas {
-                output += """
-
-                        for _ in 0..<10 {
-                            let item = Fluent\(schemaName)()\n
-                """
-                if let properties = schema.properties {
-                    for (propName, propSchema) in properties {
-                        if propName.lowercased() == "id" { continue } // managed by Fluent UUID
-                        let initVal = mapFakeryInitializer(schema: propSchema)
-                        output += "            item.\(propName) = \(initVal)\n"
+            if let properties = schema.properties {
+                for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) {
+                    if propName.lowercased() == "id" { continue }
+                    let swiftType = mapFluentFieldType(schema: propSchema)
+                    let isRequired = schema.required?.contains(propName) ?? false
+                    if isRequired {
+                        fluentOutput += "\n    @Field(key: \"\(propName)\") public var \(propName): \(swiftType)"
+                    } else {
+                        fluentOutput += "\n    @OptionalField(key: \"\(propName)\") public var \(propName): \(swiftType)?"
                     }
                 }
-                output += """
-                            try await item.create(on: db)
-                        }
-                """
             }
 
-            output += """
+            fluentOutput += """
 
+                /// Default initializer.
+                public init() {}
+
+                /// Maps Fluent model properties to Codable struct.
+                public func toModel() throws -> \(schemaName) {
+                    let data = "{}"
+                    return try JSONDecoder().decode(\(schemaName).self, from: data.data(using: .utf8)!)
                 }
             }
-            \n
             """
+            files["Models/Fluent\(schemaName).swift"] = fluentOutput
+
+            var daoOutput = """
+            import Vapor
+            import Fluent
+
+            /// Abstract Data Access Object for \(schemaName).
+            public protocol \(schemaName)DAO {
+                /// Retrieves all \(schemaName) records.
+                func getAll() async throws -> [\(schemaName)]
+                /// Retrieves a single \(schemaName) by ID.
+                func get(id: UUID) async throws -> \(schemaName)?
+                /// Creates a \(schemaName).
+                func create(_ model: \(schemaName)) async throws -> \(schemaName)
+                /// Updates a \(schemaName).
+                func update(_ model: \(schemaName)) async throws -> \(schemaName)
+                /// Deletes a \(schemaName).
+                func delete(id: UUID) async throws
+            }
+
+            /// Stub Data Access Object for \(schemaName).
+            public struct Stub\(schemaName)DAO: \(schemaName)DAO {
+                /// Default initializer.
+                public init() {}
+                /// Retrieves all \(schemaName) records.
+                public func getAll() async throws -> [\(schemaName)] { throw Abort(.notImplemented) }
+                /// Retrieves a single \(schemaName) by ID.
+                public func get(id: UUID) async throws -> \(schemaName)? { throw Abort(.notImplemented) }
+                /// Creates a \(schemaName).
+                public func create(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
+                /// Updates a \(schemaName).
+                public func update(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
+                /// Deletes a \(schemaName).
+                public func delete(id: UUID) async throws { throw Abort(.notImplemented) }
+            }
+
+            /// Concrete Data Access Object for \(schemaName) using Fluent.
+            public struct Concrete\(schemaName)DAO: \(schemaName)DAO {
+                /// The database instance.
+                public let db: Database
+                /// Initializes the DAO with a database instance.
+                public init(db: Database) { self.db = db }
+                /// Retrieves all \(schemaName) records.
+                public func getAll() async throws -> [\(schemaName)] {
+                    var results: [\(schemaName)] = []
+                    for item in try await Fluent\(schemaName).query(on: db).all() {
+                        results.append(try item.toModel())
+                    }
+                    return results
+                }
+                /// Retrieves a single \(schemaName) by ID.
+                public func get(id: UUID) async throws -> \(schemaName)? { return try await Fluent\(schemaName).find(id, on: db)?.toModel() }
+                /// Creates a \(schemaName).
+                public func create(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
+                /// Updates a \(schemaName).
+                public func update(_ model: \(schemaName)) async throws -> \(schemaName) { throw Abort(.notImplemented) }
+                /// Deletes a \(schemaName).
+                public func delete(id: UUID) async throws { try await Fluent\(schemaName).find(id, on: db)?.delete(on: db) }
+            }
+            """
+
+            var migrationOutput = """
+            /// Database Migration for \(schemaName).
+            public struct Create\(schemaName): AsyncMigration {
+                /// Applies the migration.
+                public func prepare(on database: Database) async throws {
+                    try await database.schema("\(schemaName.lowercased())s")
+                        .id()
+            """
+
+            if let properties = schema.properties {
+                for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) {
+                    if propName.lowercased() == "id" { continue }
+                    let swiftType = mapFluentFieldType(schema: propSchema)
+                    let isRequired = schema.required?.contains(propName) ?? false
+                    let fieldType: String
+                    switch swiftType {
+                    case "String": fieldType = ".string"
+                    case "Int": fieldType = ".int"
+                    case "Double": fieldType = ".double"
+                    case "Bool": fieldType = ".bool"
+                    case "UUID": fieldType = ".uuid"
+                    case "Date": fieldType = ".datetime"
+                    default: fieldType = ".string"
+                    }
+                    if isRequired {
+                        migrationOutput += "\n                        .field(FieldKey(stringLiteral: \"\(propName)\"), \(fieldType), .required)"
+                    } else {
+                        migrationOutput += "\n                        .field(FieldKey(stringLiteral: \"\(propName)\"), \(fieldType))"
+                    }
+                }
+            }
+
+            migrationOutput += """
+
+                        .create()
+                }
+                /// Reverts the migration.
+                public func revert(on database: Database) async throws {
+                    try await database.schema("\(schemaName.lowercased())s").delete()
+                }
+            }
+            """
+            daoOutput += "\n" + migrationOutput
+            files["Mocks/\(schemaName)DAO.swift"] = daoOutput
         }
     }
 
-    output += "// MARK: - Routes\n"
-    output += "/// Registers routes to the Vapor application.\n"
-    output += "public func routes(_ app: Application) throws {\n"
+    var routesOutput = "import Vapor\n"
+    if testsMocks { routesOutput += "import Fluent\n" }
+    routesOutput += """
 
-    output += """
+    /// Registers routes to the Vapor application.
+    public func routes(_ app: Application) throws {
         // CORS Middleware
         let corsConfiguration = CORSMiddleware.Configuration(
             allowedOrigin: .all,
@@ -261,26 +252,26 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
 
         // Advanced mock webhook trigger
         app.post("_mock", "trigger-webhook", ":name") { req async throws -> Response in
-            // Mock dispatcher
             return Response(status: .ok)
         }
-    \n
     """
 
     if testsMocks {
-        output += "    // Resolve DAOs based on configuration\n"
-        output += "    let isEphemeral = ProcessInfo.processInfo.arguments.contains(\"--ephemeral\")\n"
-        output += "    let hasDB = Environment.get(\"DATABASE_URL\") != nil\n"
-        output += "    let useConcrete = isEphemeral || hasDB\n\n"
+        routesOutput += """
 
+            // Resolve DAOs based on configuration
+            let isEphemeral = ProcessInfo.processInfo.arguments.contains("--ephemeral")
+            let hasDB = Environment.get("DATABASE_URL") != nil
+            let useConcrete = isEphemeral || hasDB
+
+        """
         for (schemaName, _) in sortedSchemas {
-            output += "    let _\(schemaName.lowercased())DAO: \(schemaName)DAO = useConcrete ? Concrete\(schemaName)DAO(db: app.db) : Stub\(schemaName)DAO()\n"
+            routesOutput += "    let _\(schemaName.lowercased())DAO: \(schemaName)DAO = useConcrete ? Concrete\(schemaName)DAO(db: app.db) : Stub\(schemaName)DAO()\n"
         }
     }
 
     if let paths = document.paths {
         for (path, item) in paths.sorted(by: { $0.key < $1.key }) {
-            // Convert OpenAPI path parameters like {id} to Vapor's :id
             let vaporPath = path.replacingOccurrences(of: "{", with: ":").replacingOccurrences(of: "}", with: "")
             let vaporPathArgs = vaporPath.split(separator: "/").map { part in "\"\(part)\"" }.joined(separator: ", ")
 
@@ -293,9 +284,8 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
             for (method, opOptional) in methods {
                 guard let op = opOptional else { continue }
                 let handlerName = op.operationId ?? "\(method)_handler"
-                output += "    app.\(method)(\(vaporPathArgs)) { req async throws -> Response in\n"
-
-                output += """
+                routesOutput += "\n    app.\(method)(\(vaporPathArgs)) { req async throws -> Response in\n"
+                routesOutput += """
                         if strictValidation {
                              // TODO: Inject OpenAPI specific validations
                         }
@@ -304,14 +294,11 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
                                   throw Abort(.unauthorized)
                              }
                         }
+                        // TODO: Implement \(handlerName)
                 """
 
-                output += "        // TODO: Implement \(handlerName)\n"
-
-                // If it's testsMocks, wire up the mock DAO
                 var wired = false
                 if testsMocks {
-                    // Try to extract the return type
                     if let successResponse = op.responses?["200"] ?? op.responses?["201"] ?? op.responses?["default"],
                        let content = successResponse.content,
                        let schema = content["application/json"]?.schema
@@ -319,55 +306,53 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
                         if schema.type == "array", let items = schema.items, let ref = items.ref {
                             let returnType = ref.components(separatedBy: "/").last!
                             if schemas.keys.contains(returnType) {
-                                output += "        let results = try await _\(returnType.lowercased())DAO.getAll()\n"
-                                output += "        var res = Response(status: .ok)\n"
-                                output += "        try res.content.encode(results)\n"
-                                output += "        return res\n"
+                                routesOutput += "\n        let results = try await _\(returnType.lowercased())DAO.getAll()\n"
+                                routesOutput += "        var res = Response(status: .ok)\n"
+                                routesOutput += "        try res.content.encode(results)\n"
+                                routesOutput += "        return res\n"
                                 wired = true
                             }
                         } else if let ref = schema.ref ?? schema.dynamicRef {
                             let returnType = ref.components(separatedBy: "/").last!
                             if schemas.keys.contains(returnType) {
-                                output += "        let result = try await _\(returnType.lowercased())DAO.getAll().first\n"
-                                output += "        if let result = result {\n"
-                                output += "            var res = Response(status: .ok)\n"
-                                output += "            try res.content.encode(result)\n"
-                                output += "            return res\n"
-                                output += "        } else {\n"
-                                output += "            throw Abort(.notFound)\n"
-                                output += "        }\n"
+                                routesOutput += "\n        let result = try await _\(returnType.lowercased())DAO.getAll().first\n"
+                                routesOutput += "        if let result = result {\n"
+                                routesOutput += "            var res = Response(status: .ok)\n"
+                                routesOutput += "            try res.content.encode(result)\n"
+                                routesOutput += "            return res\n"
+                                routesOutput += "        } else {\n"
+                                routesOutput += "            throw Abort(.notFound)\n"
+                                routesOutput += "        }\n"
                                 wired = true
                             }
                         }
                     } else if method == "post" || method == "put" || method == "patch" || method == "delete" {
-                        // It's a mutation without a definitive return type. Return 200 OK.
-                        output += "        return Response(status: .ok)\n"
+                        routesOutput += "\n        return Response(status: .ok)\n"
                         wired = true
                     }
                 }
-
                 if !wired {
-                    output += "        return Response(status: .notImplemented)\n"
+                    routesOutput += "\n        return Response(status: .notImplemented)\n"
                 }
-
-                output += "    }\n"
+                routesOutput += "    }\n"
             }
         }
     }
 
     if testsMocks {
-        output += """
+        routesOutput += """
+
             // Integrated Identity Provider (IdP) Module
             let startAuthServer = ProcessInfo.processInfo.arguments.contains("--start-auth-server")
             if startAuthServer {
                 app.post("auth", "register") { req async throws -> Response in
-                    return Response(status: .ok, body: .init(string: "{\\"status\\":\\"registered\\"}"))
+                    return Response(status: .ok, body: .init(string: "{\\\"status\\\":\\\"registered\\\"}"))
                 }
                 app.post("auth", "login") { req async throws -> Response in
-                    return Response(status: .ok, body: .init(string: "{\\"token\\":\\"mock-token-123\\"}"))
+                    return Response(status: .ok, body: .init(string: "{\\\"token\\\":\\\"mock-token-123\\\"}"))
                 }
                 app.post("auth", "refresh") { req async throws -> Response in
-                    return Response(status: .ok, body: .init(string: "{\\"token\\":\\"mock-token-123\\"}"))
+                    return Response(status: .ok, body: .init(string: "{\\\"token\\\":\\\"mock-token-123\\\"}"))
                 }
                 app.post("auth", "logout") { req async throws -> Response in
                     return Response(status: .ok)
@@ -375,22 +360,24 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
             }
         """
     }
+    routesOutput += "}\n"
+    files["Routes/Routes.swift"] = routesOutput
 
-    output += "}\n\n"
+    var entrypointOutput = "import Vapor\n"
+    if testsMocks { entrypointOutput += "import Fluent\nimport FluentSQLiteDriver\n" }
+    entrypointOutput += """
 
-    output += "// MARK: - Entrypoint\n"
-    output += """
     /// The main entrypoint for the generated Vapor application.
     @main
     public struct GeneratedServer {
         /// The main execution function.
         public static func main() async throws {
             var env = try Environment.detect()
-
     """
 
     if testsMocks {
-        output += """
+        entrypointOutput += """
+
                 // Extract custom arguments before Vapor parses them
                 let isEphemeral = env.arguments.contains("--ephemeral")
                 let isSeed = env.arguments.contains("--seed")
@@ -406,7 +393,7 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
         """
     }
 
-    output += """
+    entrypointOutput += """
 
             try LoggingSystem.bootstrap(from: &env)
             let app = try await Application.make(env)
@@ -414,7 +401,7 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
     """
 
     if testsMocks {
-        output += """
+        entrypointOutput += """
 
                 // Database Connection Setup
                 if isEphemeral {
@@ -426,9 +413,9 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
                 // Register migrations
         """
         for (schemaName, _) in sortedSchemas {
-            output += "\n        app.migrations.add(Create\(schemaName)())"
+            entrypointOutput += "\n        app.migrations.add(Create\(schemaName)())"
         }
-        output += """
+        entrypointOutput += """
 
 
                 if isEphemeral || Environment.get("DATABASE_URL") != nil {
@@ -441,13 +428,29 @@ public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> S
         """
     }
 
-    output += """
+    entrypointOutput += """
 
             try routes(app)
             try await app.execute()
         }
     }
     """
+    files["Entrypoint.swift"] = entrypointOutput
 
+    return files
+}
+
+/// Emits a Swift server stub (e.g., using Vapor) from an OpenAPI Document.
+public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> String {
+    let files = emitServerFiles(document: document, testsMocks: testsMocks)
+    let sortedKeys = files.keys.sorted()
+    var output = ""
+    for key in sortedKeys {
+        if output.isEmpty {
+            output = files[key]!
+        } else {
+            output += "\n\n" + files[key]!
+        }
+    }
     return output
 }
