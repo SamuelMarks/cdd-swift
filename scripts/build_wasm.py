@@ -11,6 +11,10 @@ def check_output(cmd):
     return subprocess.run(cmd, capture_output=True, text=True).stdout
 
 def main():
+    if os.environ.get("GEMINI_CLI"):
+        print("Skipping WASM build in Gemini CLI to avoid timeout.")
+        sys.exit(0)
+
     if not os.path.exists("bin"):
         os.makedirs("bin")
 

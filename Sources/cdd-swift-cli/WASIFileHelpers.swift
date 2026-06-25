@@ -48,7 +48,7 @@ enum WASIFileHelpers {
 
         if data.isEmpty { return }
 
-        try data.withUnsafeBytes { rawBuffer in
+        data.withUnsafeBytes { rawBuffer in
             let baseAddress = rawBuffer.baseAddress!
             /// Documentation for bytesWritten
             _ = fwrite(baseAddress, 1, rawBuffer.count, file)

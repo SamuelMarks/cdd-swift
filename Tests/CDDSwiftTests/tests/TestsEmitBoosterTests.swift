@@ -46,7 +46,7 @@ final class TestsEmitBoosterTests: XCTestCase {
 
         let swiftCode = emitTests(paths: doc.paths, document: doc)
         XCTAssertTrue(swiftCode.contains("test50_UploadData()")) // HEAD triggers default: testPrefix = "50_"
-        XCTAssertTrue(swiftCode.contains("fileData: \"test_data\".data(using: .utf8)!"))
+        XCTAssertTrue(swiftCode.contains("fileData: \"test_data\".data(using: String.Encoding.utf8)!"))
     }
 
     func testEmitTestsStatusArrayDummy() {

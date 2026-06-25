@@ -36,6 +36,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         for param in params {
             // Extract the parameter name, falling back to ref or 'unknown'.
             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
+            let safePName = pName.replacingOccurrences(of: "-", with: "_")
             // Extract the parameter location, defaulting to 'query'.
             let pIn = param.in ?? "query"
             // Determine the mapped Swift type for the parameter.
@@ -44,7 +45,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             let isRequired = param.required ?? false
             // Determine the optional suffix based on required status.
             let optionalSuffix = isRequired ? "" : "?"
-            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
+            args.append("\(safePName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
 
             // The style of the parameter (form, simple, matrix).
             let style = param.style ?? (pIn == "query" || pIn == "cookie" ? "form" : "simple")
@@ -58,24 +59,24 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             if pIn == "path" {
                 if style == "simple" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").map { String(describing: $0) }.joined(separator: \",\") \(isRequired ? "" : "?? \\\"\\\""))")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").map { String(describing: $0) }.joined(separator: \",\") \(isRequired ? "" : "?? \\\"\\\""))")
                     } else {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName))")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName))")
                     }
                 } else if style == "label" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").isEmpty == false ? \".\" + \(pName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? "." : ",")\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \".\" + \(safePName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? "." : ",")\") : \"\")")
                     } else {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ".\\(\(pName))")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ".\\(\(safePName))")
                     }
                 } else if style == "matrix" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName)\(isRequired ? "" : "?").isEmpty == false ? \";\(pName)=\" + \(pName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? ";\(pName)=" : ",")\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \";\(pName)=\" + \(safePName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? ";\(pName)=" : ",")\") : \"\")")
                     } else {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ";\(pName)=\\(\(pName))")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ";\(pName)=\\(\(safePName))")
                     }
                 } else {
-                    pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(pName))")
+                    pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName))")
                 }
             } else if pIn == "query" {
                 queryParams.append(ParamData(name: pName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject, isRequired: isRequired))
@@ -178,7 +179,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                         formComponents.append("status=\\(val)")
                     }
                 }
-                request.httpBody = formComponents.joined(separator: "&").data(using: .utf8)
+                request.httpBody = formComponents.joined(separator: "&").data(using: String.Encoding.utf8)
         """
     } else if operation.operationId == "uploadFile" {
         queryParams.removeAll { $0.name == "additionalMetadata" }
@@ -188,19 +189,19 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                 request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
                 var bodyData = Data()
                 if let val = additionalMetadata {
-                    bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
-                    bodyData.append("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".data(using: .utf8)!)
-                    bodyData.append("\\(val)\\r\\n".data(using: .utf8)!)
+                    bodyData.append("--\\(boundary)\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append("\\(val)\\r\\n".data(using: String.Encoding.utf8)!)
                 }
                 if let fileValue = \(fileParam) {
-                    let fileData = (fileValue as Any) as? Data ?? String(describing: fileValue).data(using: .utf8)!
-                    bodyData.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
-                    bodyData.append("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".data(using: .utf8)!)
-                    bodyData.append("Content-Type: application/octet-stream\\r\\n\\r\\n".data(using: .utf8)!)
+                    let fileData = (fileValue as Any) as? Data ?? String(describing: fileValue).data(using: String.Encoding.utf8)!
+                    bodyData.append("--\\(boundary)\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append("Content-Type: application/octet-stream\\r\\n\\r\\n".data(using: String.Encoding.utf8)!)
                     bodyData.append(fileData)
-                    bodyData.append("\\r\\n".data(using: .utf8)!)
+                    bodyData.append("\\r\\n".data(using: String.Encoding.utf8)!)
                 }
-                bodyData.append("--\\(boundary)--\\r\\n".data(using: .utf8)!)
+                bodyData.append("--\\(boundary)--\\r\\n".data(using: String.Encoding.utf8)!)
                 request.httpBody = bodyData
         """
     }
@@ -231,12 +232,13 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         output += "        let queryItems: [URLQueryItem] = []\n"
     }
     for qp in queryParams {
-        let safeName = qp.name.replacingOccurrences(of: "`", with: "")
+        let swiftParamName = qp.name.replacingOccurrences(of: "-", with: "_")
+        let safeName = qp.name.replacingOccurrences(of: "`", with: "").replacingOccurrences(of: "-", with: "_")
         let valName = "val_\(safeName)"
         if qp.isRequired {
-            output += "        let \(valName) = \(qp.name)\n"
+            output += "        let \(valName) = \(swiftParamName)\n"
         } else {
-            output += "        if let \(valName) = \(qp.name) {\n"
+            output += "        if let \(valName) = \(swiftParamName) {\n"
         }
         if qp.isArray {
             if qp.style == "form" && qp.explode {
@@ -289,13 +291,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "        request.httpMethod = \"\(method)\"\n"
 
     for hParam in headerParams {
-        let safeName = hParam.name.replacingOccurrences(of: "`", with: "")
+        let swiftParamName = hParam.name.replacingOccurrences(of: "-", with: "_")
+        let safeName = hParam.name.replacingOccurrences(of: "`", with: "").replacingOccurrences(of: "-", with: "_")
         let valName = "val_\(safeName)"
         if hParam.isRequired {
-            output += "        let \(valName) = \(hParam.name)\n"
+            output += "        let \(valName) = \(swiftParamName)\n"
             output += "        request.setValue(String(describing: \(valName)), forHTTPHeaderField: \"\(hParam.name)\")\n"
         } else {
-            output += "        if let \(valName) = \(hParam.name) {\n"
+            output += "        if let \(valName) = \(swiftParamName) {\n"
             output += "            request.setValue(String(describing: \(valName)), forHTTPHeaderField: \"\(hParam.name)\")\n"
             output += "        }\n"
         }
@@ -368,7 +371,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "                }\n"
             output += "            }\n"
             output += "            let formString = formComponents.joined(separator: \"&\")\n"
-            output += "            request.httpBody = formString.data(using: .utf8)\n"
+            output += "            request.httpBody = formString.data(using: String.Encoding.utf8)\n"
             output += "        }\n"
         } else if isMultipart {
             output += "        let boundary = UUID().uuidString\n"
@@ -420,19 +423,19 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "                     if contentType == \"text/plain\" { contentType = \"application/json\" }\n"
             output += "                     fileData = try? JSONSerialization.data(withJSONObject: value)\n"
             output += "                 } else if let stringVal = value as? String {\n"
-            output += "                     fileData = stringVal.data(using: .utf8)\n"
+            output += "                     fileData = stringVal.data(using: String.Encoding.utf8)\n"
             output += "                 } else {\n"
-            output += "                     fileData = String(describing: value).data(using: .utf8)\n"
+            output += "                     fileData = String(describing: value).data(using: String.Encoding.utf8)\n"
             output += "                 }\n"
             output += "                 if let fd = fileData {\n"
-            output += "                     bodyData.append(\"--\\(boundary)\\r\\n\".data(using: .utf8)!)\n"
-            output += "                     bodyData.append(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".data(using: .utf8)!)\n"
-            output += "                     bodyData.append(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".data(using: .utf8)!)\n"
+            output += "                     bodyData.append(\"--\\(boundary)\\r\\n\".data(using: String.Encoding.utf8)!)\n"
+            output += "                     bodyData.append(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".data(using: String.Encoding.utf8)!)\n"
+            output += "                     bodyData.append(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".data(using: String.Encoding.utf8)!)\n"
             output += "                     bodyData.append(fd)\n"
-            output += "                     bodyData.append(\"\\r\\n\".data(using: .utf8)!)\n"
+            output += "                     bodyData.append(\"\\r\\n\".data(using: String.Encoding.utf8)!)\n"
             output += "                 }\n"
             output += "             }\n"
-            output += "             bodyData.append(\"--\\(boundary)--\\r\\n\".data(using: .utf8)!)\n"
+            output += "             bodyData.append(\"--\\(boundary)--\\r\\n\".data(using: String.Encoding.utf8)!)\n"
             output += "        }\n"
             output += "        request.httpBody = bodyData\n"
         } else if isOctetStream {

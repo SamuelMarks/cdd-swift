@@ -33,13 +33,14 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
                         for param in params {
                             // The name of the parameter.
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
+                            let safePName = pName.replacingOccurrences(of: "-", with: "_")
                             // The mapped Swift type for the parameter.
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
                             // Whether the parameter is required.
                             let isRequired = param.required ?? false
                             // Suffix for optional parameters.
                             let optionalSuffix = isRequired ? "" : "?"
-                            args.append("\(pName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
+                            args.append("\(safePName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
                         }
                     }
                     if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {

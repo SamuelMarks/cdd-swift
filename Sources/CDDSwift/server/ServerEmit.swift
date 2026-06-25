@@ -2,7 +2,7 @@ import Foundation
 
 /// Helper to map OpenAPI type to Vapor/Fluent field property wrapper
 func mapFluentFieldType(schema: Schema) -> String {
-    if let ref = schema.ref ?? schema.dynamicRef {
+    if let _ = schema.ref ?? schema.dynamicRef {
         // Use String instead of UUID to prevent type casting issues dynamically
         return "String"
     }
@@ -372,24 +372,29 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
     public struct GeneratedServer {
         /// The main execution function.
         public static func main() async throws {
-            var env = try Environment.detect()
     """
 
     if testsMocks {
         entrypointOutput += """
 
                 // Extract custom arguments before Vapor parses them
-                let isEphemeral = env.arguments.contains("--ephemeral")
-                let isSeed = env.arguments.contains("--seed")
+                var args = CommandLine.arguments
+                let isEphemeral = args.contains("--ephemeral")
+                let isSeed = args.contains("--seed")
 
-                if env.arguments.contains("--help") || env.arguments.contains("-h") {
+                if args.contains("--help") || args.contains("-h") {
                     print("Usage: serve [options]")
                     print("Options:")
                     print("  --ephemeral   Triggers the Concrete DAOs and overrides DATABASE_URL with a throwaway database.")
                     print("  --seed        Runs the fake data seeder on startup (requires a concrete DB connection).")
                 }
 
-                env.arguments.removeAll { $0 == "--ephemeral" || $0 == "--seed" }
+                args.removeAll { $0 == "--ephemeral" || $0 == "--seed" }
+                var env = try Environment.detect(arguments: args)
+        """
+    } else {
+        entrypointOutput += """
+                var env = try Environment.detect()
         """
     }
 

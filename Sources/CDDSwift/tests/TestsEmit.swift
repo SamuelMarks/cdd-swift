@@ -152,6 +152,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                         for param in params {
                             if param.in == "body" { continue }
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
+                            let safePName = pName.replacingOccurrences(of: "-", with: "_")
                             let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
                             let isRequired = param.required ?? false
 
@@ -160,7 +161,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             if pName == "status" && type == "String" { dummyValue = "\"available\"" } else if pName == "status" { dummyValue = "[\"available\"]" } else if pName == "api_key" { dummyValue = "\"special-key\"" } else if type == "Int" || type == "Int64" || type == "Int32" { dummyValue = "1" } else if type == "Bool" { dummyValue = "true" } else if type == "Double" { dummyValue = "1.0" } else if type.hasPrefix("[") { dummyValue = "[]" }
 
                             if isRequired || pName == "name" || pName == "status" || pName == "additionalMetadata" || pName == "api_key" {
-                                callArgs.append("\(pName): \(dummyValue)")
+                                callArgs.append("\(safePName): \(dummyValue)")
                             }
                         }
                     }
@@ -173,11 +174,11 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
                             if bodyType == "String" {
                                 callArgs.append("\(bodyParamName): \"test_string\"")
                             } else if bodyType == "Data" {
-                                callArgs.append("\(bodyParamName): \"test_data\".data(using: .utf8)!")
+                                callArgs.append("\(bodyParamName): \"test_data\".data(using: String.Encoding.utf8)!")
                             } else {
                                 let jsonStr = generateDummyJSON(type: bodySchema?.type, ref: bodySchema?.ref, properties: bodySchema?.properties, required: bodySchema?.required, items: bodySchema?.items, schemas: schemas)
                                 let escapedJson = jsonStr.replacingOccurrences(of: "\"", with: "\\\"")
-                                callArgs.append("\(bodyParamName): try! JSONDecoder().decode(\(bodyType).self, from: \"\(escapedJson)\".data(using: .utf8)!)")
+                                callArgs.append("\(bodyParamName): try! JSONDecoder().decode(\(bodyType).self, from: \"\(escapedJson)\".data(using: String.Encoding.utf8)!)")
                             }
                         }
                     }

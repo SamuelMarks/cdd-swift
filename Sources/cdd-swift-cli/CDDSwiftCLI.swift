@@ -263,7 +263,7 @@ struct SyncOpenAPI: AsyncParsableCommand {
                 }
             }
 
-            var mergedComponents = existing.components ?? Components()
+            let mergedComponents = existing.components ?? Components()
             if let parsedComponents = document.components {
                 var schemas = mergedComponents.schemas ?? [:]
                 if let parsedSchemas = parsedComponents.schemas {

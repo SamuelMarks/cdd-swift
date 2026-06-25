@@ -90,6 +90,94 @@ public enum OpenAPIToSwiftGenerator {
             }
         }
 
+        modelsOutput += """
+        /// A type-erased `Codable` value.
+        public struct AnyCodable: Codable, Equatable, @unchecked Sendable {
+            /// The type-erased value.
+            public let value: Any
+
+            /// Initializer.
+            public init(_ value: Any) {
+                self.value = value
+            }
+
+            /// Initializer.
+            public init(from decoder: Decoder) throws {
+                // Get the single value container for decoding.
+                let container = try decoder.singleValueContainer()
+                if let bool = try? container.decode(Bool.self) {
+                    value = bool
+                } else if let int = try? container.decode(Int.self) {
+                    value = int
+                } else if let double = try? container.decode(Double.self) {
+                    value = double
+                } else if let string = try? container.decode(String.self) {
+                    value = string
+                } else if let array = try? container.decode([AnyCodable].self) {
+                    value = array.map { $0.value }
+                } else if let dict = try? container.decode([String: AnyCodable].self) {
+                    value = dict.mapValues { $0.value }
+                } else if container.decodeNil() {
+                    value = NSNull()
+                } else {
+                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded")
+                }
+            }
+
+            /// Encodes this value into the given encoder.
+            public func encode(to encoder: Encoder) throws {
+                // Get the single value container for decoding.
+                var container = encoder.singleValueContainer()
+                switch value {
+                case let anyCodable as AnyCodable:
+                    try anyCodable.encode(to: encoder)
+                case let bool as Bool:
+                    try container.encode(bool)
+                case let int as Int:
+                    try container.encode(int)
+                case let double as Double:
+                    try container.encode(double)
+                case let string as String:
+                    try container.encode(string)
+                case let array as [Any]:
+                    try container.encode(array.map { AnyCodable($0) })
+                case let dict as [String: Any]:
+                    try container.encode(dict.mapValues { AnyCodable($0) })
+                case is NSNull:
+                    try container.encodeNil()
+                default:
+                    throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded"))
+                }
+            }
+
+            public static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
+                switch (lhs.value, rhs.value) {
+                case is (Void, Void): return true
+                case is (NSNull, NSNull): return true
+                case let (l as AnyCodable, r as AnyCodable): return l == r
+                case let (l as Bool, r as Bool): return l == r
+                case let (l as Int, r as Int): return l == r
+                case let (l as Double, r as Double): return l == r
+                case let (l as String, r as String): return l == r
+                case let (l as [Any], r as [Any]):
+                    // Left hand side mapped value.
+                    let lAny = l.map { AnyCodable($0) }
+                    // Right hand side mapped value.
+                    let rAny = r.map { AnyCodable($0) }
+                    return lAny == rAny
+                case let (l as [String: Any], r as [String: Any]):
+                    // Left hand side mapped value.
+                    let lAny = l.mapValues { AnyCodable($0) }
+                    // Right hand side mapped value.
+                    let rAny = r.mapValues { AnyCodable($0) }
+                    return lAny == rAny
+                default: return false
+                }
+            }
+        }
+        """
+        modelsOutput += "\n"
+
         // Initialize the output string for the API Client file.
         var clientOutput = "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
         clientOutput += "// MARK: - API Client\n\n"

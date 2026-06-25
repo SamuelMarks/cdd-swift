@@ -26,7 +26,7 @@ def main():
     run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_server", "-i", petstore_path, "-o", server_dir])
 
     # 3. Generate Client
-    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_sdk", "-i", petstore_path, "-o", client_dir])
+    run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_sdk", "-i", petstore_path, "-o", client_dir, "--tests"])
 
     server_process = None
     try:
@@ -37,7 +37,7 @@ def main():
         run_cmd(["swift", "build"], cwd=server_dir)
 
         server_process = subprocess.Popen(
-            ["swift", "run", "GeneratedServer", "serve", "--port", "8085", "--ephemeral", "--seed"],
+            ["swift", "run", "GeneratedServer", "serve", "--port", "8085"],
             cwd=server_dir,
             env=env
         )
