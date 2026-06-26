@@ -113,6 +113,7 @@ DerivedData/
 # Integration testing directories
 cdd-swift-client/
 cdd-swift-client-*/
+cdd-swift-server-*/
 
 # Test artifacts
 *.yaml

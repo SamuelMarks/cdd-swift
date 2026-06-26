@@ -135,11 +135,15 @@ public class SwiftASTParser {
         }
 
         // Construct the Components object from parsed schemas and security.
-        let components = Components(
-            schemas: modelVisitor.schemas.isEmpty ? nil : modelVisitor.schemas,
-            securitySchemes: routeVisitor.securitySchemes.isEmpty ? nil : routeVisitor.securitySchemes,
-            callbacks: functionVisitor.callbacks.isEmpty ? nil : functionVisitor.callbacks
-        )
+        let schemas = modelVisitor.schemas.isEmpty ? nil : modelVisitor.schemas
+        let securitySchemes = routeVisitor.securitySchemes.isEmpty ? nil : routeVisitor.securitySchemes
+        let callbacks = functionVisitor.callbacks.isEmpty ? nil : functionVisitor.callbacks
+
+        var components: Components? = nil
+        if schemas != nil || securitySchemes != nil || callbacks != nil {
+            components = Components(schemas: schemas, securitySchemes: securitySchemes, callbacks: callbacks)
+        }
+
         return OpenAPIDocument(
             openapi: "3.2.0",
             info: Info(title: "Parsed API", version: "1.0.0"),

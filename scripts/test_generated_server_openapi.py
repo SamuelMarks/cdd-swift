@@ -2,31 +2,51 @@ import os
 import shutil
 import subprocess
 import time
+import urllib.request
+
+def resolve_cmd(cmd):
+    """Resolves the command executable to its full path to ensure cross-platform compatibility (e.g. .cmd, .exe)."""
+    if not cmd:
+        return cmd
+    executable = shutil.which(cmd[0])
+    if executable:
+        return [executable] + cmd[1:]
+    return cmd
 
 def run_cmd(cmd, check=True, cwd=None, env=None):
+    cmd = resolve_cmd(cmd)
     print(f"Running: {' '.join(cmd)}")
     return subprocess.run(cmd, check=check, capture_output=False, cwd=cwd, env=env)
 
+def download_file(url, path):
+    print(f"Downloading {url} to {path}")
+    try:
+        urllib.request.urlretrieve(url, path)
+    except Exception as e:
+        print(f"Failed to download {url}: {e}")
+
 def main():
     # 1. Fetch petstore_oas3.json if it doesn't exist
-    if not os.path.exists("petstore_oas3.json") and not os.path.exists("../petstore_oas3.json"):
+    fallback_petstore_json = os.path.join("..", "petstore_oas3.json")
+    if not os.path.exists("petstore_oas3.json") and not os.path.exists(fallback_petstore_json):
         # We assume it exists from the main test script or we generate it from yaml
         # Fallback fetch
-        run_cmd(["curl", "-s", "-f", "https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml", "-o", "../petstore_oas3.yaml"], check=False)
+        fallback_petstore_yaml = os.path.join("..", "petstore_oas3.yaml")
+        download_file("https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml", fallback_petstore_yaml)
         # Assuming python3 and yaml are available
         try:
             import yaml, json
-            with open("../petstore_oas3.yaml", "r") as f:
+            with open(fallback_petstore_yaml, "r") as f:
                 data = yaml.safe_load(f)
-            with open("../petstore_oas3.json", "w") as f:
+            with open(fallback_petstore_json, "w") as f:
                 json.dump(data, f)
         except Exception:
             pass
 
-    petstore_path = "../petstore_oas3.json" if os.path.exists("../petstore_oas3.json") else "petstore_oas3.json"
+    petstore_path = fallback_petstore_json if os.path.exists(fallback_petstore_json) else "petstore_oas3.json"
 
-    server_dir = "../cdd-swift-server-openapi"
-    client_dir = "../cdd-swift-client-openapi"
+    server_dir = os.path.join("..", "cdd-swift-server-openapi")
+    client_dir = os.path.join("..", "cdd-swift-client-openapi")
 
     # Cleanup old dirs
     for d in [server_dir, client_dir]:
@@ -45,10 +65,16 @@ def main():
         env = os.environ.copy()
 
         # Build first
-        run_cmd(["swift", "build"], cwd=server_dir)
+        try:
+            run_cmd(["swift", "build"], cwd=server_dir)
+        except subprocess.CalledProcessError:
+            print("swift build failed, trying to update packages and retrying...")
+            run_cmd(["swift", "package", "update"], cwd=server_dir)
+            run_cmd(["swift", "build"], cwd=server_dir)
 
+        swift_run_cmd = resolve_cmd(["swift", "run", "GeneratedServer", "serve", "--port", "8086"])
         server_process = subprocess.Popen(
-            ["swift", "run", "GeneratedServer", "serve", "--port", "8086"],
+            swift_run_cmd,
             cwd=server_dir,
             env=env
         )

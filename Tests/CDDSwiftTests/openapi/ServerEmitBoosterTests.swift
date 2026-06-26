@@ -18,10 +18,11 @@ final class ServerEmitBoosterTests: XCTestCase {
             ],
             required: ["id", "date"]
         )
-        let otherSchema = Schema(type: "object")
+        let otherSchema = Schema(type: "object", properties: ["optProp": Schema(type: "string")])
         let components = Components(schemas: ["User": schema, "Other": otherSchema])
 
         let paths: [String: PathItem] = [
+            "/admin": PathItem(get: Operation(operationId: "getAdmin")),
             "/users": PathItem(
                 get: Operation(
                     operationId: "getUsers",

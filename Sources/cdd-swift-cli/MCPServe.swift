@@ -194,12 +194,5 @@ struct MCPServe: AsyncParsableCommand {
 
         let session = MCPServerSession(transport: transport, router: router)
         try await session.start()
-
-        // Wait indefinitely for stdio transport
-        if ProcessInfo.processInfo.environment["CDD_TEST_BLOCK"] == "1" || MCPServe.mockTransport == nil {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 10_000_000)
-            }
-        }
     }
 }

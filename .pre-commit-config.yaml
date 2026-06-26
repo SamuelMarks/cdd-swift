@@ -21,47 +21,47 @@ repos:
     hooks:
     -   id: swiftlint
         name: SwiftLint
-        entry: swiftlint
+        entry: bash scripts/run_with_fallback.sh swiftlint
         language: system
         types: [swift]
     -   id: build
         name: Build
-        entry: swift build
+        entry: bash scripts/run_with_fallback.sh swift build
         language: system
         pass_filenames: false
     -   id: run-tests
         name: Run tests
-        entry: swift test --enable-code-coverage
+        entry: bash scripts/run_with_fallback.sh swift test --enable-code-coverage
         language: system
         pass_filenames: false
     -   id: build-wasm
         name: Build WASM
-        entry: python3 scripts/build_wasm.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/build_wasm.py
+        language: system
         pass_filenames: false
     -   id: swagger-2-0-petstore
         name: Swagger 2.0 Petstore test
-        entry: python3 scripts/test_swagger_2_0.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/test_swagger_2_0.py
+        language: system
         pass_filenames: false
     -   id: openapi-3-2-0-petstore
         name: OpenAPI 3.2.0 Petstore test
-        entry: python3 scripts/test_openapi_3_2_0.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/test_openapi_3_2_0.py
+        language: system
         pass_filenames: false
     -   id: generated-server-swagger-petstore
         name: Generated Server (Swagger 2.0) test
-        entry: python3 scripts/test_generated_server_swagger.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_swagger.py
+        language: system
         pass_filenames: false
     -   id: generated-server-openapi-petstore
         name: Generated Server (OpenAPI 3.2.0) test
-        entry: python3 scripts/test_generated_server_openapi.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_openapi.py
+        language: system
         pass_filenames: false
     -   id: update-badges
         name: Update Badges (Doc & Test Coverage)
-        entry: python3 scripts/update_badges.py
-        language: python
+        entry: bash scripts/run_with_fallback.sh python3 scripts/update_badges.py
+        language: system
         pass_filenames: false
         always_run: true

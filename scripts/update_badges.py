@@ -2,6 +2,7 @@ import os
 import subprocess
 import glob
 import re
+import shutil
 
 def get_color(percentage):
     if percentage >= 90:
@@ -17,8 +18,29 @@ def get_color(percentage):
     else:
         return 'red'
 
+def get_llvm_cov_cmd():
+    if shutil.which("llvm-cov"):
+        return ["llvm-cov"]
+    if shutil.which("xcrun"):
+        return ["xcrun", "llvm-cov"]
+
+    # Check next to swift binary
+    swift_bin = shutil.which("swift")
+    if swift_bin:
+        llvm_cov_path = os.path.join(os.path.dirname(swift_bin), "llvm-cov")
+        if os.path.exists(llvm_cov_path):
+            return [llvm_cov_path]
+        if os.name == 'nt' and os.path.exists(llvm_cov_path + ".exe"):
+            return [llvm_cov_path + ".exe"]
+    return None
+
 def get_test_coverage():
-    result = subprocess.run(['swift', 'build', '--show-bin-path'], capture_output=True, text=True)
+    swift_bin = shutil.which('swift')
+    if not swift_bin:
+        print("Swift not found.")
+        return 0.0
+
+    result = subprocess.run([swift_bin, 'build', '--show-bin-path'], capture_output=True, text=True)
     if result.returncode != 0:
         print("Error getting bin path.")
         return 0.0
@@ -32,7 +54,11 @@ def get_test_coverage():
 
     if os.path.isdir(test_bundle):
         name = os.path.basename(test_bundle).replace('.xctest', '')
-        test_bin = os.path.join(test_bundle, 'Contents', 'MacOS', name)
+        mac_bin = os.path.join(test_bundle, 'Contents', 'MacOS', name)
+        if os.path.exists(mac_bin):
+            test_bin = mac_bin
+        else:
+            test_bin = test_bundle
     else:
         test_bin = test_bundle
 
@@ -41,9 +67,16 @@ def get_test_coverage():
         print("No profdata found. Run swift test --enable-code-coverage first.")
         return 0.0
 
-    report = subprocess.run(['xcrun', 'llvm-cov', 'report', '-instr-profile', profdata, test_bin, '-ignore-filename-regex=\\.build', 'Sources/CDDSwift', 'Sources/cdd-swift-cli'], capture_output=True, text=True)
+    llvm_cov_cmd = get_llvm_cov_cmd()
+    if not llvm_cov_cmd:
+        print("llvm-cov not found.")
+        return 0.0
+
+    cmd = llvm_cov_cmd + ['report', '-instr-profile', profdata, test_bin, '-ignore-filename-regex=\\.build', os.path.join('Sources', 'CDDSwift'), os.path.join('Sources', 'cdd-swift-cli')]
+    report = subprocess.run(cmd, capture_output=True, text=True)
+
     if report.returncode != 0:
-        print("llvm-cov error.")
+        print(f"llvm-cov error: {report.stderr}")
         return 0.0
 
     for line in report.stdout.splitlines():

@@ -3,7 +3,17 @@ import shutil
 import subprocess
 import time
 
+def resolve_cmd(cmd):
+    """Resolves the command executable to its full path to ensure cross-platform compatibility (e.g. .cmd, .exe)."""
+    if not cmd:
+        return cmd
+    executable = shutil.which(cmd[0])
+    if executable:
+        return [executable] + cmd[1:]
+    return cmd
+
 def run_cmd(cmd, check=True, cwd=None):
+    cmd = resolve_cmd(cmd)
     print(f"Running: {' '.join(cmd)}")
     return subprocess.run(cmd, check=check, capture_output=False, cwd=cwd)
 
@@ -15,24 +25,22 @@ def find_jar(target_dir):
 
 def start_server_docker():
     try:
-        subprocess.run(["docker", "rm", "-f", "petstore_server_2"], capture_output=True)
+        run_cmd(["docker", "rm", "-f", "petstore_server_2"], check=False)
         run_cmd(["docker", "run", "-d", "-p", "8081:8080",
                  "-e", "SWAGGER_HOST=http://localhost:8081",
                  "-e", "SWAGGER_BASE_PATH=/v2",
                  "--name", "petstore_server_2", "swaggerapi/petstore"])
         time.sleep(3)
         return True
-    except subprocess.CalledProcessError:
-        return False
-    except FileNotFoundError:
+    except Exception:
         return False
 
 def stop_server_docker():
-    subprocess.run(["docker", "rm", "-f", "petstore_server_2"], capture_output=True)
+    run_cmd(["docker", "rm", "-f", "petstore_server_2"], check=False)
 
 def start_server_jvm(port, host, base_path):
     print("Attempting to start local JVM server...")
-    petstore_dir = "../swagger-petstore-v2"
+    petstore_dir = os.path.join("..", "swagger-petstore-v2")
     target_dir = os.path.join(petstore_dir, "target")
 
     try:
@@ -63,7 +71,8 @@ def start_server_jvm(port, host, base_path):
         env["SWAGGER_HOST"] = host
         env["SWAGGER_BASE_PATH"] = base_path
 
-        server_process = subprocess.Popen(["java", "-jar", jetty_runner_path, "--port", str(port), war_path], env=env)
+        java_cmd = resolve_cmd(["java", "-jar", jetty_runner_path, "--port", str(port), war_path])
+        server_process = subprocess.Popen(java_cmd, env=env)
         time.sleep(10)
         return server_process
     except Exception as e:
@@ -83,16 +92,12 @@ def main():
             raise Exception("Failed to start either JVM or Docker server.")
 
     try:
-        client_dir = "../cdd-swift-client-swagger"
+        client_dir = os.path.join("..", "cdd-swift-client-swagger")
         if os.path.exists(client_dir):
             shutil.rmtree(client_dir)
 
         run_cmd(["swift", "run", "cdd-swift", "from_openapi", "to_sdk",
-                 "-i", "../petstore.json", "-o", client_dir, "--tests"])
-
-        # Replace localhost:8080 with localhost:8081 if necessary?
-        # Actually petstore.json might have localhost:8081 or something.
-        # Wait, the original script does `-p 8081:8080` so the client must be using 8081.
+                 "-i", os.path.join("..", "petstore.json"), "-o", client_dir, "--tests"])
 
         os.chdir(client_dir)
         run_cmd(["swift", "test"])

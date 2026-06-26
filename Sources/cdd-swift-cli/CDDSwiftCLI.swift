@@ -24,7 +24,14 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     }
 
     static func main() async {
-        let args = buildArgs(from: Array(CommandLine.arguments.dropFirst()), env: ProcessInfo.processInfo.environment)
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil || CommandLine.arguments.first?.hasSuffix("xctest") == true {
+            return
+        }
+        await _main()
+    }
+
+    static func _main(arguments: [String] = Array(CommandLine.arguments.dropFirst()), environment: [String: String] = ProcessInfo.processInfo.environment) async {
+        let args = buildArgs(from: arguments, env: environment)
         await CDDSwiftCLI.main(args)
     }
 

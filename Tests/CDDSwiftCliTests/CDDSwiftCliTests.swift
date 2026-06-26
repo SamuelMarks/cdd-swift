@@ -63,7 +63,7 @@ final class CDDSwiftCliTests: XCTestCase {
         do { try await CDDCLI.generateDocsJson(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-3.json"]) } catch {}
         do { try await CDDCLI.syncOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-4.json"]) } catch {}
         #if !os(WASI)
-            let task = Task { try? await CDDCLI.serveJsonRpc(["--port", "12349"]) }
+            let task = Task { try? await CDDCLI.serveJsonRpc(["--port", "12354"]) }
             try await Task.sleep(nanoseconds: 10_000_000)
             task.cancel()
         #endif
@@ -144,8 +144,8 @@ final class CDDSwiftCliTests: XCTestCase {
     }
 
     func testServeJsonRpc() async throws {
-        var cmd = try ServeJsonRpc.parse(["--port", "12345"])
-        XCTAssertEqual(cmd.port, 12345)
+        var cmd = try ServeJsonRpc.parse(["--port", "12353"])
+        XCTAssertEqual(cmd.port, 12353)
 
         let task = Task {
             try await cmd.run()
@@ -155,7 +155,7 @@ final class CDDSwiftCliTests: XCTestCase {
         try await Task.sleep(nanoseconds: 500_000_000)
 
         // Make a request
-        var request = try URLRequest(url: XCTUnwrap(URL(string: "http://127.0.0.1:12345/")))
+        var request = try URLRequest(url: XCTUnwrap(URL(string: "http://127.0.0.1:12353/")))
         request.httpMethod = "POST"
         request.httpBody = """
         {
@@ -235,7 +235,7 @@ final class CDDSwiftCliTests: XCTestCase {
         task.cancel()
 
         // Test server start error (port already in use)
-        // We know port 12345 was used, but wait, the previous server might be shut down due to task.cancel().
+        // We know port 12353 was used, but wait, the previous server might be shut down due to task.cancel().
         // Let's create a dummy server to bind the port.
         let server = Swifter.HttpServer()
         try? server.start(12346, forceIPv4: true)

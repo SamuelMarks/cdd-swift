@@ -123,7 +123,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             let depStr = isExecutable ? ".package(url: \"https://github.com/apple/swift-argument-parser.git\", from: \"1.2.0\")" : ""
             /// Documentation for packageSwift
             let packageSwift = """
-            // swift-tools-version: 5.9
+            // swift-tools-version: 6.0
             import PackageDescription
 
             /// Documentation for package
@@ -264,7 +264,7 @@ struct ToServer: AsyncParsableCommand {
         try createDirRecursive(outDir)
 
         if !options.noInstallablePackage {
-            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.0.0\")"
+            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.89.0\")"
             let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.0.0\")" : ""
 
             let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
@@ -274,7 +274,7 @@ struct ToServer: AsyncParsableCommand {
 
             /// Documentation for packageSwift
             let packageSwift = """
-            // swift-tools-version: 5.9
+            // swift-tools-version: 6.0
             import PackageDescription
 
             /// Documentation for package

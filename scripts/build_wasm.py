@@ -11,23 +11,29 @@ def check_output(cmd):
     return subprocess.run(cmd, capture_output=True, text=True).stdout
 
 def main():
-    if os.environ.get("GEMINI_CLI"):
-        print("Skipping WASM build in Gemini CLI to avoid timeout.")
-        sys.exit(0)
-
     if not os.path.exists("bin"):
         os.makedirs("bin")
 
     print("Building WASM binary for Swift...")
 
-    swift_bin = "swift"
-    if "Apple Swift" in check_output([swift_bin, "--version"]):
-        if os.path.exists("/opt/homebrew/opt/swift/bin/swift"):
+    swift_bin = shutil.which("swift")
+    if not swift_bin:
+        print("Error: swift not found in PATH.")
+        sys.exit(1)
+
+    try:
+        swift_ver = check_output([swift_bin, "--version"])
+    except Exception as e:
+        print(f"Failed to check swift version: {e}")
+        sys.exit(1)
+
+    if "Apple Swift" in swift_ver:
+        # Check brew paths for open source swift on macOS
+        brew_swift_path = "/opt/homebrew/opt/swift/bin" + os.pathsep + "/usr/local/opt/swift/bin"
+        brew_swift = shutil.which("swift", path=brew_swift_path)
+        if brew_swift:
             print("Using Homebrew Swift for WASM support...")
-            swift_bin = "/opt/homebrew/opt/swift/bin/swift"
-        elif os.path.exists("/usr/local/opt/swift/bin/swift"):
-            print("Using Homebrew Swift for WASM support...")
-            swift_bin = "/usr/local/opt/swift/bin/swift"
+            swift_bin = brew_swift
         else:
             print("Error: Apple Swift does not support WASM compilation.")
             print("Please install the official open-source Swift toolchain:")
@@ -40,8 +46,7 @@ def main():
 
     if not available_sdks:
         print("Error: No WebAssembly Swift SDK found.")
-        print("Please install one. For example:")
-        print(f"  {swift_bin} sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip")
+        print(f"Please install one. For example: {swift_bin} sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip")
         sys.exit(1)
 
     success = False
@@ -58,23 +63,23 @@ def main():
         print("Error: Failed to build WASM with any available SDK. Ensure your SDK version matches your Swift compiler version.")
         sys.exit(1)
 
+    base_build = ".build"
     possible_outputs = [
-        ".build/wasm32-unknown-wasip1/release/cdd-swift.wasm",
-        ".build/wasm32-unknown-wasip1/release/cdd-swift",
-        ".build/wasm32-unknown-wasi/release/cdd-swift.wasm",
-        ".build/wasm32-unknown-wasi/release/cdd-swift",
-        ".build/wasm32-unknown-wasi/release/cdd-swift-cli.wasm",
-        ".build/wasm32-unknown-wasi/release/cdd-swift-cli",
-        ".build/release/cdd-swift.wasm",
-        ".build/release/cdd-swift-cli.wasm",
-        ".build\\wasm32-unknown-wasielease\\cdd-swift.wasm",
-        ".build\\wasm32-unknown-wasielease\\cdd-swift"
+        os.path.join(base_build, "wasm32-unknown-wasip1", "release", "cdd-swift.wasm"),
+        os.path.join(base_build, "wasm32-unknown-wasip1", "release", "cdd-swift"),
+        os.path.join(base_build, "wasm32-unknown-wasi", "release", "cdd-swift.wasm"),
+        os.path.join(base_build, "wasm32-unknown-wasi", "release", "cdd-swift"),
+        os.path.join(base_build, "wasm32-unknown-wasi", "release", "cdd-swift-cli.wasm"),
+        os.path.join(base_build, "wasm32-unknown-wasi", "release", "cdd-swift-cli"),
+        os.path.join(base_build, "release", "cdd-swift.wasm"),
+        os.path.join(base_build, "release", "cdd-swift-cli.wasm")
     ]
 
     for p in possible_outputs:
         if os.path.exists(p):
-            shutil.copy(p, "bin/cdd-swift.wasm")
-            print(f"Copied {p} to bin/cdd-swift.wasm")
+            out_path = os.path.join("bin", "cdd-swift.wasm")
+            shutil.copy(p, out_path)
+            print(f"Copied {p} to {out_path}")
             sys.exit(0)
 
     print("Could not find the built WASM binary.")
