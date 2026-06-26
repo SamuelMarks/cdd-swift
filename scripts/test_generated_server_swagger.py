@@ -13,7 +13,16 @@ def resolve_cmd(cmd):
         return [executable] + cmd[1:]
     return cmd
 
+def get_clean_env():
+    env = os.environ.copy()
+    for k in list(env.keys()):
+        if k.startswith("GIT_") and k != "GIT_SSH_COMMAND":
+            del env[k]
+    return env
+
 def run_cmd(cmd, check=True, cwd=None, env=None):
+    if env is None:
+        env = get_clean_env()
     cmd = resolve_cmd(cmd)
     print(f"Running: {' '.join(cmd)}")
     return subprocess.run(cmd, check=check, capture_output=False, cwd=cwd, env=env)
@@ -50,7 +59,7 @@ def main():
     server_process = None
     try:
         # 4. Start Server
-        env = os.environ.copy()
+        env = get_clean_env()
 
         # Build first so it starts instantly when we Popen
         try:
@@ -72,7 +81,7 @@ def main():
         time.sleep(15)
 
         # 5. Test Client
-        client_env = os.environ.copy()
+        client_env = get_clean_env()
         client_env["API_BASE_URL"] = "http://127.0.0.1:8085/v2"
         run_cmd(["swift", "test"], cwd=client_dir, env=client_env)
 

@@ -1,4 +1,4 @@
-FROM swift:6.0-bookworm AS builder
+FROM swift:6.0.3-bookworm AS builder
 WORKDIR /app
 COPY . .
 RUN swift build -c release --static-swift-stdlib

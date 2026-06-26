@@ -7,6 +7,14 @@ final class CLICoverageBoosterTests: XCTestCase {
         await CDDSwiftCLI.main()
     }
 
+    func testMainEntryFull() async {
+        let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in3.json")
+        try? "{\"openapi\": \"3.2.0\", \"info\": {\"title\": \"Dummy\", \"version\": \"1.0.0\"}, \"paths\": {}}".write(to: dummyIn, atomically: true, encoding: .utf8)
+        let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("docs3.json").path
+
+        await CDDSwiftCLI.main(arguments: ["cdd-swift", "to_docs_json", "--input", dummyIn.path, "-o", dummyOut], environment: [:])
+    }
+
     func testMainExecution() async {
         let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in.json")
         try? "{\"openapi\": \"3.2.0\", \"info\": {\"title\": \"Dummy\", \"version\": \"1.0.0\"}, \"paths\": {}}".write(to: dummyIn, atomically: true, encoding: .utf8)
@@ -24,17 +32,18 @@ final class CLICoverageBoosterTests: XCTestCase {
         let existingJSON = """
         {
           "openapi": "3.2.0",
-          "info": {"title": "Existing", "version": "1.0"},
-          "paths": {
-             "/old": { "get": { "operationId": "getOld" } }
-          }
+          "info": {"title": "Existing", "version": "1.0"}
         }
         """
 
-        // This Swift file will be parsed into OpenAPIDocument paths
+        // This Swift file will be parsed into OpenAPIDocument paths and components
         let swiftCode = """
         /// @Route("POST", "/new")
         func createNew() {}
+
+        struct MyModel: Codable {
+            var id: String
+        }
         """
 
         let existingPath = "/tmp/cdd_test_sync_out.json"

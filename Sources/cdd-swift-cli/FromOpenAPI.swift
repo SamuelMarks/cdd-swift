@@ -164,7 +164,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
                 - name: Set up Swift
                   uses: swift-actions/setup-swift@v2
                   with:
-                    swift-version: "6.0"
+                    swift-version: "6.0.3"
                 - name: Build
                   run: swift build
                 - name: Run tests
@@ -264,7 +264,7 @@ struct ToServer: AsyncParsableCommand {
         try createDirRecursive(outDir)
 
         if !options.noInstallablePackage {
-            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.89.0\")"
+            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.113.2\")"
             let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.0.0\")" : ""
 
             let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
@@ -319,7 +319,7 @@ struct ToServer: AsyncParsableCommand {
                 - name: Set up Swift
                   uses: swift-actions/setup-swift@v2
                   with:
-                    swift-version: "6.0"
+                    swift-version: "6.0.3"
                 - name: Build
                   run: swift build
                 - name: Run tests

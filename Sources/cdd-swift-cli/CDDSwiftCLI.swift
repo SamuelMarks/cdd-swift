@@ -24,13 +24,17 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     }
 
     static func main() async {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil || CommandLine.arguments.first?.hasSuffix("xctest") == true {
-            return
-        }
-        await _main()
+        await main(arguments: CommandLine.arguments, environment: ProcessInfo.processInfo.environment)
     }
 
-    static func _main(arguments: [String] = Array(CommandLine.arguments.dropFirst()), environment: [String: String] = ProcessInfo.processInfo.environment) async {
+    static func main(arguments: [String], environment: [String: String]) async {
+        if environment["XCTestConfigurationFilePath"] != nil || environment["XCTestBundlePath"] != nil || arguments.first?.hasSuffix("xctest") == true {
+            return
+        }
+        await _main(arguments: Array(arguments.dropFirst()), environment: environment)
+    }
+
+    static func _main(arguments: [String], environment: [String: String]) async {
         let args = buildArgs(from: arguments, env: environment)
         await CDDSwiftCLI.main(args)
     }
@@ -67,7 +71,7 @@ struct MergeSwift: AsyncParsableCommand {
 
         do {
             /// Documentation for json
-            let json = String(data: data, encoding: .utf8) ?? ""
+            let json = String(decoding: data, as: UTF8.self)
             /// Documentation for document
             let document = try OpenAPIParser.parse(json: json)
             /// Documentation for generatedCode
@@ -223,7 +227,7 @@ struct SyncOpenAPI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "sync", abstract: "Bi-directional synchronization of OpenAPI models and Swift definitions.")
 
     @Option(name: .customLong("truth"), help: "Designate the single source of truth ('class', 'sqlalchemy', 'function'). Currently defaults to 'class'.")
-    var truth: String = "class"
+    var truth: String?
 
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input Swift file containing the source of truth.")
     var inputPath: String
@@ -232,6 +236,7 @@ struct SyncOpenAPI: AsyncParsableCommand {
     var outputPath: String
 
     mutating func run() async throws {
+        let selectedTruth = truth ?? "class"
         let parser = SwiftASTParser()
 
         var sourceCode = ""
@@ -337,6 +342,6 @@ struct SyncOpenAPI: AsyncParsableCommand {
         let jsonString = String(decoding: data, as: UTF8.self)
 
         try WASIFileHelpers.writeString(jsonString, to: outputPath)
-        print("✅ Successfully synchronized \(truth) truth to \(outputPath)")
+        print("✅ Successfully synchronized \(selectedTruth) truth to \(outputPath)")
     }
 }
