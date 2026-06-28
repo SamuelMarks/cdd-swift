@@ -4,7 +4,7 @@ import Foundation
 
 /// MCP Server command
 struct MCPServe: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "mcp", abstract: "Start the Model Context Protocol (MCP) server via stdio")
+    static let configuration = CommandConfiguration(commandName: "mcp", abstract: "Start the Model Context Protocol (MCP) server via stdio.")
 
     /// For testing purposes to inject a mock transport
     nonisolated(unsafe) static var mockTransport: MCPTransport?

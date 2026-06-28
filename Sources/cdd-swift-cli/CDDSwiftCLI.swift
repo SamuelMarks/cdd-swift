@@ -55,13 +55,13 @@ struct CDDSwiftCLI: AsyncParsableCommand {
 
 /// Documentation for MergeSwift
 struct MergeSwift: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Merge generated Swift code from an OpenAPI document into an existing Swift file.")
+    static let configuration = CommandConfiguration(commandName: "merge_swift", abstract: "Merge generated Swift code from an OpenAPI document into an existing Swift file.")
 
-    @Argument(help: "Path to the input OpenAPI JSON file.")
+    @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input OpenAPI JSON file.")
     /// Documentation for inputPath
     var inputPath: String
 
-    @Argument(help: "Path to the existing Swift file to merge into.")
+    @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the existing Swift file to merge into.")
     /// Documentation for destinationPath
     var destinationPath: String
 
@@ -100,7 +100,7 @@ struct ToOpenAPI: AsyncParsableCommand {
     /// Documentation for inputPath
     var inputPath: String
 
-    @Option(name: .shortAndLong, help: "Path to the output JSON file. Prints to stdout if not provided.")
+    @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output JSON file. Prints to stdout if not provided.")
     /// Documentation for outputPath
     var outputPath: String?
 
@@ -150,9 +150,9 @@ struct ToOpenAPI: AsyncParsableCommand {
 
 /// Documentation for GenerateOpenAPI
 struct GenerateOpenAPI: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Generate an example OpenAPI JSON document from Swift builder.")
+    static let configuration = CommandConfiguration(commandName: "generate_openapi", abstract: "Generate an example OpenAPI JSON document from Swift builder.")
 
-    @Option(name: .shortAndLong, help: "Path to the output JSON file. Prints to stdout if not provided.")
+    @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output JSON file. Prints to stdout if not provided.")
     /// Documentation for outputPath
     var outputPath: String?
 
@@ -189,8 +189,11 @@ struct GenerateOpenAPI: AsyncParsableCommand {
 
 /// Documentation for CDDCLI
 public enum CDDCLI {
-    public static func generateFromOpenApi(_ args: [String]) async throws {
+    public static func generateFromOpenApi(subcommand: String? = nil, _ args: [String]) async throws {
         var commandArgs = ["from_openapi"]
+        if let subcommand = subcommand {
+            commandArgs.append(subcommand)
+        }
         commandArgs.append(contentsOf: args)
         await CDDSwiftCLI.main(commandArgs)
     }
@@ -203,6 +206,12 @@ public enum CDDCLI {
 
     public static func generateDocsJson(_ args: [String]) async throws {
         var commandArgs = ["to_docs_json"]
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
+    public static func mcp(_ args: [String]) async throws {
+        var commandArgs = ["mcp"]
         commandArgs.append(contentsOf: args)
         await CDDSwiftCLI.main(commandArgs)
     }
@@ -224,9 +233,9 @@ public enum CDDCLI {
 
 /// Bi-directional synchronization of OpenAPI models and Swift definitions.
 struct SyncOpenAPI: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "sync", abstract: "Bi-directional synchronization of OpenAPI models and Swift definitions.")
+    static let configuration = CommandConfiguration(commandName: "sync", abstract: "Synchronize an OpenAPI specification with source code.")
 
-    @Option(name: .customLong("truth"), help: "Designate the single source of truth ('class', 'sqlalchemy', 'function'). Currently defaults to 'class'.")
+    @Option(name: .customLong("truth"), help: "Designate the single source of truth ('class', 'struct', 'function'). Currently defaults to 'class'.")
     var truth: String?
 
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input Swift file containing the source of truth.")

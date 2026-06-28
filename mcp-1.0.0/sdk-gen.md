@@ -48,11 +48,11 @@ Exposing the `cdd` bidirectional code generator itself to MCP allows AI models t
 | :--- | :---: | :---: | :---: | :--- |
 | **Generator CLI (`stdio`)** | | | | |
 | Code Scaffold / Generate Tools | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | AI can invoke standard generator CLI commands via MCP |
-| Schema Inspection Tools | `[ ]` , `[ ]` | `[ ]` , `[ ]` | `[x]` , `[x]` | AI can query loaded OpenAPI/AsyncAPI schemas |
-| Bidirectional Sync Tools | `[ ]` , `[ ]` | `[ ]` , `[ ]` | `[x]` , `[x]` | AI can trigger code-to-schema extraction natively |
+| Schema Inspection Tools | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | AI can query loaded OpenAPI/AsyncAPI schemas |
+| Bidirectional Sync Tools | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | AI can trigger code-to-schema extraction natively |
 | **Generator SDK / Core** | | | | |
-| AST / Type Query Resources | `[ ]` , `[ ]` | `[ ]` , `[ ]` | `[x]` , `[x]` | AI can read internal AST structures as MCP resources |
-| In-Memory Generation Router | `[ ]` , `[ ]` | `[ ]` , `[ ]` | `[x]` , `[x]` | Native bindings to run the generator core directly via MCP |
+| AST / Type Query Resources | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | AI can read internal AST structures as MCP resources |
+| In-Memory Generation Router | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Native bindings to run the generator core directly via MCP |
 
 ## 2. Semantic & Conceptual Features
 

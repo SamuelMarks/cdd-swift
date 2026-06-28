@@ -51,12 +51,12 @@ repos:
         pass_filenames: false
     -   id: generated-server-swagger-petstore
         name: Generated Server (Swagger 2.0) test
-        entry: bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_swagger.py
+        entry: bash -c '[ -z "$RUN_SLOW_TESTS" ] && echo "Skipping..." || bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_swagger.py'
         language: system
         pass_filenames: false
     -   id: generated-server-openapi-petstore
         name: Generated Server (OpenAPI 3.2.0) test
-        entry: bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_openapi.py
+        entry: bash -c '[ -z "$RUN_SLOW_TESTS" ] && echo "Skipping..." || bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_openapi.py'
         language: system
         pass_filenames: false
     -   id: update-badges

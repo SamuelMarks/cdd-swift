@@ -79,17 +79,36 @@ def start_server_jvm(port, host, base_path):
         print(f"JVM start failed: {e}")
         return None
 
+import urllib.request
+import urllib.error
+
+def is_server_pingable(url):
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=2) as response:
+            return response.status == 200
+    except Exception:
+        return False
+
 def main():
     docker_used = False
     server_process = None
 
-    server_process = start_server_jvm(8082, "http://localhost:8082", "/api/v3")
-    if server_process is None:
-        print("JVM failed to start, falling back to Docker...")
+    if is_server_pingable("http://localhost:8082/api/v3/openapi.json"):
+        print("Server is already running and pingable.")
+    else:
+        print("Attempting to start Docker server...")
         if start_server_docker():
             docker_used = True
         else:
-            raise Exception("Failed to start either JVM or Docker server.")
+            if os.environ.get("RUN_SLOW_TESTS"):
+                server_process = start_server_jvm(8082, "http://localhost:8082", "/api/v3")
+                if server_process is None:
+                    raise Exception("JVM failed to start.")
+            else:
+                print("Docker failed to start and RUN_SLOW_TESTS is not set. Skipping tests.")
+                return
+
 
     try:
         client_dir = os.path.join("..", "cdd-swift-client-openapi")

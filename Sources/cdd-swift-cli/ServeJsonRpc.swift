@@ -11,14 +11,18 @@
 
     /// JSON RPC Server command
     struct ServeJsonRpc: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(commandName: "serve_json_rpc", abstract: "Expose CLI interface as a JSON-RPC server")
+        static let configuration = CommandConfiguration(
+            commandName: "serve_json_rpc",
+            abstract: "Expose CLI interface as a JSON-RPC server.",
+            usage: "cdd-swift serve_json_rpc [-p <port>|--port <port>] [-l <listen>|--listen <listen>]"
+        )
 
-        @Option(name: [.customShort("p"), .customLong("port")], help: "Port to listen on")
+        @Option(name: [.customShort("p"), .customLong("port")], help: "Port to listen on.")
         /// port
         /// Documentation for port
         var port: UInt16 = 8082
 
-        @Option(name: [.customShort("l"), .customLong("listen")], help: "Host to listen on")
+        @Option(name: [.customShort("l"), .customLong("listen")], help: "Host to listen on.")
         /// listen host
         /// Documentation for listen
         var listen: String = "0.0.0.0"

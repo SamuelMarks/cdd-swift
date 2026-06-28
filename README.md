@@ -4,7 +4,7 @@ cdd-swift
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![interactive WASM web demo](https://img.shields.io/badge/interactive-WASM_web_demo-blue.svg)](https://offscale.io/wasm_web_demo)
 [![CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions)
-[![Test Coverage](https://img.shields.io/badge/test_coverage-100.00%25-brightgreen.svg)](#)
+[![Test Coverage](https://img.shields.io/badge/test_coverage-98.65%25-brightgreen.svg)](#)
 [![Doc Coverage](https://img.shields.io/badge/doc_coverage-100.00%25-brightgreen.svg)](#)
 
 **Compiler Driven Development (CDD)** is a development approach designed to eradicate the disconnect between: API specifications; server implementations; client SDKs; and command-line tooling.
@@ -118,6 +118,25 @@ A true ecosystem requires standardized tooling. Once a developer learns the CDD 
 
 ### Core Subcommands
 
+#### `from_openapi`
+Generate Swift code from an OpenAPI document.
+
+```text
+USAGE: cdd-swift from_openapi <subcommand>
+
+OPTIONS:
+  --version               Show the version.
+  -h, --help              Show help information.
+
+SUBCOMMANDS:
+  to_sdk (default)        Generate a Client SDK from an OpenAPI specification.
+  to_sdk_cli              Generate a Client SDK CLI from an OpenAPI
+                          specification.
+  to_server               Generate a Server stub from an OpenAPI specification.
+
+  See 'cdd-swift help from_openapi <subcommand>' for detailed help.
+```
+
 #### `from_openapi to_sdk`
 Generate a Client SDK from an OpenAPI specification.
 
@@ -127,12 +146,16 @@ USAGE: cdd-swift from_openapi to_sdk [--input <input>] [--input-dir <input-dir>]
 OPTIONS:
   -i, --input <input>     Path to the input OpenAPI JSON file.
   --input-dir <input-dir> Path to a directory containing OpenAPI specifications.
-  -o, --output <output>   Path to the output directory. Defaults to current working directory.
+  -o, --output <output>   Path to the output directory. Defaults to current
+                          working directory.
   --no-github-actions     Do not generate GitHub Actions workflow.
   --no-installable-package
                           Do not generate installable package scaffolding.
   --tests                 Generate composable tests and mocks.
-  --mcp                   Generate Model Context Protocol (MCP) server and adapter.
+  --mcp                   Generate Model Context Protocol (MCP) server and
+                          adapter.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `from_openapi to_sdk_cli`
@@ -144,12 +167,16 @@ USAGE: cdd-swift from_openapi to_sdk_cli [--input <input>] [--input-dir <input-d
 OPTIONS:
   -i, --input <input>     Path to the input OpenAPI JSON file.
   --input-dir <input-dir> Path to a directory containing OpenAPI specifications.
-  -o, --output <output>   Path to the output directory. Defaults to current working directory.
+  -o, --output <output>   Path to the output directory. Defaults to current
+                          working directory.
   --no-github-actions     Do not generate GitHub Actions workflow.
   --no-installable-package
                           Do not generate installable package scaffolding.
   --tests                 Generate composable tests and mocks.
-  --mcp                   Generate Model Context Protocol (MCP) server and adapter.
+  --mcp                   Generate Model Context Protocol (MCP) server and
+                          adapter.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `from_openapi to_server`
@@ -161,46 +188,56 @@ USAGE: cdd-swift from_openapi to_server [--input <input>] [--input-dir <input-di
 OPTIONS:
   -i, --input <input>     Path to the input OpenAPI JSON file.
   --input-dir <input-dir> Path to a directory containing OpenAPI specifications.
-  -o, --output <output>   Path to the output directory. Defaults to current working directory.
+  -o, --output <output>   Path to the output directory. Defaults to current
+                          working directory.
   --no-github-actions     Do not generate GitHub Actions workflow.
   --no-installable-package
                           Do not generate installable package scaffolding.
   --tests                 Generate composable tests and mocks.
-  --mcp                   Generate Model Context Protocol (MCP) server and adapter.
+  --mcp                   Generate Model Context Protocol (MCP) server and
+                          adapter.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
-#### `generate-open-api`
+#### `generate_openapi`
 Generate an example OpenAPI JSON document from Swift builder.
 
 ```text
-USAGE: cdd-swift generate-open-api [--output-path <output-path>]
+USAGE: cdd-swift generate_openapi [--output <output>]
 
 OPTIONS:
-  -o, --output-path <output-path>
-                          Path to the output JSON file. Prints to stdout if not provided.
+  -o, --output <output>   Path to the output JSON file. Prints to stdout if not
+                          provided.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `to_openapi`
 Parse a Swift file to extract Codable models and generate OpenAPI JSON.
 
 ```text
-USAGE: cdd-swift to_openapi --input <input> [--output-path <output-path>]
+USAGE: cdd-swift to_openapi --input <input> [--output <output>]
 
 OPTIONS:
   -i, --input <input>     Path to the input Swift file.
-  -o, --output-path <output-path>
-                          Path to the output JSON file. Prints to stdout if not provided.
+  -o, --output <output>   Path to the output JSON file. Prints to stdout if not
+                          provided.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
-#### `merge-swift`
+#### `merge_swift`
 Merge generated Swift code from an OpenAPI document into an existing Swift file.
 
 ```text
-USAGE: cdd-swift merge-swift <input-path> <destination-path>
+USAGE: cdd-swift merge_swift --input <input> --output <output>
 
-ARGUMENTS:
-  <input-path>            Path to the input OpenAPI JSON file.
-  <destination-path>      Path to the existing Swift file to merge into.
+OPTIONS:
+  -i, --input <input>     Path to the input OpenAPI JSON file.
+  -o, --output <output>   Path to the existing Swift file to merge into.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `to_docs_json`
@@ -211,27 +248,38 @@ USAGE: cdd-swift to_docs_json --input <input> [--output <output>] [--no-imports]
 
 OPTIONS:
   -i, --input <input>     Path or URL to the input OpenAPI specification.
-  -o, --output <output>   Path to the output JSON file. Prints to stdout if not provided.
-  --no-imports            If provided, omit the imports field in the code object.
-  --no-wrapping           If provided, omit the wrapper_start and wrapper_end fields in the code object.
+  -o, --output <output>   Path to the output JSON file. Prints to stdout if not
+                          provided.
+  --no-imports            If provided, omit the imports field in the code
+                          object.
+  --no-wrapping           If provided, omit the wrapper_start and wrapper_end
+                          fields in the code object.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `serve_json_rpc`
-Expose CLI interface as a JSON-RPC server.
+Expose CLI interface as a JSON-RPC server
 
 ```text
-USAGE: cdd-swift serve_json_rpc [--port <port>] [--listen <listen>]
+USAGE: cdd-swift serve_json_rpc [-p <port>|--port <port>] [-l <listen>|--listen <listen>]
 
 OPTIONS:
   -p, --port <port>       Port to listen on (default: 8082)
   -l, --listen <listen>   Host to listen on (default: 0.0.0.0)
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `mcp`
-Start the Model Context Protocol (MCP) server via stdio.
+Start the Model Context Protocol (MCP) server via stdio
 
 ```text
 USAGE: cdd-swift mcp
+
+OPTIONS:
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 #### `sync`
@@ -241,10 +289,14 @@ Bi-directional synchronization of OpenAPI models and Swift definitions.
 USAGE: cdd-swift sync [--truth <truth>] --input <input> --output <output>
 
 OPTIONS:
-  --truth <truth>         Designate the single source of truth ('class', 'sqlalchemy', 'function').
-                          Currently defaults to 'class'. (default: class)
-  -i, --input <input>     Path to the input Swift file containing the source of truth.
+  --truth <truth>         Designate the single source of truth ('class',
+                          'sqlalchemy', 'function'). Currently defaults to
+                          'class'.
+  -i, --input <input>     Path to the input Swift file containing the source of
+                          truth.
   -o, --output <output>   Path to the output OpenAPI JSON file to synchronize.
+  --version               Show the version.
+  -h, --help              Show help information.
 ```
 
 ### Detail Features Beyond Common Subset

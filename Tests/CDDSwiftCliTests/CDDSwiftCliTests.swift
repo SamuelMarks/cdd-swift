@@ -62,10 +62,16 @@ final class CDDSwiftCliTests: XCTestCase {
         do { try await CDDCLI.generateToOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-2.json"]) } catch {}
         do { try await CDDCLI.generateDocsJson(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-3.json"]) } catch {}
         do { try await CDDCLI.syncOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-4.json"]) } catch {}
+        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-5"]) } catch {}
+        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk_cli", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-6"]) } catch {}
+        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_server", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-7"]) } catch {}
         #if !os(WASI)
             let task = Task { try? await CDDCLI.serveJsonRpc(["--port", "12354"]) }
             try await Task.sleep(nanoseconds: 10_000_000)
             task.cancel()
+            let mcpTask = Task { try? await CDDCLI.mcp([]) }
+            try await Task.sleep(nanoseconds: 10_000_000)
+            mcpTask.cancel()
         #endif
     }
 
@@ -300,11 +306,11 @@ final class CDDSwiftCliTests: XCTestCase {
     }
 
     func testMergeSwift() async throws {
-        var cmd = try MergeSwift.parse(["/tmp/cdd_test_empty.json", "/tmp/cdd_test_dummy.swift"])
+        var cmd = try MergeSwift.parse(["-i", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd_test_dummy.swift"])
         try await cmd.run()
 
         // Missing dest
-        var cmdMissing = try MergeSwift.parse(["/tmp/cdd_test_empty.json", "/tmp/cdd_test_dummy_missing.swift"])
+        var cmdMissing = try MergeSwift.parse(["-i", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd_test_dummy_missing.swift"])
         do {
             try await cmdMissing.run()
             XCTFail("Should throw error")

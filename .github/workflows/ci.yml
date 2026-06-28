@@ -13,6 +13,21 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-15]
+    services:
+      petstore-swagger:
+        image: swaggerapi/petstore
+        env:
+          SWAGGER_HOST: http://localhost:8081
+          SWAGGER_BASE_PATH: /v2
+        ports:
+          - 8081:8080
+      petstore-openapi:
+        image: swaggerapi/petstore
+        env:
+          SWAGGER_HOST: http://localhost:8082
+          SWAGGER_BASE_PATH: /api/v3
+        ports:
+          - 8082:8080
     steps:
     - uses: actions/checkout@v4
 
@@ -52,33 +67,25 @@ jobs:
     - name: Swagger 2.0 Petstore test
       if: runner.os == 'Linux'
       run: |
-        docker run -d -p 8080:8080 -e SWAGGER_HOST="http://localhost:8080" -e SWAGGER_BASE_PATH="/v2" --name petstore_server swaggerapi/petstore >/dev/null || true
-        sleep 5
-        curl -s -f http://localhost:8080/v2/swagger.json > petstore.json || true
-        if ! python3 -c "import json; json.load(open('petstore.json'))" 2>/dev/null; then
-          curl -s -f https://petstore.swagger.io/v2/swagger.json > petstore.json || true
+        curl -s -f http://localhost:8081/v2/swagger.json > ../petstore.json || true
+        if ! python3 -c "import json; json.load(open('../petstore.json'))" 2>/dev/null; then
+          curl -s -f https://petstore.swagger.io/v2/swagger.json > ../petstore.json || true
         fi
-        swift run cdd-swift from_openapi to_sdk -i petstore.json -o ../cdd-swift-client-swagger --tests
-        cd ../cdd-swift-client-swagger && swift test
-        docker rm -f petstore_server || true
+        python3 scripts/test_swagger_2_0.py
 
     - name: OpenAPI 3.2.0 Petstore test
       if: runner.os == 'Linux'
       run: |
         pip3 install --break-system-packages pyyaml
-        docker run -d -p 8080:8080 -e SWAGGER_HOST="http://localhost:8080" -e SWAGGER_BASE_PATH="/api/v3" --name petstore_server swaggerapi/petstore >/dev/null || true
-        sleep 5
-        curl -s -f http://localhost:8080/api/v3/openapi.json > petstore_oas3.json || true
-        if ! python3 -c "import json; json.load(open('petstore_oas3.json'))" 2>/dev/null; then
+        curl -s -f http://localhost:8082/api/v3/openapi.json > ../petstore_oas3.json || true
+        if ! python3 -c "import json; json.load(open('../petstore_oas3.json'))" 2>/dev/null; then
           echo "Fallback to YAML"
-          curl -s -f https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml > petstore_oas3.yaml || true
-          if [ -s petstore_oas3.yaml ]; then
-            python3 -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.safe_load(sys.stdin)))" < petstore_oas3.yaml > petstore_oas3.json || true
+          curl -s -f https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml > ../petstore_oas3.yaml || true
+          if [ -s ../petstore_oas3.yaml ]; then
+            python3 -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.safe_load(sys.stdin)))" < ../petstore_oas3.yaml > ../petstore_oas3.json || true
           fi
         fi
-        swift run cdd-swift from_openapi to_sdk -i petstore_oas3.json -o ../cdd-swift-client-openapi --tests
-        cd ../cdd-swift-client-openapi && swift test
-        docker rm -f petstore_server || true
+        python3 scripts/test_openapi_3_2_0.py
 
     - name: Generated Server (Swagger 2.0) test
       if: runner.os == 'Linux'
