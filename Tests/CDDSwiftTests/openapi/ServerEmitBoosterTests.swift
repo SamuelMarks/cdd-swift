@@ -7,13 +7,16 @@ final class ServerEmitBoosterTests: XCTestCase {
             type: "object",
             properties: [
                 "id": Schema(type: "string", format: "uuid"),
+                "someUuid": Schema(type: "string", format: "uuid"),
                 "date": Schema(type: "string", format: "date-time"),
                 "data": Schema(type: "string", format: "binary"),
                 "count": Schema(type: "integer", format: "int64"),
                 "price": Schema(type: "number", format: "float"),
+                "rating": Schema(type: "number"),
                 "isActive": Schema(type: "boolean"),
                 "tags": Schema(type: "array", items: SchemaItem(type: "string")),
                 "meta": Schema(type: "object"),
+                "unknownVal": Schema(type: "unknown"),
                 "refVal": Schema(ref: "#/components/schemas/Other")
             ],
             required: ["id", "date"]

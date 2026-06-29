@@ -52,4 +52,13 @@ final class E2ETests: XCTestCase {
         let doc = try SwiftASTParser().parseDocument(from: code)
         XCTAssertNotNil(doc.paths?["/users"])
     }
+
+    func testEmptyJSONParse() {
+        let json = "{}"
+        do {
+            _ = try OpenAPIParser.parse(json: json)
+        } catch {
+            XCTAssertNotNil(error)
+        }
+    }
 }
