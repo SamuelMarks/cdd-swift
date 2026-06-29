@@ -13,23 +13,23 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-15]
-    services:
-      petstore-swagger:
-        image: swaggerapi/petstore
-        env:
-          SWAGGER_HOST: http://localhost:8081
-          SWAGGER_BASE_PATH: /v2
-        ports:
-          - 8081:8080
-      petstore-openapi:
-        image: swaggerapi/petstore
-        env:
-          SWAGGER_HOST: http://localhost:8082
-          SWAGGER_BASE_PATH: /api/v3
-        ports:
-          - 8082:8080
     steps:
     - uses: actions/checkout@v4
+
+    - name: Start Petstore services
+      if: runner.os == 'Linux'
+      run: |
+        docker run -d --name petstore_server_2 -p 8081:8080 -e SWAGGER_HOST=http://localhost:8081 -e SWAGGER_BASE_PATH=/v2 swaggerapi/petstore
+        docker run -d --name petstore_server_3 -p 8082:8080 -e SWAGGER_HOST=http://localhost:8082 -e SWAGGER_BASE_PATH=/api/v3 swaggerapi/petstore
+        echo "Waiting for services to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8081/v2/swagger.json >/dev/null && curl -s http://localhost:8082/api/v3/openapi.json >/dev/null; then
+            echo "Services are up!"
+            break
+          fi
+          sleep 2
+        done
+
 
     - name: Set up Swift
       if: runner.os == 'Linux'
