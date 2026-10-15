@@ -11,7 +11,7 @@ public protocol MCPTransport: Sendable {
     ///
     /// - Parameter onMessage: An asynchronous closure invoked with the raw `Data` of each received message.
     /// - Throws: `CDDError.mcpTransportError` if the transport fails to start.
-    func start(onMessage: @escaping (Data) async -> Void) async throws
+    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws
     /// Closes the transport and stops reading incoming messages.
     ///
     /// - Throws: `CDDError.mcpTransportError` if closing fails.
@@ -91,7 +91,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     ///
     /// - Parameter onMessage: Closure invoked with each complete line's `Data`.
     /// - Throws: `CDDError.mcpTransportError` if reading fails.
-    public func start(onMessage: @escaping (Data) async -> Void) async throws {
+    public func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
         guard !state.isReading else { return }
         state.isReading = true
         inputStream.open()

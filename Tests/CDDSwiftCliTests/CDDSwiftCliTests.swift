@@ -107,10 +107,10 @@ final class CDDSwiftCliTests: XCTestCase {
         // ToSDK default output dir
         let originalCwd = FileManager.default.currentDirectoryPath
         try? WASIFileHelpers.createDirectory(at: "/tmp/cdd-test-cwd")
-        FileManager.default.changeCurrentDirectoryPath("/tmp/cdd-test-cwd")
+        _ = FileManager.default.changeCurrentDirectoryPath("/tmp/cdd-test-cwd")
         var cmdDefaultOut = try ToSDK.parse(["--input", "/tmp/cdd_test_empty.json"])
         try await cmdDefaultOut.run()
-        FileManager.default.changeCurrentDirectoryPath(originalCwd)
+        _ = FileManager.default.changeCurrentDirectoryPath(originalCwd)
 
         // ToSDK with --no-installable-package
         var cmdNoInstallable = try ToSDK.parse(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-no-pkg", "--no-installable-package"])

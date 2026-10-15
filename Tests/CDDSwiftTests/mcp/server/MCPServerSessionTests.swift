@@ -3,7 +3,7 @@ import XCTest
 
 final class MockTransportForRouter: MCPTransport, @unchecked Sendable {
     var sentMessages: [Any] = []
-    var onMessageCallback: ((Data) async -> Void)?
+    var onMessageCallback: (@Sendable (Data) async -> Void)?
     var shouldThrowOnSend = false
 
     func send<T: Encodable>(_ message: T) async throws {
@@ -13,7 +13,7 @@ final class MockTransportForRouter: MCPTransport, @unchecked Sendable {
         sentMessages.append(message)
     }
 
-    func start(onMessage: @escaping (Data) async -> Void) async throws {
+    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
         onMessageCallback = onMessage
     }
 

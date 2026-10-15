@@ -4,11 +4,13 @@ import Foundation
 private final class SSETransportState: @unchecked Sendable {
     private let lock = NSLock()
     private var _isReading = false
-    private var _messageHandler: ((Data) async -> Void)?
-    private var _eventEmitter: ((String, Data) async throws -> Void)?
+    private var _messageHandler: (@Sendable (Data) async -> Void)?
+    private var _eventEmitter: (@Sendable (String, Data) async throws -> Void)?
 
     /// Initializes the state with an event emitter closure.
-    init(eventEmitter: ((String, Data) async throws -> Void)?) {
+    ///
+    /// - Parameter eventEmitter: The closure invoked to emit SSE events.
+    init(eventEmitter: (@Sendable (String, Data) async throws -> Void)?) {
         _eventEmitter = eventEmitter
     }
 
@@ -27,7 +29,7 @@ private final class SSETransportState: @unchecked Sendable {
     }
 
     /// Thread-safe access to the incoming message handler.
-    var messageHandler: ((Data) async -> Void)? {
+    var messageHandler: (@Sendable (Data) async -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -41,7 +43,7 @@ private final class SSETransportState: @unchecked Sendable {
     }
 
     /// Thread-safe access to the SSE event emitter closure.
-    var eventEmitter: ((String, Data) async throws -> Void)? {
+    var eventEmitter: (@Sendable (String, Data) async throws -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -67,7 +69,7 @@ public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
     /// - Parameters:
     ///   - endpoint: The HTTP endpoint URL where the client should send POST messages.
     ///   - eventEmitter: A closure provided by the web framework to emit named SSE events to the client connection.
-    public init(endpoint: URL, eventEmitter: @escaping (String, Data) async throws -> Void) {
+    public init(endpoint: URL, eventEmitter: @escaping @Sendable (String, Data) async throws -> Void) {
         self.endpoint = endpoint
         state = SSETransportState(eventEmitter: eventEmitter)
         encoder.outputFormatting = [.withoutEscapingSlashes]
@@ -86,7 +88,7 @@ public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
     ///
     /// - Parameter onMessage: Closure invoked whenever `handleIncomingPost(data:)` receives data.
     /// - Throws: An error if emitting the `"endpoint"` SSE event fails.
-    public func start(onMessage: @escaping (Data) async -> Void) async throws {
+    public func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
         state.messageHandler = onMessage
         state.isReading = true
 

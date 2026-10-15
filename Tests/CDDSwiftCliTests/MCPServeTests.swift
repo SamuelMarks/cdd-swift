@@ -5,14 +5,14 @@ import XCTest
 final class MockMCPTransport: MCPTransport, @unchecked Sendable {
     var messagesSent: [Any] = []
     var isStarted = false
-    var onMessageCallback: ((Data) async -> Void)?
+    var onMessageCallback: (@Sendable (Data) async -> Void)?
     var closeCalled = false
 
     func send<T: Encodable>(_ message: T) async throws {
         messagesSent.append(message)
     }
 
-    func start(onMessage: @escaping (Data) async -> Void) async throws {
+    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
         isStarted = true
         onMessageCallback = onMessage
 
