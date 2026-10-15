@@ -35,7 +35,7 @@ final class MCPMessagesTests: XCTestCase {
     }
 
     func testProgressTokenInvalid() {
-        let data = "true".data(using: .utf8)!
+        let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(ProgressToken.self, from: data))
     }

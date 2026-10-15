@@ -99,7 +99,7 @@ final class MCPResourceModelsTests: XCTestCase {
     }
 
     func testResourceContentsInvalid() {
-        let data = "true".data(using: .utf8)!
+        let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(ResourceContents.self, from: data))
     }

@@ -213,7 +213,7 @@ final class CoverageBoosterTests4: XCTestCase {
         _ = emitMockClient(paths: ["/path": PathItem(get: op)])
     }
 
-    func testTestsEmitCoveragePart2() {
+    func testTestsEmitCoveragePart2() throws {
         let opData = CDDSwift.Operation(
             requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))], required: false)
         )
@@ -241,7 +241,8 @@ final class CoverageBoosterTests4: XCTestCase {
             paths: ["/cycle": PathItem(get: CDDSwift.Operation(responses: ["200": Response(content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/A"))])]))],
             components: Components(schemas: ["A": Schema(type: "object", properties: ["b": Schema(ref: "#/components/schemas/B")]), "B": Schema(type: "object", properties: ["a": Schema(ref: "#/components/schemas/A")])])
         )
-        _ = emitTests(paths: doc.paths ?? [:], document: doc)
+        let cyclePaths = try XCTUnwrap(doc.paths)
+        _ = emitTests(paths: cyclePaths, document: doc)
         _ = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: true)
     }
 

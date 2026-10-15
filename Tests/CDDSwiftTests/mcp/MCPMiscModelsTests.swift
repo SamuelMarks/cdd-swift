@@ -170,7 +170,7 @@ final class MCPMiscModelsTests: XCTestCase {
     }
 
     func testPromptMessageContentInvalid() {
-        let data = "true".data(using: .utf8)!
+        let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(PromptMessageContent.self, from: data))
     }
@@ -305,7 +305,7 @@ final class MCPMiscModelsTests: XCTestCase {
     }
 
     func testCompleteReferenceInvalid() {
-        let data = "true".data(using: .utf8)!
+        let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(CompleteReference.self, from: data))
     }

@@ -27,9 +27,9 @@ final class SwiftASTParserTests: XCTestCase {
         let userSchema = try XCTUnwrap(schemas["User"])
         XCTAssertEqual(userSchema.type, "object")
         XCTAssertEqual(userSchema.required?.count, 3)
-        XCTAssertTrue(userSchema.required?.contains("id") ?? false)
-        XCTAssertTrue(userSchema.required?.contains("name") ?? false)
-        XCTAssertTrue(userSchema.required?.contains("tags") ?? false)
+        XCTAssertEqual(userSchema.required?.contains("id"), true)
+        XCTAssertEqual(userSchema.required?.contains("name"), true)
+        XCTAssertEqual(userSchema.required?.contains("tags"), true)
 
         XCTAssertEqual(userSchema.properties?["id"]?.type, "string")
         XCTAssertEqual(userSchema.properties?["id"]?.format, "uuid")

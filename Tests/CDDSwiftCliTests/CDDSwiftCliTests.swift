@@ -30,13 +30,7 @@ final class CDDSwiftCliTests: XCTestCase {
     func testCDDSwiftCLI() throws {
         let cli = try CDDSwiftCLI.parse([])
         XCTAssertNotNil(cli)
-
-        do {
-            _ = try CDDSwiftCLI.parse(["--help"])
-            XCTFail("Should throw CleanExit")
-        } catch {
-            // expected
-        }
+        XCTAssertThrowsError(try CDDSwiftCLI.parse(["--help"]))
     }
 
     func testMain() {
@@ -58,13 +52,13 @@ final class CDDSwiftCliTests: XCTestCase {
     }
 
     func testCDDCLIEntryPoints() async throws {
-        do { try await CDDCLI.generateFromOpenApi(["to_sdk", "--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-1"]) } catch {}
-        do { try await CDDCLI.generateToOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-2.json"]) } catch {}
-        do { try await CDDCLI.generateDocsJson(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-3.json"]) } catch {}
-        do { try await CDDCLI.syncOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-4.json"]) } catch {}
-        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-5"]) } catch {}
-        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk_cli", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-6"]) } catch {}
-        do { try await CDDCLI.generateFromOpenApi(subcommand: "to_server", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-7"]) } catch {}
+        try await CDDCLI.generateFromOpenApi(["to_sdk", "--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-1"])
+        try await CDDCLI.generateToOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-2.json"])
+        try await CDDCLI.generateDocsJson(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-3.json"])
+        try await CDDCLI.syncOpenApi(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-ep-4.json"])
+        try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-5"])
+        try await CDDCLI.generateFromOpenApi(subcommand: "to_sdk_cli", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-6"])
+        try await CDDCLI.generateFromOpenApi(subcommand: "to_server", ["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-ep-7"])
         #if !os(WASI)
             let task = Task { try? await CDDCLI.serveJsonRpc(["--port", "12354"]) }
             try await Task.sleep(nanoseconds: 10_000_000)
@@ -81,28 +75,27 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Error path (invalid JSON)
         var cmdErr = try ToSDK.parse(["--input", "/tmp/cdd_test_dummy.swift", "-o", "/tmp/cdd-test-output"])
-        do {
-            try await cmdErr.run()
-            XCTFail("Should throw error")
-        } catch {}
+        let errRes: Void? = try? await cmdErr.run()
+        XCTAssertNil(errRes)
 
         // ToSDK relative path
         var cmdRelative = try ToSDK.parse(["--input", "/tmp/cdd_test_empty.json", "-o", "cdd-test-relative-dir"])
         try await cmdRelative.run()
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: "cdd-test-relative-dir/Package.swift"))
+        try? FileManager.default.removeItem(atPath: "cdd-test-relative-dir")
 
         // ToSDK input directory instead of file
         try? WASIFileHelpers.createDirectory(at: "/tmp/cdd_input_dir_tests")
-        try? WASIFileHelpers.writeString("{\"openapi\":\"3.0\"}", to: "/tmp/cdd_input_dir_tests/doc1.json")
-        try? WASIFileHelpers.writeString("{\"openapi\":\"3.0\"}", to: "/tmp/cdd_input_dir_tests/doc2.json")
+        try? WASIFileHelpers.writeString(#"{"openapi":"3.0"}"#, to: "/tmp/cdd_input_dir_tests/doc1.json")
+        try? WASIFileHelpers.writeString(#"{"openapi":"3.0"}"#, to: "/tmp/cdd_input_dir_tests/doc2.json")
         var cmdInputDir = try ToSDK.parse(["--input-dir", "/tmp/cdd_input_dir_tests", "-o", "/tmp/cdd-test-dir-output"])
         try await cmdInputDir.run()
 
         // Missing input completely
-        do {
-            var cmdMissing = try ToSDK.parse(["-o", "/tmp/cdd-test-dir-output"])
-            try await cmdMissing.run()
-            XCTFail("Expected error")
-        } catch {}
+        XCTAssertThrowsError(try ToSDK.parse(["-o", "/tmp/cdd-test-dir-output"]))
+        var emptyOpts = try BaseFromOpenAPIOptions.parse(["-i", "/tmp/cdd_test_empty.json"])
+        emptyOpts.inputPath = nil
+        XCTAssertEqual(try emptyOpts.getDocuments().count, 0)
 
         // ToSDKCLI
         var cmdCli = try ToSDKCLI.parse(["--input", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd-test-cli-output"])
@@ -163,95 +156,90 @@ final class CDDSwiftCliTests: XCTestCase {
         // Make a request
         var request = try URLRequest(url: XCTUnwrap(URL(string: "http://127.0.0.1:12353/")))
         request.httpMethod = "POST"
-        request.httpBody = """
+        request.httpBody = Data("""
         {
             "jsonrpc": "2.0",
             "method": "to_docs_json",
             "params": {"help": true},
             "id": 1
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            print("RPC Response:", String(data: data, encoding: .utf8) ?? "")
-        } catch {
-            print("RPC Error:", error)
-        }
+        let (data, _) = try await URLSession.shared.data(for: request)
+        XCTAssertFalse(data.isEmpty)
 
         // Test array params
-        request.httpBody = """
+        request.httpBody = Data("""
         {
             "jsonrpc": "2.0",
             "method": "to_docs_json",
             "params": ["--help"],
             "id": 2
         }
-        """.data(using: .utf8)!
+        """.utf8)
         _ = try? await URLSession.shared.data(for: request)
 
-        // Test bool and string map params
-        request.httpBody = """
+        // Test bool and string map params with string id
+        request.httpBody = Data("""
         {
             "jsonrpc": "2.0",
             "method": "to_docs_json",
             "params": {"help": true, "input": "test"},
-            "id": 3
+            "id": "str-3"
         }
-        """.data(using: .utf8)!
-        _ = try? await URLSession.shared.data(for: request)
+        """.utf8)
+        let (strIdData, _) = try await URLSession.shared.data(for: request)
+        XCTAssertTrue(String(decoding: strIdData, as: UTF8.self).contains("str-3"))
+
+        // Test bool id fallback
+        request.httpBody = Data("""
+        {
+            "jsonrpc": "2.0",
+            "method": "to_docs_json",
+            "params": [],
+            "id": true
+        }
+        """.utf8)
+        _ = try await URLSession.shared.data(for: request)
 
         // Test invalid JSON
-        request.httpBody = "invalid".data(using: .utf8)!
-        _ = try? await URLSession.shared.data(for: request)
+        request.httpBody = Data("invalid".utf8)
+        let (_, badResp) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((badResp as? HTTPURLResponse)?.statusCode, 400)
 
         // Test missing id or method
-        request.httpBody = """
+        request.httpBody = Data("""
         {
             "jsonrpc": "2.0",
             "method": "to_docs_json"
         }
-        """.data(using: .utf8)!
-        _ = try? await URLSession.shared.data(for: request)
+        """.utf8)
+        let (_, missingResp) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((missingResp as? HTTPURLResponse)?.statusCode, 400)
 
-        // Process error test
-        request.httpBody = """
-        {
-            "jsonrpc": "2.0",
-            "method": "invalid_command_that_fails",
-            "params": [],
-            "id": 4
-        }
-        """.data(using: .utf8)!
-        _ = try? await URLSession.shared.data(for: request)
-
-        // Process run error test
-        setenv("CDD_MOCK_PROCESS_THROW", "1", 1)
-        request.httpBody = """
+        // Process run error test using DefaultCommandExecutor with invalid executablePathOverride
+        ServeJsonRpc.executor = DefaultCommandExecutor(executablePathOverride: "/non_existent_binary_xyz_123")
+        request.httpBody = Data("""
         {
             "jsonrpc": "2.0",
             "method": "to_docs_json",
             "params": [],
             "id": 5
         }
-        """.data(using: .utf8)!
-        _ = try? await URLSession.shared.data(for: request)
-        unsetenv("CDD_MOCK_PROCESS_THROW")
+        """.utf8)
+        let (errData, _) = try await URLSession.shared.data(for: request)
+        XCTAssertTrue(String(decoding: errData, as: UTF8.self).contains("-32603"))
+        ServeJsonRpc.executor = DefaultCommandExecutor()
 
         task.cancel()
 
         // Test server start error (port already in use)
-        // We know port 12353 was used, but wait, the previous server might be shut down due to task.cancel().
-        // Let's create a dummy server to bind the port.
         let server = Swifter.HttpServer()
-        try? server.start(12346, forceIPv4: true)
+        try server.start(12346, forceIPv4: true)
         var cmdErr = try ServeJsonRpc.parse(["--port", "12346"])
-        do {
-            try await cmdErr.run()
-            XCTFail("Should throw error")
-        } catch {
-            server.stop()
-        }
+        let startErr: Void? = try? await cmdErr.run()
+        XCTAssertNil(startErr)
+        server.stop()
     }
 
     func testToDocsJson() async throws {
@@ -265,10 +253,8 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Invalid URL
         var cmdInvalidURL = try ToDocsJson.parse(["--input", "http://inv alid"])
-        do {
-            try await cmdInvalidURL.run()
-            XCTFail("Should throw ExitCode")
-        } catch {}
+        let invalidUrlRes: Void? = try? await cmdInvalidURL.run()
+        XCTAssertNil(invalidUrlRes)
 
         // HTTP Download using Swifter
         #if !os(WASI)
@@ -277,11 +263,7 @@ final class CDDSwiftCliTests: XCTestCase {
             {"openapi": "3.1.0", "info": {"title": "Test API", "version": "1.0.0"}, "paths": {}}
             """
             server["/test.json"] = { _ in .ok(.text(validJSON)) }
-            do {
-                try server.start(12368, forceIPv4: true)
-            } catch {
-                print("Swifter start error: \\(error)")
-            }
+            try server.start(12368, forceIPv4: true)
             var cmdHttp = try ToDocsJson.parse(["--input", "http://127.0.0.1:12368/test.json"])
             try await cmdHttp.run()
             server.stop()
@@ -289,10 +271,8 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Invalid JSON to cover catch
         var cmdInvalidJSON = try ToDocsJson.parse(["--input", "/tmp/cdd_test_dummy.swift"])
-        do {
-            try await cmdInvalidJSON.run()
-            XCTFail("Should throw error")
-        } catch {}
+        let invalidJsonRes: Void? = try? await cmdInvalidJSON.run()
+        XCTAssertNil(invalidJsonRes)
     }
 
     func testGenerateOpenAPI() async throws {
@@ -311,10 +291,8 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Missing dest
         var cmdMissing = try MergeSwift.parse(["-i", "/tmp/cdd_test_empty.json", "-o", "/tmp/cdd_test_dummy_missing.swift"])
-        do {
-            try await cmdMissing.run()
-            XCTFail("Should throw error")
-        } catch {}
+        let missingRes: Void? = try? await cmdMissing.run()
+        XCTAssertNil(missingRes)
     }
 
     func testToOpenAPI() async throws {
@@ -331,10 +309,8 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Missing input path
         var cmdMissing = try ToOpenAPI.parse(["--input", "/tmp/non_existent_dir_123_456/non_existent_file.swift"])
-        do {
-            try await cmdMissing.run()
-            XCTFail("Should throw error")
-        } catch {}
+        let missingRes: Void? = try? await cmdMissing.run()
+        XCTAssertNil(missingRes)
     }
 
     func testSyncOpenAPIMerge() async throws {
@@ -376,10 +352,8 @@ final class CDDSwiftCliTests: XCTestCase {
 
         // Missing input path
         var cmdMissing = try SyncOpenAPI.parse(["--input", "/tmp/non_existent_dir_123_456/non_existent_file.swift", "-o", "/tmp/sync_out3.json"])
-        do {
-            try await cmdMissing.run()
-            XCTFail("Should throw error")
-        } catch {}
+        let missingRes: Void? = try? await cmdMissing.run()
+        XCTAssertNil(missingRes)
     }
 
     func testWASIFileHelpers() throws {

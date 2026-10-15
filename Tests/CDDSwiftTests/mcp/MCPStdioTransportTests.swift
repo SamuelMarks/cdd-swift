@@ -2,9 +2,6 @@ import XCTest
 @testable import CDDSwift
 
 final class FaultyOutputStream: OutputStream {
-    override func open() {}
-    override func close() {}
-
     override var streamError: Error? {
         return NSError(domain: "test", code: 42, userInfo: nil)
     }
@@ -16,7 +13,6 @@ final class FaultyOutputStream: OutputStream {
 
 final class FaultyInputStream: InputStream {
     override func open() {}
-    override func close() {}
 
     override var hasBytesAvailable: Bool {
         return true
@@ -28,6 +24,8 @@ final class FaultyInputStream: InputStream {
 }
 
 final class MCPStdioTransportTests: XCTestCase {
+    private static let noopHandler: @Sendable (Data) async -> Void = { _ in }
+
     func testConvenienceInit() {
         let transport = MCPStdioTransport()
         XCTAssertNotNil(transport)
@@ -44,24 +42,20 @@ final class MCPStdioTransportTests: XCTestCase {
         let data = try XCTUnwrap(outputStream.property(forKey: .dataWrittenToMemoryStreamKey) as? Data)
         let string = try XCTUnwrap(String(data: data, encoding: .utf8))
 
-        XCTAssertTrue(string.contains("\"method\":\"test\""))
-        XCTAssertTrue(string.hasSuffix("\n"))
+        XCTAssertTrue(string.contains(#""method":"test""#))
+        XCTAssertTrue(string.hasSuffix("""
+
+        """))
     }
 
     func testSendError() async {
         let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: FaultyOutputStream(toMemory: ()))
-        do {
-            try await transport.send(JSONRPCRequest<AnyCodable>(id: .integer(1), method: "test"))
-            XCTFail("Expected error")
-        } catch {
-            XCTAssertNotNil(error)
-        }
+        let res: Void? = try? await transport.send(JSONRPCRequest<AnyCodable>(id: .integer(1), method: "test"))
+        XCTAssertNil(res)
     }
 
     func testSendErrorNoStreamError() async {
         final class NullErrorOutputStream: OutputStream {
-            override func open() {}
-            override func close() {}
             override var streamError: Error? {
                 return nil
             }
@@ -69,35 +63,35 @@ final class MCPStdioTransportTests: XCTestCase {
             override func write(_: UnsafePointer<UInt8>, maxLength _: Int) -> Int { return -1 }
         }
         let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: NullErrorOutputStream(toMemory: ()))
-        do {
-            try await transport.send(JSONRPCRequest<AnyCodable>(id: .integer(1), method: "test"))
-            XCTFail("Expected error")
-        } catch {
-            XCTAssertNotNil(error)
-        }
+        let res: Void? = try? await transport.send(JSONRPCRequest<AnyCodable>(id: .integer(1), method: "test"))
+        XCTAssertNil(res)
     }
 
     func testStartTwice() async throws {
+        await Self.noopHandler(Data())
         let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
-        Task { try await transport.start { _ in } }
+        _ = Task { try await transport.start(onMessage: Self.noopHandler) }
         try await Task.sleep(nanoseconds: 10_000_000)
-        Task { try await transport.start { _ in } }
+        _ = Task { try await transport.start(onMessage: Self.noopHandler) }
         try await Task.sleep(nanoseconds: 10_000_000)
         try await transport.close()
     }
 
     func testStartAndReceiveWithSleep() async throws {
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"test\"}\n"
+        let json = """
+        {"jsonrpc":"2.0","id":1,"method":"test"}
+
+        """
         let data = try XCTUnwrap(json.data(using: .utf8))
         let inputStream = InputStream(data: data)
         let transport = MCPStdioTransport(inputStream: inputStream, outputStream: OutputStream(toMemory: ()))
 
         let expectation = XCTestExpectation(description: "Receive message")
 
-        Task {
+        _ = Task {
             try await transport.start { receivedData in
-                let receivedString = String(data: receivedData, encoding: .utf8)!
-                XCTAssertEqual(receivedString, "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"test\"}")
+                let receivedString = String(decoding: receivedData, as: UTF8.self)
+                XCTAssertEqual(receivedString, #"{"jsonrpc":"2.0","id":1,"method":"test"}"#)
                 expectation.fulfill()
             }
         }
@@ -111,7 +105,7 @@ final class MCPStdioTransportTests: XCTestCase {
     func testStartReadError() async throws {
         let transport = MCPStdioTransport(inputStream: FaultyInputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
         let task = Task {
-            try await transport.start { _ in }
+            try await transport.start(onMessage: Self.noopHandler)
         }
         try await Task.sleep(nanoseconds: 50_000_000)
         task.cancel()

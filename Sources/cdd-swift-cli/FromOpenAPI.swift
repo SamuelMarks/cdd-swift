@@ -2,24 +2,12 @@ import ArgumentParser
 import CDDSwift
 import Foundation
 
-/// Documentation for createDirRecursive
+/// Creates a directory and all intermediate parent directories recursively using `WASIFileHelpers`.
+///
+/// - Parameter path: The directory path to create.
+/// - Throws: `CDDError.fileIOError` if creation fails.
 func createDirRecursive(_ path: String) throws {
-    /// Documentation for components
-    let components = path.split(separator: "/")
-    /// Documentation for currentPath
-    var currentPath = path.hasPrefix("/") ? "/" : ""
-    for component in components {
-        if currentPath == "/" {
-            currentPath += component
-        } else if currentPath == "" {
-            currentPath += component
-        } else {
-            currentPath += "/" + component
-        }
-        if !WASIFileHelpers.fileExists(at: currentPath) {
-            try WASIFileHelpers.createDirectory(at: currentPath)
-        }
-    }
+    try WASIFileHelpers.createDirectoryRecursive(at: path)
 }
 
 /// Command group to generate Swift code from an OpenAPI document.
@@ -207,11 +195,15 @@ struct ToSDK: AsyncParsableCommand {
                 if options.testsMocks, !options.noInstallablePackage {
                     if filename == "mocks.swift" {
                         targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKMocks")
-                        if docs.count > 1 { targetDir = targetDir.appendingPathComponent(name) }
+                        if docs.count > 1 {
+                            targetDir = targetDir.appendingPathComponent(name)
+                        }
                         try createDirRecursive(targetDir.path)
                     } else if filename == "tests.swift" {
                         targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Tests").appendingPathComponent("GeneratedSDKTests")
-                        if docs.count > 1 { targetDir = targetDir.appendingPathComponent(name) }
+                        if docs.count > 1 {
+                            targetDir = targetDir.appendingPathComponent(name)
+                        }
                         try createDirRecursive(targetDir.path)
                     }
                 }

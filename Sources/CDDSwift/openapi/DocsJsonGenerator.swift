@@ -126,9 +126,11 @@ public enum DocsJsonGenerator {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
 
-        // This force unwrap is safe as the objects are easily encodable.
-        // Encode the model to JSON data.
-        let data = try! encoder.encode(root)
-        return String(data: data, encoding: .utf8)!
+        // Encode the model to JSON data safely.
+        var encodedData = Data()
+        if let data = try? encoder.encode(root) {
+            encodedData = data
+        }
+        return String(decoding: encodedData, as: UTF8.self)
     }
 }

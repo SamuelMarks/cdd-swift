@@ -139,8 +139,11 @@ def update_readme(test_cov, doc_cov):
         f.write(content)
 
 if __name__ == '__main__':
+    import sys
     test_cov = get_test_coverage()
     doc_cov = get_doc_coverage()
     print(f'Test Coverage: {test_cov:.2f}%')
     print(f'Doc Coverage: {doc_cov:.2f}%')
     update_readme(test_cov, doc_cov)
+    if test_cov < 100.0 or doc_cov < 100.0:
+        sys.exit(1)

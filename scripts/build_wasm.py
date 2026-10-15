@@ -40,13 +40,25 @@ def main():
             print("  brew install swift")
             sys.exit(1)
 
-    sdks_output = check_output([swift_bin, "sdk", "list"])
+    sdk_proc = subprocess.run([swift_bin, "sdk", "list"], capture_output=True, text=True)
+    if sdk_proc.returncode != 0:
+        print(f"Error: Failed to run '{swift_bin} sdk list' (exit code {sdk_proc.returncode}).")
+        if sdk_proc.returncode in (-9, 137):
+            print("The Swift binary was killed by SIGKILL (likely macOS Gatekeeper / invalidated code signatures in Homebrew Swift).")
+            print("Re-sign the Homebrew Swift toolchain libraries with:")
+            print('  find /opt/homebrew/Cellar/swift -type f | while read -r f; do if codesign -vvv "$f" 2>&1 | grep -q "invalid signature"; then codesign -f -s - "$f"; fi; done')
+        sys.exit(1)
+
+    sdks_output = sdk_proc.stdout
     available_sdks = [line.strip() for line in sdks_output.split("\n")
                       if ("wasm32-unknown-wasi" in line or "_wasm" in line) and "embedded" not in line]
 
     if not available_sdks:
         print("Error: No WebAssembly Swift SDK found.")
-        print(f"Please install one. For example: {swift_bin} sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip")
+        print("Please install one matching your Swift toolchain version. For example (Swift 6.4.0):")
+        print(f"  {swift_bin} sdk install https://download.swift.org/swift-6.4.0-release/wasm-sdk/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE_wasm.artifactbundle.tar.gz --checksum f07b7be3c586d92d7a07051fc6d303b87ebea67eadc40640ba59d5a8b79aa86d")
+        print("Or for Swift 6.0.3 (SwiftWasm):")
+        print(f"  {swift_bin} sdk install https://github.com/swiftwasm/swift/releases/download/swift-wasm-6.0.3-RELEASE/swift-wasm-6.0.3-RELEASE-wasm32-unknown-wasi.artifactbundle.zip --checksum 31d3585b06dd92de390bacc18527801480163188cd7473f492956b5e213a8618")
         sys.exit(1)
 
     success = False

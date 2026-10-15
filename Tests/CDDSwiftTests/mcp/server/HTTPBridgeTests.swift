@@ -24,5 +24,12 @@ final class HTTPBridgeTests: XCTestCase {
 
         let result = try await proxy.execute(toolName: "test_tool", arguments: [:], context: ctx)
         XCTAssertEqual(result.content.count, 1)
+
+        let ctxNoAuth = DefaultHTTPRequestContext(authorizationHeader: nil, clientIP: nil)
+        let resultNoAuth = try await proxy.execute(toolName: "test_tool", arguments: [:], context: ctxNoAuth)
+        XCTAssertEqual(resultNoAuth.content.count, 1)
+
+        let resultNilCtx = try await proxy.execute(toolName: "test_tool", arguments: [:], context: nil)
+        XCTAssertEqual(resultNilCtx.content.count, 0)
     }
 }

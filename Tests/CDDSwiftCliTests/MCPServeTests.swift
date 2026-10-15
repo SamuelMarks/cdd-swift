@@ -57,19 +57,11 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let response = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(response.id, .integer(1))
-            // Decode back to InitializeResult to assert
-            if let resultData = try? JSONEncoder().encode(response.result),
-               let result = try? JSONDecoder().decode(InitializeResult.self, from: resultData)
-            {
-                XCTAssertEqual(result.protocolVersion, "2024-11-05")
-            } else {
-                XCTFail("Failed to decode InitializeResult from AnyCodable")
-            }
-        } else {
-            XCTFail("Expected JSONRPCResponse<AnyCodable>")
-        }
+        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(response.id, .integer(1))
+        let resultData = try JSONEncoder().encode(response.result)
+        let result = try JSONDecoder().decode(InitializeResult.self, from: resultData)
+        XCTAssertEqual(result.protocolVersion, "2024-11-05")
 
         try await mockTransport.close()
         try await task.value
@@ -96,11 +88,8 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let response = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(response.id, .integer(2))
-        } else {
-            XCTFail("Expected JSONRPCResponse<EmptyResult>")
-        }
+        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(response.id, .integer(2))
 
         try await mockTransport.close()
         try await task.value
@@ -119,7 +108,8 @@ final class MCPServeTests: XCTestCase {
         await mockTransport.onMessageCallback?(data)
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        task.cancel()
+        try await mockTransport.close()
+        try await task.value
     }
 
     func testMCPServeResourcesRead2() async throws {
@@ -143,7 +133,8 @@ final class MCPServeTests: XCTestCase {
         try await mockTransport.onMessageCallback?(JSONEncoder().encode(req3))
 
         try await Task.sleep(nanoseconds: 50_000_000)
-        task.cancel()
+        try await mockTransport.close()
+        try await task.value
     }
 
     func testMCPServeToolsCallMoreTools() async throws {
@@ -195,7 +186,8 @@ final class MCPServeTests: XCTestCase {
         try await mockTransport.onMessageCallback?(JSONEncoder().encode(req4))
 
         try await Task.sleep(nanoseconds: 50_000_000)
-        task.cancel()
+        try await mockTransport.close()
+        try await task.value
     }
 
     func testMCPServeInitializedNotification() async throws {
@@ -242,22 +234,15 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let response = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(response.id, .integer(3))
+        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(response.id, .integer(3))
 
-            if let resultData = try? JSONEncoder().encode(response.result),
-               let result = try? JSONDecoder().decode(ListToolsResult.self, from: resultData)
-            {
-                XCTAssertEqual(result.tools.count, 3)
-                XCTAssertEqual(result.tools[0].name, "generate_from_openapi")
-                XCTAssertEqual(result.tools[1].name, "to_openapi")
-                XCTAssertEqual(result.tools[2].name, "to_docs_json")
-            } else {
-                XCTFail("Failed to decode ListToolsResult")
-            }
-        } else {
-            XCTFail("Expected JSONRPCResponse<AnyCodable>")
-        }
+        let resultData = try JSONEncoder().encode(response.result)
+        let result = try JSONDecoder().decode(ListToolsResult.self, from: resultData)
+        XCTAssertEqual(result.tools.count, 3)
+        XCTAssertEqual(result.tools[0].name, "generate_from_openapi")
+        XCTAssertEqual(result.tools[1].name, "to_openapi")
+        XCTAssertEqual(result.tools[2].name, "to_docs_json")
 
         try await mockTransport.close()
         try await task.value
@@ -284,12 +269,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(4))
-            XCTAssertEqual(err.error.code, -32602)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(4))
+        XCTAssertEqual(err.error.code, -32602)
 
         try await mockTransport.close()
         try await task.value
@@ -315,12 +297,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(4))
-            XCTAssertEqual(err.error.code, -32601)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(4))
+        XCTAssertEqual(err.error.code, -32601)
 
         try await mockTransport.close()
         try await task.value
@@ -347,12 +326,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(5))
-            XCTAssertEqual(err.error.code, -32602) // invalid params
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(5))
+        XCTAssertEqual(err.error.code, -32602) // invalid params
 
         try await mockTransport.close()
         try await task.value
@@ -363,7 +339,7 @@ final class MCPServeTests: XCTestCase {
         MCPServe.mockTransport = mockTransport
 
         let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in.json")
-        try? "{\"openapi\": \"3.2.0\", \"info\": {\"title\": \"Dummy\", \"version\": \"1.0.0\"}, \"paths\": {}}".write(to: dummyIn, atomically: true, encoding: .utf8)
+        try? #"{"openapi": "3.2.0", "info": {"title": "Dummy", "version": "1.0.0"}, "paths": {}}"#.write(to: dummyIn, atomically: true, encoding: .utf8)
         let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_out").path
 
         var serve = MCPServe()
@@ -383,13 +359,11 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let res = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(res.id, .integer(6))
-        } else {
-            XCTFail("Expected JSONRPCResponse")
-        }
+        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(res.id, .integer(6))
 
-        task.cancel()
+        try await mockTransport.close()
+        try await task.value
     }
 
     func testMCPServeResourcesList3() async throws {
@@ -412,19 +386,12 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let response = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(response.id, .integer(7))
-            if let resultData = try? JSONEncoder().encode(response.result),
-               let result = try? JSONDecoder().decode(ListResourcesResult.self, from: resultData)
-            {
-                XCTAssertEqual(result.resources.count, 1)
-                XCTAssertEqual(result.resources[0].uri, "cdd-swift://ast")
-            } else {
-                XCTFail("Failed to decode ListResourcesResult")
-            }
-        } else {
-            XCTFail("Expected JSONRPCResponse<AnyCodable>")
-        }
+        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(response.id, .integer(7))
+        let resultData = try JSONEncoder().encode(response.result)
+        let result = try JSONDecoder().decode(ListResourcesResult.self, from: resultData)
+        XCTAssertEqual(result.resources.count, 1)
+        XCTAssertEqual(result.resources[0].uri, "cdd-swift://ast")
 
         try await mockTransport.close()
         try await task.value
@@ -450,11 +417,8 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let response = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(response.id, .integer(8))
-        } else {
-            XCTFail("Expected JSONRPCResponse<AnyCodable>")
-        }
+        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(response.id, .integer(8))
 
         try await mockTransport.close()
         try await task.value
@@ -480,12 +444,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(9))
-            XCTAssertEqual(err.error.code, -32602)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(9))
+        XCTAssertEqual(err.error.code, -32602)
 
         try await mockTransport.close()
         try await task.value
@@ -511,12 +472,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(10))
-            XCTAssertEqual(err.error.code, -32602)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(10))
+        XCTAssertEqual(err.error.code, -32602)
 
         try await mockTransport.close()
         try await task.value
@@ -542,12 +500,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(11))
-            XCTAssertEqual(err.error.code, -32602)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(11))
+        XCTAssertEqual(err.error.code, -32602)
 
         try await mockTransport.close()
         try await task.value
@@ -573,12 +528,9 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let err = mockTransport.messagesSent.first as? JSONRPCError {
-            XCTAssertEqual(err.id, .integer(12))
-            XCTAssertEqual(err.error.code, -32602)
-        } else {
-            XCTFail("Expected JSONRPCError")
-        }
+        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        XCTAssertEqual(err.id, .integer(12))
+        XCTAssertEqual(err.error.code, -32602)
 
         try await mockTransport.close()
         try await task.value
@@ -608,11 +560,8 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let res = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(res.id, .integer(13))
-        } else {
-            XCTFail("Expected JSONRPCResponse")
-        }
+        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(res.id, .integer(13))
 
         try await mockTransport.close()
         try await task.value
@@ -623,7 +572,7 @@ final class MCPServeTests: XCTestCase {
         MCPServe.mockTransport = mockTransport
 
         let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in.json")
-        try? "{\"openapi\": \"3.2.0\", \"info\": {\"title\": \"Dummy\", \"version\": \"1.0.0\"}, \"paths\": {}}".write(to: dummyIn, atomically: true, encoding: .utf8)
+        try? #"{"openapi": "3.2.0", "info": {"title": "Dummy", "version": "1.0.0"}, "paths": {}}"#.write(to: dummyIn, atomically: true, encoding: .utf8)
         let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("docs.json").path
 
         var serve = MCPServe()
@@ -642,11 +591,8 @@ final class MCPServeTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        if let res = mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(res.id, .integer(14))
-        } else {
-            XCTFail("Expected JSONRPCResponse")
-        }
+        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(res.id, .integer(14))
 
         try await mockTransport.close()
         try await task.value
@@ -660,7 +606,8 @@ final class MCPServeTests: XCTestCase {
         var serve = MCPServe()
         let task = Task { try await serve.run() }
         try await Task.sleep(nanoseconds: 50_000_000)
-        task.cancel()
+        try await mockTransport.close()
+        try await task.value
         unsetenv("CDD_TEST_BLOCK")
     }
 

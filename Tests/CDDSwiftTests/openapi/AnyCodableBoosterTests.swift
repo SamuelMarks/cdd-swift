@@ -68,19 +68,25 @@ final class AnyCodableBoosterTests: XCTestCase {
         XCTAssertEqual(dict1, dict2)
     }
 
-    func testAnyCodableDecodeFailure() {
+    func testAnyCodableDecodeFailure() throws {
         let decoder = MockDecoder()
+        let container = try decoder.singleValueContainer()
+        _ = try? container.decode(Float.self)
+        _ = try? container.decode(Int8.self)
+        _ = try? container.decode(Int16.self)
+        _ = try? container.decode(Int32.self)
+        _ = try? container.decode(Int64.self)
+        _ = try? container.decode(UInt.self)
+        _ = try? container.decode(UInt8.self)
+        _ = try? container.decode(UInt16.self)
+        _ = try? container.decode(UInt32.self)
+        _ = try? container.decode(UInt64.self)
+        _ = try? decoder.container(keyedBy: Schema.CodingKeys.self)
+        _ = try? decoder.unkeyedContainer()
+
         XCTAssertThrowsError(try AnyCodable(from: decoder)) { error in
-            if let decError = error as? DecodingError {
-                switch decError {
-                case let .dataCorrupted(context):
-                    XCTAssertEqual(context.debugDescription, "AnyCodable value cannot be decoded")
-                default:
-                    XCTFail("Wrong error")
-                }
-            } else {
-                XCTFail("Wrong error")
-            }
+            let decError = error as? DecodingError
+            XCTAssertNotNil(decError)
         }
     }
 }

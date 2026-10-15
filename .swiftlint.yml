@@ -4,11 +4,17 @@ excluded:
   - .swiftpm
   - Package.resolved
   - test_out
+  - cdd-test-relative-dir
 
 disabled_rules:
-  - force_try
   - file_length
   - type_body_length
+  - optional_data_string_conversion
+  - opening_brace
+
+opt_in_rules:
+  - force_unwrapping
+  - fatal_error_message
 
 line_length:
   warning: 3000

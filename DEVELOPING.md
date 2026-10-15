@@ -3,13 +3,15 @@
 Welcome to `cdd-swift`!
 
 ## Dependencies
-Ensure you have Swift 5.9+ or 6.0 installed. A `Makefile` and `make.bat` are provided.
+Ensure you have Swift 5.9+ or 6.0+ installed. A `Makefile` and `make.bat` are provided.
 
 ```bash
 make install_deps
 make build
 make test
 ```
+
+For cross-compiling to WebAssembly (`make build_wasm`), you need an open-source Swift toolchain (e.g., `brew install swift` on macOS) and a matching WebAssembly Swift SDK installed (`swift sdk install ...`). See [WASM.md](WASM.md) for full setup and troubleshooting instructions.
 
 ## Structure
 - `Sources/CDDSwift/`: The compiler core (Frontend parser and Backend emitters).

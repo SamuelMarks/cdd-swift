@@ -1,5 +1,6 @@
 #if !os(WASI)
     import ArgumentParser
+    import CDDSwift
     import Foundation
     import Swifter
 
@@ -9,7 +10,58 @@
         import Glibc
     #endif
 
-    /// JSON RPC Server command
+    /// Protocol abstracting command execution for JSON-RPC CLI invocation.
+    public protocol CommandExecutor: Sendable {
+        /// Executes a CLI command with the provided arguments and returns its combined stdout/stderr output.
+        ///
+        /// - Parameter args: The command-line arguments to pass to the CLI binary.
+        /// - Returns: The UTF-8 decoded output string.
+        /// - Throws: `CDDError.processExecutionFailed` if launching the process fails.
+        func execute(args: [String]) throws -> String
+    }
+
+    /// Default process-based command executor that invokes the current executable binary.
+    public struct DefaultCommandExecutor: CommandExecutor {
+        /// Optional override executable path for testing or custom invocation.
+        public var executablePathOverride: String?
+
+        /// Initializes a `DefaultCommandExecutor`.
+        ///
+        /// - Parameter executablePathOverride: Optional path to use instead of `Bundle.main.executablePath`.
+        public init(executablePathOverride: String? = nil) {
+            self.executablePathOverride = executablePathOverride
+        }
+
+        /// Executes the CLI binary with the given arguments.
+        ///
+        /// - Parameter args: The command-line arguments to pass.
+        /// - Returns: The combined stdout and stderr output as a UTF-8 string.
+        /// - Throws: `CDDError.processExecutionFailed` if the executable path is missing or launching fails.
+        public func execute(args: [String]) throws -> String {
+            var execPath = CommandLine.arguments[0]
+            if let overridePath = executablePathOverride {
+                execPath = overridePath
+            }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: execPath)
+            process.arguments = args
+
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                return String(decoding: data, as: UTF8.self)
+            } catch {
+                throw CDDError.processExecutionFailed(executable: execPath, message: error.localizedDescription)
+            }
+        }
+    }
+
+    /// Exposes the `cdd-swift` CLI interface as an HTTP JSON-RPC 2.0 server.
     struct ServeJsonRpc: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             commandName: "serve_json_rpc",
@@ -17,36 +69,42 @@
             usage: "cdd-swift serve_json_rpc [-p <port>|--port <port>] [-l <listen>|--listen <listen>]"
         )
 
+        /// Injectable command executor used by `ServeJsonRpc` when handling requests.
+        nonisolated(unsafe) static var executor: CommandExecutor = DefaultCommandExecutor()
+
         @Option(name: [.customShort("p"), .customLong("port")], help: "Port to listen on.")
-        /// port
-        /// Documentation for port
+        /// The TCP port on which the JSON-RPC HTTP server listens.
         var port: UInt16 = 8082
 
         @Option(name: [.customShort("l"), .customLong("listen")], help: "Host to listen on.")
-        /// listen host
-        /// Documentation for listen
+        /// The host address on which the JSON-RPC HTTP server binds.
         var listen: String = "0.0.0.0"
 
+        /// Starts the Swifter HTTP server and processes incoming JSON-RPC 2.0 POST requests until the task is cancelled.
+        ///
+        /// - Throws: An error if the HTTP server fails to bind to the requested port.
         mutating func run() async throws {
-            /// Documentation for server
             let server = HttpServer()
 
             server.POST["/"] = { request in
-                /// Documentation for bodyData
                 let bodyData = Data(request.body)
                 guard let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
-                      /// Documentation for method
                       let method = json["method"] as? String,
-                      /// Documentation for id
-                      let id = json["id"]
+                      let rawId = json["id"]
                 else {
                     return .badRequest(.text("Invalid JSON-RPC format"))
                 }
 
-                /// Documentation for args
+                let rpcId: JSONRPCId
+                if let intId = rawId as? Int {
+                    rpcId = .integer(intId)
+                } else {
+                    rpcId = .string(String(describing: rawId))
+                }
+
                 var args = [method]
                 if let params = json["params"] as? [String: Any] {
-                    for (k, v) in params {
+                    for (k, v) in params.sorted(by: { $0.key < $1.key }) {
                         if let b = v as? Bool, b {
                             args.append("--\(k)")
                         } else if let s = v as? String {
@@ -58,48 +116,22 @@
                     args.append(contentsOf: params)
                 }
 
-                /// Documentation for process
-                let process = Process()
-
-                // To be safe we execute the Swift binary
-                if ProcessInfo.processInfo.environment["CDD_MOCK_PROCESS_THROW"] == "1" {
-                    process.executableURL = URL(fileURLWithPath: "/tmp/invalid_executable_path_12345")
-                } else {
-                    process.executableURL = URL(fileURLWithPath: Bundle.main.executablePath!)
-                }
-                process.arguments = args
-
-                /// Documentation for pipe
-                let pipe = Pipe()
-                process.standardOutput = pipe
-                process.standardError = pipe
-
+                let encoder = JSONEncoder()
                 do {
-                    try process.run()
-                    process.waitUntilExit()
-                    /// Documentation for data
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    /// Documentation for output
-                    let output = String(decoding: data, as: UTF8.self)
-
-                    /// Documentation for response
-                    let response: [String: Any] = [
-                        "jsonrpc": "2.0",
-                        "result": output,
-                        "id": id
-                    ]
-                    /// Documentation for respData
-                    let respData = try! JSONSerialization.data(withJSONObject: response)
+                    let output = try ServeJsonRpc.executor.execute(args: args)
+                    let response = JSONRPCResponse(id: rpcId, result: output)
+                    var respData = Data()
+                    if let encoded = try? encoder.encode(response) {
+                        respData = encoded
+                    }
                     return .ok(.data(respData, contentType: "application/json"))
                 } catch {
-                    /// Documentation for errorResponse
-                    let errorResponse: [String: Any] = [
-                        "jsonrpc": "2.0",
-                        "error": ["code": -32603, "message": error.localizedDescription],
-                        "id": id
-                    ]
-                    /// Documentation for respData
-                    let respData = try! JSONSerialization.data(withJSONObject: errorResponse)
+                    let detail = JSONRPCErrorDetail(code: .internalError, message: error.localizedDescription)
+                    let errorResponse = JSONRPCError(id: rpcId, error: detail)
+                    var respData = Data()
+                    if let encoded = try? encoder.encode(errorResponse) {
+                        respData = encoded
+                    }
                     return .ok(.data(respData, contentType: "application/json"))
                 }
             }

@@ -49,7 +49,7 @@ final class CoverageBoosterTests3: XCTestCase {
         _ = emitWebhooks(webhooks: ["hook1": PathItem(get: op, post: Operation())])
     }
 
-    func testCoverageBoosts() {
+    func testCoverageBoosts() throws {
         let opData = CDDSwift.Operation(
             requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))], required: false)
         )
@@ -77,7 +77,8 @@ final class CoverageBoosterTests3: XCTestCase {
             paths: ["/cycle": PathItem(get: CDDSwift.Operation(responses: ["200": Response(content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/A"))])]))],
             components: Components(schemas: ["A": Schema(type: "object", properties: ["b": Schema(ref: "#/components/schemas/B")]), "B": Schema(type: "object", properties: ["a": Schema(ref: "#/components/schemas/A")])])
         )
-        _ = emitTests(paths: doc.paths ?? [:], document: doc)
+        let cyclePaths = try XCTUnwrap(doc.paths)
+        _ = emitTests(paths: cyclePaths, document: doc)
 
         let schemaDiscriminator = Schema(
             type: "object",

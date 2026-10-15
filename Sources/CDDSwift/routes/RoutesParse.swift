@@ -60,8 +60,20 @@ public class RouteVisitor: SyntaxVisitor {
         var method = ""
         // pathName
         // pathName
-        let pathName = "/" + name
-        if name.lowercased().hasPrefix("get") { method = "get" } else if name.lowercased().hasPrefix("post") { method = "post" } else if name.lowercased().hasPrefix("put") { method = "put" } else if name.lowercased().hasPrefix("delete") { method = "delete" } else if name.lowercased().hasPrefix("patch") { method = "patch" } else { method = "unknown" }
+        var pathName = "/" + name
+        if name.lowercased().hasPrefix("get") {
+            method = "get"
+        } else if name.lowercased().hasPrefix("post") {
+            method = "post"
+        } else if name.lowercased().hasPrefix("put") {
+            method = "put"
+        } else if name.lowercased().hasPrefix("delete") {
+            method = "delete"
+        } else if name.lowercased().hasPrefix("patch") {
+            method = "patch"
+        } else {
+            method = "unknown"
+        }
 
         // operationId
         // operationId
@@ -74,7 +86,7 @@ public class RouteVisitor: SyntaxVisitor {
         var links: [String: Link]?
         // cleanDescription
         var cleanDescription = description
-        if let desc = description, desc.contains("@link") {
+        if let desc = description, desc.contains("@link") || desc.contains("@Route(") {
             // lines
             // lines
             let lines = desc.components(separatedBy: .newlines)
@@ -93,12 +105,20 @@ public class RouteVisitor: SyntaxVisitor {
                         let right = parts[1]
                         extractedLinks[left] = Link(operationId: right)
                     }
+                } else if line.contains("@Route(") {
+                    let parts = line.split(whereSeparator: { $0 == "\"" })
+                    if parts.count >= 4 {
+                        method = String(parts[1]).lowercased()
+                        pathName = String(parts[3])
+                    }
                 } else {
                     finalLines.append(line)
                 }
             }
-            if !extractedLinks.isEmpty {
-                links = extractedLinks
+            if !extractedLinks.isEmpty || desc.contains("@Route(") {
+                if !extractedLinks.isEmpty {
+                    links = extractedLinks
+                }
                 cleanDescription = finalLines.isEmpty ? nil : finalLines.joined(separator: "\n")
             }
         }

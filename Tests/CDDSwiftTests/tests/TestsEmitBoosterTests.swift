@@ -7,34 +7,34 @@ final class TestsEmitBoosterTests: XCTestCase {
         let schema1 = Schema(type: "object", ref: "#/components/schemas/A")
         let schemas = ["A": schema1]
         let visited = Set(["A"])
-        let jsonCycle = generateDummyJSON(type: nil as String?, ref: "#/components/schemas/A", properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: schemas, visited: visited)
+        let jsonCycle = generateDummyJSON(context: DummyJSONContext(ref: "#/components/schemas/A", schemas: schemas, visited: visited))
         XCTAssertEqual(jsonCycle, "{}")
 
         // Missing ref from schemas map
-        let jsonMissingRef = generateDummyJSON(type: nil as String?, ref: "#/components/schemas/Missing", properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: schemas, visited: Set<String>())
+        let jsonMissingRef = generateDummyJSON(context: DummyJSONContext(ref: "#/components/schemas/Missing", schemas: schemas))
         XCTAssertEqual(jsonMissingRef, "{}")
 
         // Unknown type
-        let jsonUnknownType = generateDummyJSON(type: "unknown", ref: nil as String?, properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonUnknownType = generateDummyJSON(context: DummyJSONContext(type: "unknown"))
         XCTAssertEqual(jsonUnknownType, "{}")
 
         // Array without items
-        let jsonEmptyArray = generateDummyJSON(type: "array", ref: nil as String?, properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonEmptyArray = generateDummyJSON(context: DummyJSONContext(type: "array"))
         XCTAssertEqual(jsonEmptyArray, "[]")
 
         // Object missing property
-        let jsonMissingProp = generateDummyJSON(type: "object", ref: nil as String?, properties: nil as [String: Schema]?, required: ["foo"], items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonMissingProp = generateDummyJSON(context: DummyJSONContext(type: "object", required: ["foo"]))
         XCTAssertEqual(jsonMissingProp, "{\"foo\": \"\"}")
 
         // Integer
-        let jsonInt = generateDummyJSON(type: "integer", ref: nil as String?, properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonInt = generateDummyJSON(context: DummyJSONContext(type: "integer"))
         XCTAssertEqual(jsonInt, "1")
 
         // Number
-        let jsonNum = generateDummyJSON(type: "number", ref: nil as String?, properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonNum = generateDummyJSON(context: DummyJSONContext(type: "number"))
         XCTAssertEqual(jsonNum, "1")
 
-        let jsonBool = generateDummyJSON(type: "boolean", ref: nil as String?, properties: nil as [String: Schema]?, required: nil as [String]?, items: nil as SchemaItem?, schemas: nil as [String: Schema]?, visited: Set<String>())
+        let jsonBool = generateDummyJSON(context: DummyJSONContext(type: "boolean"))
         XCTAssertEqual(jsonBool, "true")
     }
 
@@ -46,7 +46,7 @@ final class TestsEmitBoosterTests: XCTestCase {
 
         let swiftCode = emitTests(paths: doc.paths, document: doc)
         XCTAssertTrue(swiftCode.contains("test50_UploadData()")) // HEAD triggers default: testPrefix = "50_"
-        XCTAssertTrue(swiftCode.contains("fileData: \"test_data\".data(using: String.Encoding.utf8)!"))
+        XCTAssertTrue(swiftCode.contains("fileData: Data(\"test_data\".utf8)"))
     }
 
     func testEmitTestsStatusArrayDummy() {

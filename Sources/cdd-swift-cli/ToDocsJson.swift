@@ -5,7 +5,7 @@ import Foundation
     import FoundationNetworking
 #endif
 
-/// Documentation for ToDocsJson
+/// Subcommand that generates JSON documentation with executable Swift code snippets for an OpenAPI specification.
 struct ToDocsJson: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "to_docs_json",
@@ -13,23 +13,25 @@ struct ToDocsJson: AsyncParsableCommand {
     )
 
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path or URL to the input OpenAPI specification.")
-    /// Documentation for input
+    /// Filesystem path or HTTP/HTTPS URL to the input OpenAPI specification.
     var input: String
 
     @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output JSON file. Prints to stdout if not provided.")
-    /// Documentation for outputPath
+    /// Optional filesystem path where the generated documentation JSON will be written.
     var outputPath: String?
 
     @Flag(help: "If provided, omit the imports field in the code object.")
-    /// Documentation for noImports
+    /// When `true`, omits the `imports` field in generated `DocsJsonCode` objects.
     var noImports: Bool = false
 
     @Flag(help: "If provided, omit the wrapper_start and wrapper_end fields in the code object.")
-    /// Documentation for noWrapping
+    /// When `true`, omits the `wrapper_start` and `wrapper_end` fields in generated `DocsJsonCode` objects.
     var noWrapping: Bool = false
 
+    /// Fetches or reads the OpenAPI specification, generates documentation snippets, and writes or prints the JSON output.
+    ///
+    /// - Throws: `ExitCode.failure` or `CDDError` if loading or parsing the OpenAPI document fails.
     mutating func run() async throws {
-        /// inputURL
         let inputURL: URL
         if input.starts(with: "http://") || input.starts(with: "https://") {
             guard let url = URL(string: input) else {
@@ -41,7 +43,6 @@ struct ToDocsJson: AsyncParsableCommand {
             inputURL = URL(fileURLWithPath: input)
         }
 
-        /// data
         let data: Data
         if inputURL.scheme == "http" || inputURL.scheme == "https" {
             #if os(WASI)
@@ -56,12 +57,9 @@ struct ToDocsJson: AsyncParsableCommand {
         }
 
         do {
-            /// json
             let json = String(decoding: data, as: UTF8.self)
-            /// document
             let document = try OpenAPIParser.parse(json: json)
 
-            /// resultJson
             let resultJson = DocsJsonGenerator.generate(
                 from: document,
                 includeImports: !noImports,

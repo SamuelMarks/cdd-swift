@@ -49,24 +49,49 @@ final class CoverageBoosterTests: XCTestCase {
     func testTestsParse() {
         let code = """
         class MyTests: XCTestCase {
+            let prop = 1
+            func helper() {}
             func testSomething() {}
+        }
+        class NonTestClass {
+            func testIgnored() {}
         }
         """
         let syntax = Parser.parse(source: code)
         let visitor = TestVisitor(viewMode: .all)
         visitor.walk(syntax)
-        // Adjust assertion based on your actual visitor behavior
-        XCTAssertNotNil(visitor)
+        XCTAssertEqual(visitor.discoveredTestMethods, ["testSomething"])
     }
 
     func testServerParse() {
         let code = """
+        let x = 1 + 2
+        otherFunc()
+        app.unknownMethod("x")
+        otherObj.get("x")
+        app.get("")
         app.get("hello") { req in return "world" }
+        app.post("users", ":id") { req in return "ok" }
+        app.put("users", ":id") { req in return "ok" }
+        app.delete("users", ":id") { req in return "ok" }
+        app.patch("users", ":id") { req in return "ok" }
+        app.options("users") { req in return "ok" }
+        app.head("users") { req in return "ok" }
+        app.post("_mock", "trigger-webhook", ":name") { req in return "ok" }
+        app.post("auth", "login") { req in return "ok" }
         """
         let syntax = Parser.parse(source: code)
         let visitor = ServerVisitor(viewMode: .all)
         visitor.walk(syntax)
-        XCTAssertNotNil(visitor)
+        XCTAssertNotNil(visitor.paths["/hello"]?.get)
+        XCTAssertNotNil(visitor.paths["/users/{id}"]?.post)
+        XCTAssertNotNil(visitor.paths["/users/{id}"]?.put)
+        XCTAssertNotNil(visitor.paths["/users/{id}"]?.delete)
+        XCTAssertNotNil(visitor.paths["/users/{id}"]?.patch)
+        XCTAssertNotNil(visitor.paths["/users"]?.options)
+        XCTAssertNotNil(visitor.paths["/users"]?.head)
+        XCTAssertNil(visitor.paths["/_mock/trigger-webhook/{name}"])
+        XCTAssertNil(visitor.paths["/auth/login"])
     }
 
     func testClientSdkCliParse() {
@@ -91,9 +116,7 @@ final class CoverageBoosterTests: XCTestCase {
     }
 
     func testClientSdkParse() throws {
-        do {
-            _ = try OpenAPIParser.parse(json: "{ invalid json")
-        } catch {}
+        XCTAssertThrowsError(try OpenAPIParser.parse(json: "{ invalid json"))
 
         let code = """
         func testMethod() {}
@@ -303,8 +326,10 @@ final class CoverageBoosterTests: XCTestCase {
         let code = """
         func getusers() {}
         func mockgetusers() {}
+        app.get("server-only") { req in return "ok" }
         """
-        _ = try SwiftASTParser().parseDocument(from: code)
+        let doc = try SwiftASTParser().parseDocument(from: code)
+        XCTAssertNotNil(doc.paths?["/server-only"]?.get)
     }
 
     func testExtraRoutesEmit3() {

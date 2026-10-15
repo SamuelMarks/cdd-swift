@@ -9,11 +9,21 @@ public func emitModel(name: String, schema: Schema) -> String {
     // Process validations for docstrings
     // Collect validation constraints to include in the docstring.
     var validationDocs: [String] = []
-    if let min = schema.minimum { validationDocs.append("Minimum: \(min)") }
-    if let max = schema.maximum { validationDocs.append("Maximum: \(max)") }
-    if let minLen = schema.minLength { validationDocs.append("Minimum Length: \(minLen)") }
-    if let maxLen = schema.maxLength { validationDocs.append("Maximum Length: \(maxLen)") }
-    if let pattern = schema.pattern { validationDocs.append("Pattern: \(pattern)") }
+    if let min = schema.minimum {
+        validationDocs.append("Minimum: \(min)")
+    }
+    if let max = schema.maximum {
+        validationDocs.append("Maximum: \(max)")
+    }
+    if let minLen = schema.minLength {
+        validationDocs.append("Minimum Length: \(minLen)")
+    }
+    if let maxLen = schema.maxLength {
+        validationDocs.append("Maximum Length: \(maxLen)")
+    }
+    if let pattern = schema.pattern {
+        validationDocs.append("Pattern: \(pattern)")
+    }
 
     for vDoc in validationDocs {
         output += "/// - \(vDoc)\n"
@@ -50,10 +60,8 @@ public func emitModel(name: String, schema: Schema) -> String {
         return output
     }
 
-    if schema.anyOf != nil || schema.oneOf != nil {
+    if let options = schema.anyOf ?? schema.oneOf {
         output += "public enum \(name): Codable, Equatable {\n"
-        // Resolve the options for polymorphism.
-        let options = schema.anyOf ?? schema.oneOf!
         // Counter for generating cases without associated values.
         var i = 1
 
@@ -180,11 +188,21 @@ public func emitModel(name: String, schema: Schema) -> String {
 
         // valDocs
         var valDocs: [String] = []
-        if let min = propSchema.minimum { valDocs.append("Minimum: \(min)") }
-        if let max = propSchema.maximum { valDocs.append("Maximum: \(max)") }
-        if let minLen = propSchema.minLength { valDocs.append("Minimum Length: \(minLen)") }
-        if let maxLen = propSchema.maxLength { valDocs.append("Maximum Length: \(maxLen)") }
-        if let pattern = propSchema.pattern { valDocs.append("Pattern: \(pattern)") }
+        if let min = propSchema.minimum {
+            valDocs.append("Minimum: \(min)")
+        }
+        if let max = propSchema.maximum {
+            valDocs.append("Maximum: \(max)")
+        }
+        if let minLen = propSchema.minLength {
+            valDocs.append("Minimum Length: \(minLen)")
+        }
+        if let maxLen = propSchema.maxLength {
+            valDocs.append("Maximum Length: \(maxLen)")
+        }
+        if let pattern = propSchema.pattern {
+            valDocs.append("Pattern: \(pattern)")
+        }
 
         for vDoc in valDocs {
             output += "    /// - \(vDoc)\n"
@@ -199,11 +217,21 @@ public func emitModel(name: String, schema: Schema) -> String {
 
         // propertyWrappers
         var propertyWrappers: [String] = []
-        if let min = propSchema.minimum { propertyWrappers.append("@Minimum(\(min))") }
-        if let max = propSchema.maximum { propertyWrappers.append("@Maximum(\(max))") }
-        if let minLen = propSchema.minLength { propertyWrappers.append("@MinLength(\(minLen))") }
-        if let maxLen = propSchema.maxLength { propertyWrappers.append("@MaxLength(\(maxLen))") }
-        if let pattern = propSchema.pattern { propertyWrappers.append("@Pattern(\"\(pattern)\")") }
+        if let min = propSchema.minimum {
+            propertyWrappers.append("@Minimum(\(min))")
+        }
+        if let max = propSchema.maximum {
+            propertyWrappers.append("@Maximum(\(max))")
+        }
+        if let minLen = propSchema.minLength {
+            propertyWrappers.append("@MinLength(\(minLen))")
+        }
+        if let maxLen = propSchema.maxLength {
+            propertyWrappers.append("@MaxLength(\(maxLen))")
+        }
+        if let pattern = propSchema.pattern {
+            propertyWrappers.append("@Pattern(\"\(pattern)\")")
+        }
 
         for pw in propertyWrappers {
             output += "    \(pw)\n"
@@ -241,14 +269,22 @@ public func emitModel(name: String, schema: Schema) -> String {
 /// Helper mapping schema types to Swift.
 public func mapType(schema: Schema) -> String {
     if let ref = schema.ref ?? schema.dynamicRef {
-        return ref.components(separatedBy: "/").last!
+        return lastPathSegment(ref)
     }
     switch schema.type {
     case "string":
-        if schema.format == "date-time" { return "Date" }
-        if schema.format == "uuid" { return "UUID" }
-        if schema.format == "binary" { return "Data" }
-        if schema.enum_values != nil { return "String" }
+        if schema.format == "date-time" {
+            return "Date"
+        }
+        if schema.format == "uuid" {
+            return "UUID"
+        }
+        if schema.format == "binary" {
+            return "Data"
+        }
+        if schema.enum_values != nil {
+            return "String"
+        }
         return "String"
     case "integer": return schema.format == "int64" ? "Int64" : "Int"
     case "number": return schema.format == "float" ? "Float" : "Double"
@@ -261,7 +297,7 @@ public func mapType(schema: Schema) -> String {
         }
         if let items = schema.items {
             if let ref = items.ref {
-                return "[\(ref.components(separatedBy: "/").last!)]"
+                return "[\(lastPathSegment(ref))]"
             } else if let type = items.type {
                 // primitive
                 let primitive = Schema(type: type)
@@ -273,7 +309,7 @@ public func mapType(schema: Schema) -> String {
         if let additional = schema.additionalProperties {
             if let ref = additional.ref {
                 // valueType
-                let valueType = ref.components(separatedBy: "/").last!
+                let valueType = lastPathSegment(ref)
                 return "[String: \(valueType)]"
             } else if let type = additional.type {
                 // primitive

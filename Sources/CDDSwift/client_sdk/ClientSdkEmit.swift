@@ -67,7 +67,7 @@ public class OpenAPIDocumentBuilder {
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         // Encode the constructed document to JSON data.
         let data = try encoder.encode(build())
-        return String(data: data, encoding: .utf8)!
+        return String(decoding: data, as: UTF8.self)
     }
 }
 
@@ -319,14 +319,15 @@ public enum OpenAPIToSwiftGenerator {
     /// - Parameter document: The OpenAPI document to process.
     /// - Returns: A string containing the generated Swift source code.
     public static func generate(from document: OpenAPIDocument) -> String {
-        // Generate individual file contents.
         let files = generateFiles(from: document)
-        // Extract models source.
-        let models = files["models.swift"]!
-        // Extract client source.
-        let client = files["client.swift"]!
-        // Strip the redundant "import Foundation\n\n" from the client file
-        // Clean up redundant imports when merging files into a single output.
+        var models = ""
+        if let m = files["models.swift"] {
+            models = m
+        }
+        var client = ""
+        if let c = files["client.swift"] {
+            client = c
+        }
         let clientStripped = client.replacingOccurrences(of: "import Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n", with: "")
         return models + "\n" + clientStripped
     }
@@ -439,43 +440,10 @@ class MergerRewriter: SyntaxRewriter {
     }
 }
 
-// Additional unused / handled internally:
-// selfRef jsonSchemaDialect schemas examples requestBodies
-// pathItems mediaTypes /{path} additionalOperations example examples
-// itemSchema prefixEncoding itemEncoding dataValue serializedValue
-// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-// HTTP Status Code tags externalDocs parameters query deprecated
-// allowEmptyValue /{path}
-
-// Additional unused / handled internally:
-// selfRef jsonSchemaDialect schemas examples requestBodies
-// pathItems mediaTypes /{path} additionalOperations example examples
-// itemSchema prefixEncoding itemEncoding dataValue serializedValue
-// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-// HTTP Status Code tags externalDocs parameters query deprecated
-// allowEmptyValue /{path}
-
-// selfRef jsonSchemaDialect schemas examples requestBodies pathItems mediaTypes /{path} additionalOperations example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes HTTP Status Code tags externalDocs parameters query deprecated allowEmptyValue
-
-// Additional unused / handled internally:
-// selfRef jsonSchemaDialect schemas examples requestBodies
-// pathItems mediaTypes /{path} additionalOperations example examples
-// itemSchema prefixEncoding itemEncoding dataValue serializedValue
-// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-// HTTP Status Code tags externalDocs parameters query deprecated
-// allowEmptyValue /{path}
-
-// Additional unused / handled internally:
-// selfRef jsonSchemaDialect schemas examples requestBodies
-// pathItems mediaTypes /{path} additionalOperations example examples
-// itemSchema prefixEncoding itemEncoding dataValue serializedValue
-// externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes
-// HTTP Status Code tags externalDocs parameters query deprecated
-// allowEmptyValue /{path}
-
-// ALL MISSING:
-// servers summary termsOfService contact license url email identifier url url variables default responses headers links /{path} ref summary options head trace servers summary requestBody responses servers url style explode allowReserved content content contentType headers style explode allowReserved default summary headers content links summary operationRef requestBody server style explode content summary ref summary discriminator xml propertyName mapping defaultMapping nodeType namespace attribute wrapped bearerFormat flows implicit password clientCredentials authorizationCode deviceAuthorization authorizationUrl deviceAuthorizationUrl tokenUrl refreshUrl schemas examples requestBodies pathItems mediaTypes example examples itemSchema prefixEncoding itemEncoding dataValue serializedValue externalValue value parent kind openIdConnectUrl oauth2MetadataUrl scopes jsonSchemaDialect selfRef tags externalDocs parameters query deprecated allowEmptyValue
-/// Documentation for emitMCPAdapter
+/// Emits a Swift `MCPAdapter` struct wrapping `APIClient` operations as Model Context Protocol tools and resources.
+///
+/// - Parameter document: The `OpenAPIDocument` describing the operations to expose.
+/// - Returns: The generated Swift source code for `MCPAdapter`.
 public func emitMCPAdapter(document: OpenAPIDocument) -> String {
     var output = "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\npublic struct MCPAdapter {\n"
     output += "    public let client: APIClient\n\n"

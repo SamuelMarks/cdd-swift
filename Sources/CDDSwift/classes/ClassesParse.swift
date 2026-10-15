@@ -135,10 +135,18 @@ public class ModelVisitor: SyntaxVisitor {
                                         // attrName
                                         let attrName = customAttr.attributeName.trimmedDescription
                                         if let args = customAttr.arguments?.as(LabeledExprListSyntax.self), let firstArg = args.first {
-                                            if attrName == "Minimum", let val = Double(firstArg.expression.trimmedDescription) { min = val }
-                                            if attrName == "Maximum", let val = Double(firstArg.expression.trimmedDescription) { max = val }
-                                            if attrName == "MinLength", let val = Int(firstArg.expression.trimmedDescription) { minLen = val }
-                                            if attrName == "MaxLength", let val = Int(firstArg.expression.trimmedDescription) { maxLen = val }
+                                            if attrName == "Minimum", let val = Double(firstArg.expression.trimmedDescription) {
+                                                min = val
+                                            }
+                                            if attrName == "Maximum", let val = Double(firstArg.expression.trimmedDescription) {
+                                                max = val
+                                            }
+                                            if attrName == "MinLength", let val = Int(firstArg.expression.trimmedDescription) {
+                                                minLen = val
+                                            }
+                                            if attrName == "MaxLength", let val = Int(firstArg.expression.trimmedDescription) {
+                                                maxLen = val
+                                            }
                                             if attrName == "Pattern" {
                                                 if let stringLiteral = firstArg.expression.as(StringLiteralExprSyntax.self), let seg = stringLiteral.segments.first?.as(StringSegmentSyntax.self) {
                                                     patternStr = seg.content.text

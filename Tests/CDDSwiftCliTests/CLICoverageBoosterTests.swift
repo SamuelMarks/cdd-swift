@@ -54,5 +54,10 @@ final class CLICoverageBoosterTests: XCTestCase {
 
         var cmd = try SyncOpenAPI.parse(["--input", swiftPath, "-o", existingPath])
         try await cmd.run()
+
+        let syncedJson = try WASIFileHelpers.readString(at: existingPath)
+        let syncedDoc = try OpenAPIParser.parse(json: syncedJson)
+        XCTAssertNotNil(syncedDoc.paths?["/new"]?.post)
+        XCTAssertNotNil(syncedDoc.components?.schemas?["MyModel"])
     }
 }

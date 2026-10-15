@@ -40,7 +40,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             // Extract the parameter location, defaulting to 'query'.
             let pIn = param.in ?? "query"
             // Determine the mapped Swift type for the parameter.
-            let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
+            let type = param.schema.map { mapType(schema: $0) } ?? "String"
             // Determine if the parameter is required.
             let isRequired = param.required ?? false
             // Determine the optional suffix based on required status.
@@ -65,13 +65,13 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                     }
                 } else if style == "label" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \".\" + \(safePName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? "." : ",")\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \".\" + (\(safePName)\(isRequired ? "" : " ?? []")).map { String(describing: $0) }.joined(separator: \"\(explode ? "." : ",")\") : \"\")")
                     } else {
                         pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ".\\(\(safePName))")
                     }
                 } else if style == "matrix" {
                     if isArray {
-                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \";\(pName)=\" + \(safePName)\(isRequired ? "" : "?!").map { String(describing: $0) }.joined(separator: \"\(explode ? ";\(pName)=" : ",")\") : \"\")")
+                        pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName)\(isRequired ? "" : "?").isEmpty == false ? \";\(pName)=\" + (\(safePName)\(isRequired ? "" : " ?? []")).map { String(describing: $0) }.joined(separator: \"\(explode ? ";\(pName)=" : ",")\") : \"\")")
                     } else {
                         pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: ";\(pName)=\\(\(safePName))")
                     }
@@ -189,19 +189,19 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                 request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
                 var bodyData = Data()
                 if let val = additionalMetadata {
-                    bodyData.append("--\\(boundary)\\r\\n".data(using: String.Encoding.utf8)!)
-                    bodyData.append("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".data(using: String.Encoding.utf8)!)
-                    bodyData.append("\\(val)\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append(Data("--\\(boundary)\\r\\n".utf8))
+                    bodyData.append(Data("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".utf8))
+                    bodyData.append(Data("\\(val)\\r\\n".utf8))
                 }
                 if let fileValue = \(fileParam) {
-                    let fileData = (fileValue as Any) as? Data ?? String(describing: fileValue).data(using: String.Encoding.utf8)!
-                    bodyData.append("--\\(boundary)\\r\\n".data(using: String.Encoding.utf8)!)
-                    bodyData.append("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".data(using: String.Encoding.utf8)!)
-                    bodyData.append("Content-Type: application/octet-stream\\r\\n\\r\\n".data(using: String.Encoding.utf8)!)
+                    let fileData = (fileValue as Any) as? Data ?? Data(String(describing: fileValue).utf8)
+                    bodyData.append(Data("--\\(boundary)\\r\\n".utf8))
+                    bodyData.append(Data("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".utf8))
+                    bodyData.append(Data("Content-Type: application/octet-stream\\r\\n\\r\\n".utf8))
                     bodyData.append(fileData)
-                    bodyData.append("\\r\\n".data(using: String.Encoding.utf8)!)
+                    bodyData.append(Data("\\r\\n".utf8))
                 }
-                bodyData.append("--\\(boundary)--\\r\\n".data(using: String.Encoding.utf8)!)
+                bodyData.append(Data("--\\(boundary)--\\r\\n".utf8))
                 request.httpBody = bodyData
         """
     }
@@ -216,7 +216,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     }
     output += "    public func \(funcName)(\(argsString)) async throws -> \(returnType) {\n"
 
-    output += "        var components = URLComponents(url: baseURL.appendingPathComponent(\"\(pathInterpolation)\"), resolvingAgainstBaseURL: true)!\n"
+    output += "        guard var components = URLComponents(url: baseURL.appendingPathComponent(\"\(pathInterpolation)\"), resolvingAgainstBaseURL: true) else { throw URLError(.badURL) }\n"
     let requirementsForQuery = operation.security ?? documentSecurity ?? []
     var hasSecurityQuery = false
     for req in requirementsForQuery {
@@ -286,7 +286,7 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "        if let encodedQuery = components.percentEncodedQuery {\n"
     output += "            components.percentEncodedQuery = encodedQuery.replacingOccurrences(of: \"+\", with: \"%2B\")\n"
     output += "        }\n"
-    output += "        var request = URLRequest(url: components.url!)\n"
+    output += "        var request = URLRequest(url: components.url ?? baseURL)\n"
 
     output += "        request.httpMethod = \"\(method)\"\n"
 
@@ -428,14 +428,14 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             output += "                     fileData = String(describing: value).data(using: String.Encoding.utf8)\n"
             output += "                 }\n"
             output += "                 if let fd = fileData {\n"
-            output += "                     bodyData.append(\"--\\(boundary)\\r\\n\".data(using: String.Encoding.utf8)!)\n"
-            output += "                     bodyData.append(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".data(using: String.Encoding.utf8)!)\n"
-            output += "                     bodyData.append(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".data(using: String.Encoding.utf8)!)\n"
+            output += "                     bodyData.append(Data(\"--\\(boundary)\\r\\n\".utf8))\n"
+            output += "                     bodyData.append(Data(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".utf8))\n"
+            output += "                     bodyData.append(Data(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".utf8))\n"
             output += "                     bodyData.append(fd)\n"
-            output += "                     bodyData.append(\"\\r\\n\".data(using: String.Encoding.utf8)!)\n"
+            output += "                     bodyData.append(Data(\"\\r\\n\".utf8))\n"
             output += "                 }\n"
             output += "             }\n"
-            output += "             bodyData.append(\"--\\(boundary)--\\r\\n\".data(using: String.Encoding.utf8)!)\n"
+            output += "             bodyData.append(Data(\"--\\(boundary)--\\r\\n\".utf8))\n"
             output += "        }\n"
             output += "        request.httpBody = bodyData\n"
         } else if isOctetStream {

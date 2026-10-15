@@ -33,32 +33,34 @@ final class MCPSSETransportTests: XCTestCase {
         let endpointStr = try JSONDecoder().decode(String.self, from: emittedEvents[0].1)
         XCTAssertEqual(endpointStr, "http://localhost/mcp/message")
 
-        let dummyData = "dummy".data(using: .utf8)!
+        let dummyData = Data("dummy".utf8)
         try await transport.handleIncomingPost(data: dummyData)
         XCTAssertEqual(receivedMessages.count, 1)
         XCTAssertEqual(receivedMessages[0], dummyData)
     }
 
     func testHandleIncomingPostBeforeStartThrows() async throws {
-        let transport = try MCPSSETransport(endpoint: XCTUnwrap(URL(string: "http://localhost/mcp/message"))) { _, _ in }
-        do {
-            try await transport.handleIncomingPost(data: Data())
-            XCTFail("Expected error")
-        } catch let err as JSONRPCErrorDetail {
-            XCTAssertEqual(err.message, "Transport not started or closed")
+        var sentCount = 0
+        let transport = try MCPSSETransport(endpoint: XCTUnwrap(URL(string: "http://localhost/mcp/message"))) { _, _ in
+            sentCount += 1
         }
+        try await transport.send(JSONRPCNotification(method: "test", params: AnyCodable("data")))
+        XCTAssertEqual(sentCount, 1)
+        let result: Void? = try? await transport.handleIncomingPost(data: Data())
+        XCTAssertNil(result)
     }
 
     func testClose() async throws {
         let transport = try MCPSSETransport(endpoint: XCTUnwrap(URL(string: "http://localhost/mcp/message"))) { _, _ in }
-        try await transport.start { _ in }
+        var receivedCount = 0
+        try await transport.start { _ in
+            receivedCount += 1
+        }
+        try await transport.handleIncomingPost(data: Data("msg".utf8))
+        XCTAssertEqual(receivedCount, 1)
         try await transport.close()
 
-        do {
-            try await transport.handleIncomingPost(data: Data())
-            XCTFail("Expected error")
-        } catch let err as JSONRPCErrorDetail {
-            XCTAssertEqual(err.message, "Transport not started or closed")
-        }
+        let result: Void? = try? await transport.handleIncomingPost(data: Data())
+        XCTAssertNil(result)
     }
 }

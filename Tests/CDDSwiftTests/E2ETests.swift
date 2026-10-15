@@ -1,4 +1,6 @@
 @testable import CDDSwift
+import SwiftParser
+import SwiftSyntax
 import XCTest
 
 final class E2ETests: XCTestCase {
@@ -9,6 +11,8 @@ final class E2ETests: XCTestCase {
         let json = try String(contentsOfFile: fileURL.path)
         let document = try OpenAPIParser.parse(json: json)
         let swiftCode = OpenAPIToSwiftGenerator.generate(from: document)
+        let syntax = Parser.parse(source: swiftCode)
+        XCTAssertFalse(syntax.hasError)
         let schemas = try SwiftASTParser().parseModels(from: swiftCode)
         XCTAssertGreaterThan(schemas.count, 0)
     }
@@ -23,12 +27,17 @@ final class E2ETests: XCTestCase {
         let cliCode = emitSDKCLI(document: document)
         let serverCode = emitServer(document: document)
 
+        XCTAssertFalse(Parser.parse(source: swiftCode).hasError)
+        XCTAssertFalse(Parser.parse(source: cliCode).hasError)
+        XCTAssertFalse(Parser.parse(source: serverCode).hasError)
+
         // This will test the parsing of all generated code components
         let combinedCode = swiftCode + "\n" + cliCode + "\n" + serverCode
         let parsedDoc = try SwiftASTParser().parseDocument(from: combinedCode)
 
-        let schemas = parsedDoc.components?.schemas ?? [:]
+        let schemas = try XCTUnwrap(parsedDoc.components?.schemas)
         XCTAssertGreaterThan(schemas.count, 0)
+        XCTAssertNotNil(parsedDoc.paths)
     }
 
     func testParseDocument() throws {
@@ -55,10 +64,6 @@ final class E2ETests: XCTestCase {
 
     func testEmptyJSONParse() {
         let json = "{}"
-        do {
-            _ = try OpenAPIParser.parse(json: json)
-        } catch {
-            XCTAssertNotNil(error)
-        }
+        XCTAssertThrowsError(try OpenAPIParser.parse(json: json))
     }
 }

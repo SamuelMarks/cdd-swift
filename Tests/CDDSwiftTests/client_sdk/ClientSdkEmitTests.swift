@@ -8,7 +8,7 @@ final class ClientSdkEmitTests: XCTestCase {
         XCTAssertTrue(code.contains("func getUsers("))
     }
 
-    func testOpenAPIDocumentBuilder() {
+    func testOpenAPIDocumentBuilder() throws {
         let builder = OpenAPIDocumentBuilder(title: "Test API", version: "2.0")
             .addPath("/test", item: PathItem(get: Operation(operationId: "getTest")))
             .addWebhook("hook", item: PathItem(post: Operation(operationId: "postHook")))
@@ -23,11 +23,7 @@ final class ClientSdkEmitTests: XCTestCase {
         XCTAssertNotNil(doc.components?.schemas?["MyModel"])
         XCTAssertNotNil(doc.components?.securitySchemes?["BearerAuth"])
 
-        do {
-            let json = try builder.serialize()
-            XCTAssertTrue(json.contains("Test API"))
-        } catch {
-            XCTFail("Failed to serialize: \\(error)")
-        }
+        let json = try builder.serialize()
+        XCTAssertTrue(json.contains("Test API"))
     }
 }

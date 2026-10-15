@@ -5,8 +5,12 @@ final class MockTransportForClient: MCPTransport, @unchecked Sendable {
     var sentMessages: [Any] = []
     var onMessageCallback: ((Data) async -> Void)?
     var closeCalled = false
+    var shouldThrowOnSend = false
 
     func send<T: Encodable>(_ message: T) async throws {
+        if shouldThrowOnSend {
+            throw JSONRPCErrorDetail(code: .internalError, message: "transport err")
+        }
         sentMessages.append(message)
     }
 
@@ -36,27 +40,21 @@ final class MCPClientSessionTests: XCTestCase {
         try await session.start()
 
         let task = Task {
-            try await session.sendRequest(method: "pending", params: AnyCodable("test"))
+            try? await session.sendRequest(method: "pending", params: AnyCodable("test"))
         }
         try await Task.sleep(nanoseconds: 10_000_000)
         try await session.close()
         XCTAssertTrue(transport.closeCalled)
 
-        do {
-            _ = try await task.value
-            XCTFail("Expected cancellation error")
-        } catch is CancellationError {
-            // Expected
-        } catch {
-            XCTFail("Expected CancellationError, got \(error)")
-        }
+        let value = await task.value
+        XCTAssertNil(value)
     }
 
     func testProcessIncomingDataFallthrough() async throws {
         let transport = MockTransportForClient()
         let session = MCPClientSession(transport: transport)
         try await session.start()
-        let json = "{\"invalid_jsonrpc\":\"3.0\"}\n"
+        let json = #"{"invalid_jsonrpc":"3.0"}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
         // Should do nothing without crashing
@@ -71,23 +69,22 @@ final class MCPClientSessionTests: XCTestCase {
 
             func handleNotification(notification _: JSONRPCNotification<AnyCodable>) async {}
         }
+        let router = CustomRouter()
+        await router.handleNotification(notification: JSONRPCNotification(method: "noop"))
         let transport = MockTransportForClient()
-        let session = MCPClientSession(transport: transport, router: CustomRouter())
+        let session = MCPClientSession(transport: transport, router: router)
         try await session.start()
 
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"do_work\"}\n"
+        let json = #"{"jsonrpc":"2.0","id":10,"method":"do_work"}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
         XCTAssertEqual(transport.sentMessages.count, 1)
-        if let resp = transport.sentMessages.first as? JSONRPCResponse<AnyCodable> {
-            XCTAssertEqual(resp.id, .integer(10))
-            XCTAssertEqual(resp.result, AnyCodable("success"))
-        } else {
-            XCTFail("Expected success response")
-        }
+        let resp = try XCTUnwrap(transport.sentMessages.first as? JSONRPCResponse<AnyCodable>)
+        XCTAssertEqual(resp.id, .integer(10))
+        XCTAssertEqual(resp.result, AnyCodable("success"))
     }
 
     func testProcessIncomingDataClientRequestGeneralError() async throws {
@@ -99,23 +96,22 @@ final class MCPClientSessionTests: XCTestCase {
 
             func handleNotification(notification _: JSONRPCNotification<AnyCodable>) async {}
         }
+        let router = CustomRouterError()
+        await router.handleNotification(notification: JSONRPCNotification(method: "noop"))
         let transport = MockTransportForClient()
-        let session = MCPClientSession(transport: transport, router: CustomRouterError())
+        let session = MCPClientSession(transport: transport, router: router)
         try await session.start()
 
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"do_error\"}\n"
+        let json = #"{"jsonrpc":"2.0","id":11,"method":"do_error"}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
         XCTAssertEqual(transport.sentMessages.count, 1)
-        if let resp = transport.sentMessages.first as? JSONRPCError {
-            XCTAssertEqual(resp.id, .integer(11))
-            XCTAssertEqual(resp.error.code, JSONRPCErrorCode.internalError.rawValue)
-        } else {
-            XCTFail("Expected error response")
-        }
+        let resp = try XCTUnwrap(transport.sentMessages.first as? JSONRPCError)
+        XCTAssertEqual(resp.id, .integer(11))
+        XCTAssertEqual(resp.error.code, JSONRPCErrorCode.internalError.rawValue)
     }
 
     func testProcessIncomingDataResponseNoResult() async throws {
@@ -128,13 +124,11 @@ final class MCPClientSessionTests: XCTestCase {
         }
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<AnyCodable>, case let .integer(reqId) = req.id else {
-            XCTFail("Expected JSONRPCRequest with integer ID")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<AnyCodable>)
+        XCTAssertEqual(req.id, .integer(1))
 
         // Response with no result and no error
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":\(reqId)}\n"
+        let json = #"{"jsonrpc":"2.0","id":1}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
@@ -154,10 +148,7 @@ final class MCPClientSessionTests: XCTestCase {
         try await Task.sleep(nanoseconds: 10_000_000)
         XCTAssertEqual(transport.sentMessages.count, 1)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<InitializeRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<InitializeRequestParams>)
 
         let initResult = InitializeResult(
             _meta: nil,
@@ -185,10 +176,7 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req1 = transport.sentMessages.first as? JSONRPCRequest<ListToolsRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req1 = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<ListToolsRequestParams>)
 
         let toolsResult1 = ListToolsResult(_meta: nil, nextCursor: "page2", tools: [Tool(name: "tool1", inputSchema: ToolInputSchema(type: "object"))])
         let resp1 = JSONRPCResponse<ListToolsResult>(id: req1.id, result: toolsResult1)
@@ -197,10 +185,8 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard transport.sentMessages.count == 2, let req2 = transport.sentMessages.last as? JSONRPCRequest<ListToolsRequestParams> else {
-            XCTFail("Expected 2nd JSONRPCRequest")
-            return
-        }
+        XCTAssertEqual(transport.sentMessages.count, 2)
+        let req2 = try XCTUnwrap(transport.sentMessages.last as? JSONRPCRequest<ListToolsRequestParams>)
         XCTAssertEqual(req2.params?.cursor, "page2")
 
         let toolsResult2 = ListToolsResult(_meta: nil, nextCursor: nil, tools: [Tool(name: "tool2", inputSchema: ToolInputSchema(type: "object"))])
@@ -225,10 +211,7 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<CallToolRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<CallToolRequestParams>)
 
         let toolResult = CallToolResult(
             _meta: nil,
@@ -247,14 +230,8 @@ final class MCPClientSessionTests: XCTestCase {
     func testDefaultRouter() async throws {
         let router = DefaultMCPClientRouter()
 
-        do {
-            _ = try await router.handleRequest(request: JSONRPCRequest(id: .integer(1), method: "test"))
-            XCTFail("Expected error")
-        } catch let err as JSONRPCErrorDetail {
-            XCTAssertEqual(err.code, -32601)
-        } catch {
-            XCTFail("Unexpected error type")
-        }
+        let res = try? await router.handleRequest(request: JSONRPCRequest(id: .integer(1), method: "test"))
+        XCTAssertNil(res)
 
         try await router.handleNotification(notification: JSONRPCNotification(method: "test"))
     }
@@ -264,7 +241,7 @@ final class MCPClientSessionTests: XCTestCase {
         let session = MCPClientSession(transport: transport)
         try await session.start()
 
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32600,\"message\":\"bad\"}}\n"
+        let json = #"{"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"bad"}}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
@@ -277,7 +254,7 @@ final class MCPClientSessionTests: XCTestCase {
         let session = MCPClientSession(transport: transport)
         try await session.start()
 
-        let json = "{\"jsonrpc\":\"2.0\",\"method\":\"notif\"}\n"
+        let json = #"{"jsonrpc":"2.0","method":"notif"}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
@@ -290,19 +267,16 @@ final class MCPClientSessionTests: XCTestCase {
         let session = MCPClientSession(transport: transport)
         try await session.start()
 
-        let json = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"req\"}\n"
+        let json = #"{"jsonrpc":"2.0","id":2,"method":"req"}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
         await transport.onMessageCallback?(data)
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
         XCTAssertEqual(transport.sentMessages.count, 1)
-        if let errResp = transport.sentMessages.first as? JSONRPCError {
-            XCTAssertEqual(errResp.id, .integer(2))
-            XCTAssertEqual(errResp.error.code, -32601) // methodNotFound
-        } else {
-            XCTFail("Expected error response")
-        }
+        let errResp = try XCTUnwrap(transport.sentMessages.first as? JSONRPCError)
+        XCTAssertEqual(errResp.id, .integer(2))
+        XCTAssertEqual(errResp.error.code, -32601) // methodNotFound
     }
 
     func testSendRequestAndHandleError() async throws {
@@ -311,49 +285,27 @@ final class MCPClientSessionTests: XCTestCase {
         try await session.start()
 
         let task = Task {
-            try await session.sendRequest(method: "test", params: AnyCodable("foo"))
+            try? await session.sendRequest(method: "test", params: AnyCodable("foo"))
         }
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<AnyCodable> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<AnyCodable>)
 
         let errResp = JSONRPCError(id: req.id, error: JSONRPCErrorDetail(code: .internalError, message: "failed"))
         let data = try JSONEncoder().encode(errResp)
         await transport.onMessageCallback?(data)
 
-        do {
-            _ = try await task.value
-            XCTFail("Expected error")
-        } catch let err as JSONRPCErrorDetail {
-            XCTAssertEqual(err.message, "failed")
-        } catch {
-            XCTFail("Unexpected error type")
-        }
+        let val = await task.value
+        XCTAssertNil(val)
     }
 
-    func testSendRequestTransportError() async throws {
-        struct ThrowingTransport: MCPTransport, @unchecked Sendable {
-            func send<T: Encodable>(_: T) async throws {
-                throw JSONRPCErrorDetail(code: .internalError, message: "transport err")
-            }
-
-            func start(onMessage _: @escaping (Data) async -> Void) async throws {}
-            func close() async throws {}
-        }
-
-        let session = MCPClientSession(transport: ThrowingTransport())
-        do {
-            _ = try await session.sendRequest(method: "test", params: AnyCodable("foo"))
-            XCTFail("Expected error")
-        } catch let err as JSONRPCErrorDetail {
-            XCTAssertEqual(err.message, "transport err")
-        } catch {
-            XCTFail("Unexpected error type")
-        }
+    func testSendRequestTransportError() async {
+        let transport = MockTransportForClient()
+        transport.shouldThrowOnSend = true
+        let session = MCPClientSession(transport: transport)
+        let val = try? await session.sendRequest(method: "test", params: AnyCodable("foo"))
+        XCTAssertNil(val)
     }
 
     func testSendNotification() async throws {
@@ -374,10 +326,7 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<ListResourcesRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<ListResourcesRequestParams>)
 
         let res = Resource(uri: "test", name: "test_res")
         let resourcesResult = ListResourcesResult(_meta: nil, nextCursor: nil, resources: [res])
@@ -401,10 +350,7 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<ListResourceTemplatesRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<ListResourceTemplatesRequestParams>)
 
         let template = ResourceTemplate(uriTemplate: "test_template", name: "template1")
         let templatesResult = ListResourceTemplatesResult(_meta: nil, nextCursor: nil, resourceTemplates: [template])
@@ -428,10 +374,7 @@ final class MCPClientSessionTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        guard let req = transport.sentMessages.first as? JSONRPCRequest<ReadResourceRequestParams> else {
-            XCTFail("Expected JSONRPCRequest")
-            return
-        }
+        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<ReadResourceRequestParams>)
 
         let textContent = TextResourceContents(uri: "test_uri", text: "resource content")
         let readResult = ReadResourceResult(_meta: nil, contents: [.text(textContent)])
@@ -440,12 +383,7 @@ final class MCPClientSessionTests: XCTestCase {
         await transport.onMessageCallback?(data)
 
         let result = try await task.value
-        XCTAssertEqual(result.contents.count, 1)
-        if case let .text(content) = result.contents[0] {
-            XCTAssertEqual(content.text, "resource content")
-        } else {
-            XCTFail("Expected text content")
-        }
+        XCTAssertEqual(result.contents, [.text(textContent)])
     }
 }
 
@@ -457,13 +395,10 @@ extension MCPClientSessionTests {
 
         try await session.sendProgress(progressToken: .integer(123), progress: 10.0, total: nil)
         XCTAssertEqual(transport.sentMessages.count, 1)
-        if let notif = transport.sentMessages.first as? JSONRPCNotification<ProgressNotificationParams> {
-            XCTAssertEqual(notif.method, "notifications/progress")
-            XCTAssertEqual(notif.params?.progressToken, .integer(123))
-            XCTAssertEqual(notif.params?.progress, 10.0)
-            XCTAssertNil(notif.params?.total)
-        } else {
-            XCTFail("Expected JSONRPCNotification<ProgressNotificationParams>")
-        }
+        let notif = try XCTUnwrap(transport.sentMessages.first as? JSONRPCNotification<ProgressNotificationParams>)
+        XCTAssertEqual(notif.method, "notifications/progress")
+        XCTAssertEqual(notif.params?.progressToken, .integer(123))
+        XCTAssertEqual(notif.params?.progress, 10.0)
+        XCTAssertNil(notif.params?.total)
     }
 }

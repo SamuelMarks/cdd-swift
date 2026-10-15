@@ -1,0 +1,81 @@
+import Foundation
+
+/// Extracts the trailing identifier from an OpenAPI `$ref` pointer (e.g., `"#/components/schemas/User"` -> `"User"`).
+///
+/// - Parameter ref: The `$ref` string.
+/// - Returns: The trailing component after the last `"/"`, or `ref` if no `"/"` is present.
+public func lastPathSegment(_ ref: String) -> String {
+    let parts = ref.components(separatedBy: "/")
+    return parts[parts.count - 1]
+}
+
+/// A unified, strongly-typed error enumeration representing all failure modes across `CDDSwift` and `cdd-swift-cli`.
+public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError, Sendable {
+    /// Indicates that an OpenAPI or JSON-RPC payload is not valid JSON.
+    case invalidJSON(String)
+    /// Indicates that encoding a string or payload to UTF-8 data failed.
+    case utf8EncodingFailed
+    /// Indicates that decoding a file at the given path as UTF-8 failed.
+    case utf8DecodingFailed(path: String)
+    /// Indicates a POSIX or file system I/O failure.
+    case fileIOError(path: String, operation: String, errno: Int32, message: String)
+    /// Indicates that a required CLI or tool argument was not provided.
+    case missingRequiredArgument(String)
+    /// Indicates that a URL string could not be parsed as a valid URL.
+    case invalidURL(String)
+    /// Indicates an unsupported OpenAPI schema construct.
+    case unsupportedSchemaConstruct(String)
+    /// Indicates an unresolvable or malformed `$ref` pointer.
+    case invalidReference(String)
+    /// Indicates a failure while parsing Swift syntax into an OpenAPI AST.
+    case astParsingFailed(String)
+    /// Indicates a failure while emitting Swift source code.
+    case codeGenerationFailed(String)
+    /// Indicates an error in the Model Context Protocol (MCP) transport layer.
+    case mcpTransportError(String)
+    /// Indicates a JSON-RPC protocol error with a numeric code and message.
+    case jsonRpcError(code: Int, message: String)
+    /// Indicates that launching an external process failed.
+    case processExecutionFailed(executable: String, message: String)
+    /// Indicates that a value failed schema validation constraints.
+    case validationFailed(field: String, reason: String)
+
+    /// A human-readable description of the error.
+    public var description: String {
+        switch self {
+        case let .invalidJSON(reason):
+            return "Invalid JSON: \(reason)"
+        case .utf8EncodingFailed:
+            return "Failed to encode string as UTF-8 data."
+        case let .utf8DecodingFailed(path):
+            return "Could not decode file at \(path) as UTF-8."
+        case let .fileIOError(path, operation, code, message):
+            return "File I/O error during \(operation) at \(path) (errno \(code)): \(message)"
+        case let .missingRequiredArgument(arg):
+            return "Missing required argument: \(arg)"
+        case let .invalidURL(url):
+            return "Invalid URL: \(url)"
+        case let .unsupportedSchemaConstruct(detail):
+            return "Unsupported schema construct: \(detail)"
+        case let .invalidReference(ref):
+            return "Invalid reference: \(ref)"
+        case let .astParsingFailed(detail):
+            return "AST parsing failed: \(detail)"
+        case let .codeGenerationFailed(detail):
+            return "Code generation failed: \(detail)"
+        case let .mcpTransportError(detail):
+            return "MCP transport error: \(detail)"
+        case let .jsonRpcError(code, message):
+            return "JSON-RPC error (\(code)): \(message)"
+        case let .processExecutionFailed(executable, message):
+            return "Process execution failed for \(executable): \(message)"
+        case let .validationFailed(field, reason):
+            return "Validation failed for '\(field)': \(reason)"
+        }
+    }
+
+    /// The localized description of the error for `LocalizedError` conformance.
+    public var errorDescription: String? {
+        return description
+    }
+}

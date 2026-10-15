@@ -35,7 +35,7 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
                             let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
                             let safePName = pName.replacingOccurrences(of: "-", with: "_")
                             // The mapped Swift type for the parameter.
-                            let type = param.schema != nil ? mapType(schema: param.schema!) : "String"
+                            let type = param.schema.map { mapType(schema: $0) } ?? "String"
                             // Whether the parameter is required.
                             let isRequired = param.required ?? false
                             // Suffix for optional parameters.

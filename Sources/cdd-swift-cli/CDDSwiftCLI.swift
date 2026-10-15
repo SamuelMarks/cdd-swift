@@ -8,7 +8,9 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     static func buildArgs(from arguments: [String], env: [String: String]) -> [String] {
         var args = arguments
         for (key, value) in env where key.hasPrefix("CDD_") {
-            if key == "CDD_COMMAND" || key == "CDD_ARGS" { continue }
+            if key == "CDD_COMMAND" || key == "CDD_ARGS" {
+                continue
+            }
             let argName = key.dropFirst("CDD_".count).lowercased().replacingOccurrences(of: "_", with: "-")
             let flag = "--\(argName)"
             if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
@@ -122,7 +124,12 @@ struct ToOpenAPI: AsyncParsableCommand {
                     }
                 }
             } else {
-                throw NSError(domain: "ToOpenAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Input file or directory not found: \(inputPath)"])
+                throw CDDError.fileIOError(
+                    path: inputPath,
+                    operation: "read",
+                    errno: 2,
+                    message: "Input file or directory not found: \(inputPath)"
+                )
             }
         }
 
@@ -261,14 +268,19 @@ struct SyncOpenAPI: AsyncParsableCommand {
                     }
                 }
             } else {
-                throw NSError(domain: "SyncOpenAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Input file or directory not found: \(inputPath)"])
+                throw CDDError.fileIOError(
+                    path: inputPath,
+                    operation: "read",
+                    errno: 2,
+                    message: "Input file or directory not found: \(inputPath)"
+                )
             }
         }
 
         let document = try parser.parseDocument(from: sourceCode)
 
         // Read existing spec if it exists to preserve non-code synced data
-        var existingDocument: OpenAPIDocument? = nil
+        var existingDocument: OpenAPIDocument?
         if WASIFileHelpers.fileExists(at: outputPath) {
             let existingJSON = try WASIFileHelpers.readString(at: outputPath)
             existingDocument = try? OpenAPIParser.parse(json: existingJSON)

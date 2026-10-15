@@ -2,15 +2,21 @@ import Foundation
 
 /// Helper to map OpenAPI type to Vapor/Fluent field property wrapper
 func mapFluentFieldType(schema: Schema) -> String {
-    if let _ = schema.ref ?? schema.dynamicRef {
+    if schema.ref != nil || schema.dynamicRef != nil {
         // Use String instead of UUID to prevent type casting issues dynamically
         return "String"
     }
     switch schema.type {
     case "string":
-        if schema.format == "date-time" { return "Date" }
-        if schema.format == "uuid" { return "UUID" }
-        if schema.format == "binary" { return "Data" }
+        if schema.format == "date-time" {
+            return "Date"
+        }
+        if schema.format == "uuid" {
+            return "UUID"
+        }
+        if schema.format == "binary" {
+            return "Data"
+        }
         return "String"
     case "integer": return schema.format == "int64" ? "Int64" : "Int"
     case "number": return schema.format == "float" ? "Float" : "Double"
@@ -30,8 +36,12 @@ func mapFakeryInitializer(schema: Schema) -> String {
     }
     switch schema.type {
     case "string":
-        if schema.format == "date-time" { return "Date()" }
-        if schema.format == "uuid" { return "UUID()" }
+        if schema.format == "date-time" {
+            return "Date()"
+        }
+        if schema.format == "uuid" {
+            return "UUID()"
+        }
         return "faker.name.name()"
     case "integer": return schema.format == "int64" ? "Int64(faker.number.randomInt())" : "faker.number.randomInt()"
     case "number": return schema.format == "float" ? "Float(faker.number.randomDouble())" : "faker.number.randomDouble()"
@@ -40,10 +50,6 @@ func mapFakeryInitializer(schema: Schema) -> String {
     default: return "\"\""
     }
 }
-
-import Foundation
-
-/// Emits a Swift server stub (e.g., using Vapor) from an OpenAPI Document.
 
 /// Emits Swift server stub files (e.g., using Vapor) from an OpenAPI Document.
 public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false) -> [String: String] {
@@ -61,7 +67,7 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
     }
 
     if testsMocks, !schemas.isEmpty {
-        files["Mocks/DatabaseSeeder.swift"] = """
+        var seederContent = """
         import Vapor
         import Fluent
         import Fakery
@@ -73,17 +79,20 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
                 let faker = Faker()
         """
         for (schemaName, schema) in sortedSchemas {
-            files["Mocks/DatabaseSeeder.swift"]! += "\n                for _ in 0..<10 {\n                    let item = Fluent\(schemaName)()\n"
+            seederContent += "\n                for _ in 0..<10 {\n                    let item = Fluent\(schemaName)()\n"
             if let properties = schema.properties {
                 for (propName, propSchema) in properties {
-                    if propName.lowercased() == "id" { continue }
+                    if propName.lowercased() == "id" {
+                        continue
+                    }
                     let initVal = mapFakeryInitializer(schema: propSchema)
-                    files["Mocks/DatabaseSeeder.swift"]! += "                    item.\(propName) = \(initVal)\n"
+                    seederContent += "                    item.\(propName) = \(initVal)\n"
                 }
             }
-            files["Mocks/DatabaseSeeder.swift"]! += "                    try await item.create(on: db)\n                }\n"
+            seederContent += "                    try await item.create(on: db)\n                }\n"
         }
-        files["Mocks/DatabaseSeeder.swift"]! += "            }\n        }\n"
+        seederContent += "            }\n        }\n"
+        files["Mocks/DatabaseSeeder.swift"] = seederContent
 
         for (schemaName, schema) in sortedSchemas {
             var fluentOutput = """
@@ -100,7 +109,9 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
 
             if let properties = schema.properties {
                 for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) {
-                    if propName.lowercased() == "id" { continue }
+                    if propName.lowercased() == "id" {
+                        continue
+                    }
                     let swiftType = mapFluentFieldType(schema: propSchema)
                     let isRequired = schema.required?.contains(propName) ?? false
                     if isRequired {
@@ -119,7 +130,7 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
                 /// Maps Fluent model properties to Codable struct.
                 public func toModel() throws -> \(schemaName) {
                     let data = "{}"
-                    return try JSONDecoder().decode(\(schemaName).self, from: data.data(using: .utf8)!)
+                    return try JSONDecoder().decode(\(schemaName).self, from: Data(data.utf8))
                 }
             }
             """
@@ -195,7 +206,9 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
 
             if let properties = schema.properties {
                 for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) {
-                    if propName.lowercased() == "id" { continue }
+                    if propName.lowercased() == "id" {
+                        continue
+                    }
                     let swiftType = mapFluentFieldType(schema: propSchema)
                     let isRequired = schema.required?.contains(propName) ?? false
                     let fieldType: String
@@ -232,7 +245,9 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
     }
 
     var routesOutput = "import Vapor\n"
-    if testsMocks { routesOutput += "import Fluent\n" }
+    if testsMocks {
+        routesOutput += "import Fluent\n"
+    }
     routesOutput += """
 
     /// Registers routes to the Vapor application.
@@ -304,7 +319,7 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
                        let schema = content["application/json"]?.schema
                     {
                         if schema.type == "array", let items = schema.items, let ref = items.ref {
-                            let returnType = ref.components(separatedBy: "/").last!
+                            let returnType = lastPathSegment(ref)
                             if schemas.keys.contains(returnType) {
                                 routesOutput += "\n        let results = try await _\(returnType.lowercased())DAO.getAll()\n"
                                 routesOutput += "        var res = Response(status: .ok)\n"
@@ -313,7 +328,7 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
                                 wired = true
                             }
                         } else if let ref = schema.ref ?? schema.dynamicRef {
-                            let returnType = ref.components(separatedBy: "/").last!
+                            let returnType = lastPathSegment(ref)
                             if schemas.keys.contains(returnType) {
                                 routesOutput += "\n        let result = try await _\(returnType.lowercased())DAO.getAll().first\n"
                                 routesOutput += "        if let result = result {\n"
@@ -364,7 +379,9 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
     files["Routes/Routes.swift"] = routesOutput
 
     var entrypointOutput = "import Vapor\n"
-    if testsMocks { entrypointOutput += "import Fluent\nimport FluentSQLiteDriver\n" }
+    if testsMocks {
+        entrypointOutput += "import Fluent\nimport FluentSQLiteDriver\n"
+    }
     entrypointOutput += """
 
     /// The main entrypoint for the generated Vapor application.
@@ -448,13 +465,12 @@ public func emitServerFiles(document: OpenAPIDocument, testsMocks: Bool = false)
 /// Emits a Swift server stub (e.g., using Vapor) from an OpenAPI Document.
 public func emitServer(document: OpenAPIDocument, testsMocks: Bool = false) -> String {
     let files = emitServerFiles(document: document, testsMocks: testsMocks)
-    let sortedKeys = files.keys.sorted()
     var output = ""
-    for key in sortedKeys {
+    for (_, content) in files.sorted(by: { $0.key < $1.key }) {
         if output.isEmpty {
-            output = files[key]!
+            output = content
         } else {
-            output += "\n\n" + files[key]!
+            output += "\n\n" + content
         }
     }
     return output

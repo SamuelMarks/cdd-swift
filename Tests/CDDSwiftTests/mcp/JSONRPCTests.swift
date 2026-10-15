@@ -20,7 +20,7 @@ final class JSONRPCTests: XCTestCase {
     }
 
     func testJSONRPCIdInvalid() {
-        let data = "true".data(using: .utf8)!
+        let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(JSONRPCId.self, from: data))
     }

@@ -272,15 +272,15 @@ public struct PathItem: Codable, Equatable {
     /// The `delete` property.
     public var delete: Operation?
     /// The `options` property.
-    public let options: Operation?
+    public var options: Operation?
     /// The `head` property.
-    public let head: Operation?
+    public var head: Operation?
     /// The `patch` property.
     public var patch: Operation?
     /// The `trace` property.
-    public let trace: Operation?
+    public var trace: Operation?
     /// The `query` property.
-    public let query: Operation?
+    public var query: Operation?
     /// The `additionalOperations` property.
     public let additionalOperations: [String: Operation]?
     /// The `servers` property.
