@@ -23,9 +23,9 @@ final class FaultyInputStream: InputStream {
     }
 }
 
-final class MCPStdioTransportTests: XCTestCase {
-    private static let noopHandler: @Sendable (Data) async -> Void = { _ in }
+@Sendable private func noopStdioHandler(_: Data) async {}
 
+final class MCPStdioTransportTests: XCTestCase {
     func testConvenienceInit() {
         let transport = MCPStdioTransport()
         XCTAssertNotNil(transport)
@@ -68,11 +68,11 @@ final class MCPStdioTransportTests: XCTestCase {
     }
 
     func testStartTwice() async throws {
-        await Self.noopHandler(Data())
+        await noopStdioHandler(Data())
         let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
-        _ = Task { try await transport.start(onMessage: Self.noopHandler) }
+        _ = Task { try await transport.start(onMessage: noopStdioHandler) }
         try await Task.sleep(nanoseconds: 10_000_000)
-        _ = Task { try await transport.start(onMessage: Self.noopHandler) }
+        _ = Task { try await transport.start(onMessage: noopStdioHandler) }
         try await Task.sleep(nanoseconds: 10_000_000)
         try await transport.close()
     }
@@ -105,7 +105,7 @@ final class MCPStdioTransportTests: XCTestCase {
     func testStartReadError() async throws {
         let transport = MCPStdioTransport(inputStream: FaultyInputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
         let task = Task {
-            try await transport.start(onMessage: Self.noopHandler)
+            try await transport.start(onMessage: noopStdioHandler)
         }
         try await Task.sleep(nanoseconds: 50_000_000)
         task.cancel()
