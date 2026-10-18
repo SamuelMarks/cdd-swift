@@ -39,6 +39,16 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
     case processExecutionFailed(executable: String, message: String)
     /// Indicates that a value failed schema validation constraints.
     case validationFailed(field: String, reason: String)
+    /// Indicates an Arazzo specification validation error.
+    case arazzoValidationError(String)
+    /// Indicates an error evaluating an Arazzo runtime expression.
+    case arazzoExpressionEvaluationError(expression: String, context: String)
+    /// Indicates that an Arazzo workflow step execution failed.
+    case arazzoStepExecutionFailed(stepId: String, reason: String)
+    /// Indicates that an Arazzo workflow identifier could not be found.
+    case arazzoWorkflowNotFound(String)
+    /// Indicates a circular dependency in workflow or step dependencies.
+    case arazzoCircularDependency(workflowId: String)
 
     /// A human-readable description of the error.
     public var description: String {
@@ -71,6 +81,16 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
             return "Process execution failed for \(executable): \(message)"
         case let .validationFailed(field, reason):
             return "Validation failed for '\(field)': \(reason)"
+        case let .arazzoValidationError(message):
+            return "Arazzo validation error: \(message)"
+        case let .arazzoExpressionEvaluationError(expression, context):
+            return "Arazzo expression evaluation error for '\(expression)' in context '\(context)'"
+        case let .arazzoStepExecutionFailed(stepId, reason):
+            return "Arazzo step execution failed for '\(stepId)': \(reason)"
+        case let .arazzoWorkflowNotFound(workflowId):
+            return "Arazzo workflow not found: '\(workflowId)'"
+        case let .arazzoCircularDependency(workflowId):
+            return "Arazzo circular dependency detected involving workflow '\(workflowId)'"
         }
     }
 

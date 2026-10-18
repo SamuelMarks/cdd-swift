@@ -376,7 +376,7 @@ public struct Operation: Codable, Equatable {
 // MARK: - External Documentation Object
 
 /// The `ExternalDocumentation` property.
-public struct ExternalDocumentation: Codable, Equatable {
+public struct ExternalDocumentation: Codable, Equatable, Sendable {
     /// The `description` property.
     public let description: String?
     /// The `url` property.
@@ -930,7 +930,7 @@ public struct OAuthFlow: Codable, Equatable {
 // MARK: - Schema Object
 
 /// The `Schema` property.
-public struct Schema: Codable, Equatable {
+public struct Schema: Codable, Equatable, Sendable {
     // Basic types
     /// The `type` property.
     public let type: String?
@@ -1228,7 +1228,7 @@ public struct Schema: Codable, Equatable {
 // MARK: - Discriminator Object
 
 /// The `Discriminator` property.
-public struct Discriminator: Codable, Equatable {
+public struct Discriminator: Codable, Equatable, Sendable {
     /// The `propertyName` property.
     public let propertyName: String
     /// The `mapping` property.
@@ -1247,7 +1247,7 @@ public struct Discriminator: Codable, Equatable {
 // MARK: - XML Object
 
 /// The `XML` property.
-public struct XML: Codable, Equatable {
+public struct XML: Codable, Equatable, Sendable {
     /// The `name` property.
     public let name: String?
     /// The `namespace` property.
@@ -1275,7 +1275,7 @@ public struct XML: Codable, Equatable {
 // MARK: - Schema Item Object
 
 /// The `SchemaItem` property.
-public struct SchemaItem: Codable, Equatable {
+public struct SchemaItem: Codable, Equatable, Sendable {
     /// The `type` property.
     public let type: String?
     /// The `ref` property.

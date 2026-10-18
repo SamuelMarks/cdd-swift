@@ -44,12 +44,20 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "cdd-swift",
         abstract: "A utility to convert between OpenAPI and Swift.",
-        version: "0.0.3",
+        version: "0.0.4",
         subcommands: {
             #if os(WASI)
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, MCPServe.self, SyncOpenAPI.self]
+                return [
+                    FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self,
+                    ToDocsJson.self, MCPServe.self, SyncOpenAPI.self,
+                    FromArazzo.self, ToArazzo.self, GenerateArazzo.self, SyncArazzo.self
+                ]
             #else
-                return [FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self, ToDocsJson.self, ServeJsonRpc.self, MCPServe.self, SyncOpenAPI.self]
+                return [
+                    FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self,
+                    ToDocsJson.self, ServeJsonRpc.self, MCPServe.self, SyncOpenAPI.self,
+                    FromArazzo.self, ToArazzo.self, GenerateArazzo.self, SyncArazzo.self
+                ]
             #endif
         }()
     )
@@ -165,7 +173,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
 
     mutating func run() async throws {
         /// Documentation for builder
-        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.3")
+        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.4")
             .addPath("/users", item: PathItem(
                 get: Operation(
                     summary: "Get all users",
@@ -225,6 +233,47 @@ public enum CDDCLI {
 
     public static func syncOpenApi(_ args: [String]) async throws {
         var commandArgs = ["sync"]
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
+    /// Programmatically invokes the `from_arazzo` subcommand group.
+    ///
+    /// - Parameters:
+    ///   - subcommand: Optional target subcommand (`to_sdk`, `to_sdk_cli`, `to_test`, `to_server`).
+    ///   - args: CLI arguments passed to the subcommand.
+    public static func generateFromArazzo(subcommand: String? = nil, _ args: [String]) async throws {
+        var commandArgs = ["from_arazzo"]
+        if let subcommand = subcommand {
+            commandArgs.append(subcommand)
+        }
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
+    /// Programmatically invokes the `to_arazzo` subcommand.
+    ///
+    /// - Parameter args: CLI arguments passed to `to_arazzo`.
+    public static func generateToArazzo(_ args: [String]) async throws {
+        var commandArgs = ["to_arazzo"]
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
+    /// Programmatically invokes the `generate_arazzo` subcommand.
+    ///
+    /// - Parameter args: CLI arguments passed to `generate_arazzo`.
+    public static func generateArazzo(_ args: [String]) async throws {
+        var commandArgs = ["generate_arazzo"]
+        commandArgs.append(contentsOf: args)
+        await CDDSwiftCLI.main(commandArgs)
+    }
+
+    /// Programmatically invokes the `sync_arazzo` subcommand.
+    ///
+    /// - Parameter args: CLI arguments passed to `sync_arazzo`.
+    public static func syncArazzo(_ args: [String]) async throws {
+        var commandArgs = ["sync_arazzo"]
         commandArgs.append(contentsOf: args)
         await CDDSwiftCLI.main(commandArgs)
     }
