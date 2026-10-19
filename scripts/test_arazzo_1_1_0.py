@@ -29,20 +29,87 @@ def main() -> int:
         run_cmd(["swift", "run", "cdd-swift", "generate_arazzo", "-o", spec_path])
         assert os.path.exists(spec_path), "Generated Arazzo JSON missing"
 
-        run_cmd(["swift", "run", "cdd-swift", "from_arazzo", "to_sdk", "-i", spec_path, "-o", sdk_dir, "--no-installable-package"])
+        run_cmd(
+            [
+                "swift",
+                "run",
+                "cdd-swift",
+                "from_arazzo",
+                "to_sdk",
+                "-i",
+                spec_path,
+                "-o",
+                sdk_dir,
+                "--no-installable-package",
+            ]
+        )
         sdk_file = os.path.join(sdk_dir, "WorkflowsClient.swift")
         assert os.path.exists(sdk_file), "Generated WorkflowsClient.swift missing"
 
-        run_cmd(["swift", "run", "cdd-swift", "from_arazzo", "to_sdk_cli", "-i", spec_path, "-o", cli_dir, "--no-installable-package"])
-        assert os.path.exists(os.path.join(cli_dir, "WorkflowCLI.swift")), "Generated WorkflowCLI.swift missing"
+        run_cmd(
+            [
+                "swift",
+                "run",
+                "cdd-swift",
+                "from_arazzo",
+                "to_sdk_cli",
+                "-i",
+                spec_path,
+                "-o",
+                cli_dir,
+                "--no-installable-package",
+            ]
+        )
+        assert os.path.exists(os.path.join(cli_dir, "WorkflowCLI.swift")), (
+            "Generated WorkflowCLI.swift missing"
+        )
 
-        run_cmd(["swift", "run", "cdd-swift", "from_arazzo", "to_test", "-i", spec_path, "-o", test_dir])
-        assert os.path.exists(os.path.join(test_dir, "GeneratedArazzoWorkflowTests.swift")), "Generated test suite missing"
+        run_cmd(
+            [
+                "swift",
+                "run",
+                "cdd-swift",
+                "from_arazzo",
+                "to_test",
+                "-i",
+                spec_path,
+                "-o",
+                test_dir,
+            ]
+        )
+        assert os.path.exists(
+            os.path.join(test_dir, "GeneratedArazzoWorkflowTests.swift")
+        ), "Generated test suite missing"
 
-        run_cmd(["swift", "run", "cdd-swift", "from_arazzo", "to_server", "-i", spec_path, "-o", server_dir])
-        assert os.path.exists(os.path.join(server_dir, "ServerWorkflowOrchestrator.swift")), "Generated server orchestrator missing"
+        run_cmd(
+            [
+                "swift",
+                "run",
+                "cdd-swift",
+                "from_arazzo",
+                "to_server",
+                "-i",
+                spec_path,
+                "-o",
+                server_dir,
+            ]
+        )
+        assert os.path.exists(
+            os.path.join(server_dir, "ServerWorkflowOrchestrator.swift")
+        ), "Generated server orchestrator missing"
 
-        run_cmd(["swift", "run", "cdd-swift", "to_arazzo", "-i", sdk_file, "-o", roundtrip_path])
+        run_cmd(
+            [
+                "swift",
+                "run",
+                "cdd-swift",
+                "to_arazzo",
+                "-i",
+                sdk_file,
+                "-o",
+                roundtrip_path,
+            ]
+        )
         with open(roundtrip_path, "r", encoding="utf-8") as f:
             roundtrip = json.load(f)
         assert roundtrip.get("arazzo") == "1.1.0", "Expected Arazzo 1.1.0 version"

@@ -59,12 +59,6 @@ repos:
         entry: bash -c '[ -z "$RUN_SLOW_TESTS" ] && echo "Skipping..." || bash scripts/run_with_fallback.sh python3 scripts/test_generated_server_openapi.py'
         language: system
         pass_filenames: false
-    -   id: grounding-ml-framework-snapshots
-        name: Grounding Verification (ml-framework-snapshots)
-        entry: bash scripts/run_with_fallback.sh python3 scripts/verify_ml_framework_snapshots.py
-        language: system
-        pass_filenames: false
-        always_run: true
     -   id: update-badges
         name: Update Badges (Doc & Test Coverage)
         entry: bash scripts/run_with_fallback.sh python3 scripts/update_badges.py

@@ -4,7 +4,9 @@ setlocal enabledelayedexpansion
 if "%1"=="" goto help
 if "%1"=="install_base" goto install_base
 if "%1"=="install_deps" goto install_deps
+if "%1"=="deps" goto install_deps
 if "%1"=="docs" goto docs
+if "%1"=="build_docs" goto docs
 if "%1"=="build" goto build
 if "%1"=="build_wasm" goto build_wasm
 if "%1"=="build_docker" goto build_docker
