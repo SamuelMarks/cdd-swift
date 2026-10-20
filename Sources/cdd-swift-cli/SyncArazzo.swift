@@ -1,3 +1,4 @@
+/// CLI command for bidirectionally synchronizing Swift workflow classes and Arazzo 1.1.0 specifications.
 import ArgumentParser
 import CDDSwift
 import Foundation

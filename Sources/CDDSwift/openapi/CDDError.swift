@@ -1,3 +1,4 @@
+/// Unified error domain and `$ref` helper utilities for `CDDSwift` and `cdd-swift-cli`.
 import Foundation
 
 /// Extracts the trailing identifier from an OpenAPI `$ref` pointer (e.g., `"#/components/schemas/User"` -> `"User"`).
@@ -49,6 +50,20 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
     case arazzoWorkflowNotFound(String)
     /// Indicates a circular dependency in workflow or step dependencies.
     case arazzoCircularDependency(workflowId: String)
+    /// Indicates a structured file system failure with an operation, path, and POSIX errno code.
+    case fileSystemError(operation: String, path: String, errnoCode: Int32)
+    /// Indicates that a CLI or subprocess command execution failed.
+    case commandExecutionFailed(command: String, reason: String)
+    /// Indicates an unsupported OpenAPI, Swagger, or Arazzo specification version.
+    case unsupportedSpecificationVersion(spec: String, version: String)
+    /// Indicates that a requested Model Context Protocol tool does not exist.
+    case mcpToolNotFound(name: String)
+    /// Indicates that a requested Model Context Protocol resource URI does not exist.
+    case mcpResourceNotFound(uri: String)
+    /// Indicates that encoding a model to JSON failed.
+    case jsonEncodingFailed(reason: String)
+    /// Indicates that decoding a model from JSON failed.
+    case jsonDecodingFailed(reason: String)
 
     /// A human-readable description of the error.
     public var description: String {
@@ -91,6 +106,20 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
             return "Arazzo workflow not found: '\(workflowId)'"
         case let .arazzoCircularDependency(workflowId):
             return "Arazzo circular dependency detected involving workflow '\(workflowId)'"
+        case let .fileSystemError(operation, path, errnoCode):
+            return "File system error during \(operation) at '\(path)' (errno \(errnoCode))"
+        case let .commandExecutionFailed(command, reason):
+            return "Command '\(command)' failed: \(reason)"
+        case let .unsupportedSpecificationVersion(spec, version):
+            return "Unsupported \(spec) specification version: \(version)"
+        case let .mcpToolNotFound(name):
+            return "Unknown MCP tool: '\(name)'"
+        case let .mcpResourceNotFound(uri):
+            return "Unknown MCP resource URI: '\(uri)'"
+        case let .jsonEncodingFailed(reason):
+            return "JSON encoding failed: \(reason)"
+        case let .jsonDecodingFailed(reason):
+            return "JSON decoding failed: \(reason)"
         }
     }
 

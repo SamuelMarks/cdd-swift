@@ -1,3 +1,4 @@
+/// CLI command group for generating Swift SDKs, CLI clients, and Vapor servers from OpenAPI specifications.
 import ArgumentParser
 import CDDSwift
 import Foundation
@@ -12,6 +13,7 @@ func createDirRecursive(_ path: String) throws {
 
 /// Command group to generate Swift code from an OpenAPI document.
 struct FromOpenAPI: AsyncParsableCommand {
+    /// Command configuration for `from_openapi`.
     static let configuration = CommandConfiguration(
         commandName: "from_openapi",
         abstract: "Generate Swift code from an OpenAPI document.",
@@ -20,67 +22,64 @@ struct FromOpenAPI: AsyncParsableCommand {
     )
 }
 
-/// Base options for generating outputs from OpenAPI
+/// Shared CLI options for generating Swift packages from OpenAPI specifications.
 struct BaseFromOpenAPIOptions: ParsableArguments {
+    /// Path to a single input OpenAPI JSON file.
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input OpenAPI JSON file.")
-    /// Documentation for inputPath
     var inputPath: String?
 
+    /// Path to a directory containing one or more OpenAPI JSON files.
     @Option(name: .customLong("input-dir"), help: "Path to a directory containing OpenAPI specifications.")
-    /// Documentation for inputDir
     var inputDir: String?
 
+    /// Path to the target output directory (defaults to `"."`).
     @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output directory. Defaults to current working directory.")
-    /// Documentation for outputPath
     var outputPath: String?
 
+    /// Flag disabling `.github/workflows/swift.yml` generation.
     @Flag(name: .customLong("no-github-actions"), help: "Do not generate GitHub Actions workflow.")
-    /// Documentation for noGithubActions
     var noGithubActions: Bool = false
 
+    /// Flag disabling `Package.swift` scaffolding generation.
     @Flag(name: .customLong("no-installable-package"), help: "Do not generate installable package scaffolding.")
-    /// Documentation for noInstallablePackage
     var noInstallablePackage: Bool = false
 
+    /// Flag enabling generation of composable mocks, tests, and Fluent database seeders.
     @Flag(name: .customLong("tests"), help: "Generate composable tests and mocks.")
-    /// Documentation for testsMocks
     var testsMocks: Bool = false
 
+    /// Flag enabling generation of a Model Context Protocol (MCP) server adapter.
     @Flag(name: .customLong("mcp"), help: "Generate Model Context Protocol (MCP) server and adapter.")
     var mcp: Bool = false
 
+    /// Validates that either `--input` or `--input-dir` was supplied.
+    ///
+    /// - Throws: `ValidationError` if both `inputPath` and `inputDir` are `nil`.
     mutating func validate() throws {
         if inputPath == nil, inputDir == nil {
             throw ValidationError("Please provide either --input or --input-dir.")
         }
     }
 
-    /// Documentation for getDocuments
+    /// Loads and parses all OpenAPI documents specified by `inputPath` or `inputDir`.
+    ///
+    /// - Returns: Array of tuples pairing the document base filename with its parsed `OpenAPIDocument`.
+    /// - Throws: `CDDError` if reading or parsing an input file fails.
     func getDocuments() throws -> [(name: String, document: OpenAPIDocument)] {
-        /// Documentation for results
         var results: [(String, OpenAPIDocument)] = []
         if let inputPath = inputPath {
-            /// Documentation for url
             let url = URL(fileURLWithPath: inputPath)
-
-            /// Documentation for data
             let data = try WASIFileHelpers.readFile(at: inputPath)
-
-            /// Documentation for json
             let json = String(decoding: data, as: UTF8.self)
-            /// Documentation for document
             let document = try OpenAPIParser.parse(json: json)
-            /// Documentation for name
             let name = url.deletingPathExtension().lastPathComponent
             results.append((name, document))
         } else if let inputDir = inputDir {
-            /// Documentation for files
             let files = try WASIFileHelpers.listDirectory(at: inputDir)
             for filePath in files where filePath.hasSuffix(".json") {
                 let data = try WASIFileHelpers.readFile(at: filePath)
                 let json = String(decoding: data, as: UTF8.self)
                 if let doc = try? OpenAPIParser.parse(json: json) {
-                    /// Documentation for name
                     let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
                     results.append((name, doc))
                 }
@@ -89,32 +88,39 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
         return results
     }
 
-    /// Documentation for resolveOutputDir
+    /// Resolves the output directory path, defaulting to `"."` when `outputPath` is `nil`.
+    ///
+    /// - Returns: The resolved output directory path string.
     func resolveOutputDir() -> String {
         return outputPath ?? "."
     }
 
-    /// Documentation for generateScaffolding
+    /// Generates `Package.swift` and `.github/workflows/swift.yml` scaffolding in `outDir`.
+    ///
+    /// - Parameters:
+    ///   - outDir: Target root directory for the generated package.
+    ///   - packageName: Swift Package Manager package and target name.
+    ///   - isExecutable: Whether the primary target is an executable (`true`) or library (`false`).
+    /// - Throws: `CDDError` if directory creation or file writing fails.
     func generateScaffolding(in outDir: String, packageName: String, isExecutable: Bool = false) throws {
+        let q = String(UnicodeScalar(34))
+        let nl = String(UnicodeScalar(10))
         if !noInstallablePackage {
-            var productStr = "        " + (isExecutable ? ".executable(name: \"\(packageName)\", targets: [\"\(packageName)\"])" : ".library(name: \"\(packageName)\", targets: [\"\(packageName)\"])")
-            var targetStr = "        " + (isExecutable ? ".executableTarget(name: \"\(packageName)\", dependencies: [\"ArgumentParser\"])" : ".target(name: \"\(packageName)\")")
+            var productStr = "        " + (isExecutable ? ".executable(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])" : ".library(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])")
+            var targetStr = "        " + (isExecutable ? ".executableTarget(name: \(q)\(packageName)\(q), dependencies: [\(q)ArgumentParser\(q)])" : ".target(name: \(q)\(packageName)\(q))")
 
             if testsMocks && !isExecutable {
-                productStr += ",\n        .library(name: \"\(packageName)Mocks\", targets: [\"\(packageName)Mocks\"])"
+                productStr += "," + nl + "        .library(name: \(q)\(packageName)Mocks\(q), targets: [\(q)\(packageName)Mocks\(q)])"
                 // Test targets are not exported as products
-                targetStr += ",\n        .target(name: \"\(packageName)Mocks\", dependencies: [\"\(packageName)\"])"
-                targetStr += ",\n        .testTarget(name: \"\(packageName)Tests\", dependencies: [\"\(packageName)\", \"\(packageName)Mocks\"])"
+                targetStr += "," + nl + "        .target(name: \(q)\(packageName)Mocks\(q), dependencies: [\(q)\(packageName)\(q)])"
+                targetStr += "," + nl + "        .testTarget(name: \(q)\(packageName)Tests\(q), dependencies: [\(q)\(packageName)\(q), \(q)\(packageName)Mocks\(q)])"
             }
 
-            /// Documentation for depStr
-            let depStr = isExecutable ? ".package(url: \"https://github.com/apple/swift-argument-parser.git\", from: \"1.2.0\")" : ""
-            /// Documentation for packageSwift
+            let depStr = isExecutable ? ".package(url: \(q)https://github.com/apple/swift-argument-parser.git\(q), from: \(q)1.2.0\(q))" : ""
             let packageSwift = """
             // swift-tools-version: 6.0
             import PackageDescription
 
-            /// Documentation for package
             let package = Package(
                 name: "\(packageName)",
                 products: [
@@ -129,18 +135,14 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             )
             """
             try createDirRecursive(outDir)
-            /// Documentation for pkgUrl
             let pkgUrl = URL(fileURLWithPath: outDir).appendingPathComponent("Package.swift")
             try WASIFileHelpers.writeString(packageSwift, to: pkgUrl.path)
         }
 
         if !noGithubActions {
-            /// Documentation for workflowDir
             let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
             try createDirRecursive(workflowDir.path)
-            /// Documentation for workflowUrl
             let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
-            /// Documentation for workflow
             let workflow = """
             name: Swift
             on: [push, pull_request]
@@ -163,34 +165,33 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     }
 }
 
-/// Documentation for ToSDK
+/// CLI subcommand that generates a Swift Client SDK package from an OpenAPI specification.
 struct ToSDK: AsyncParsableCommand {
+    /// Command configuration for `to_sdk`.
     static let configuration = CommandConfiguration(commandName: "to_sdk", abstract: "Generate a Client SDK from an OpenAPI specification.")
 
+    /// Shared OpenAPI generation options.
     @OptionGroup var options: BaseFromOpenAPIOptions
 
+    /// Generates the Swift Client SDK files and optional package/test scaffolding.
+    ///
+    /// - Throws: `CDDError` if reading specifications or writing generated files fails.
     mutating func run() async throws {
-        /// Documentation for outDir
         let outDir = options.resolveOutputDir()
         print("✅ Generating SDK into \(outDir)")
         try createDirRecursive(outDir)
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDK")
 
-        /// Documentation for docs
         let docs = try options.getDocuments()
-        /// Documentation for srcDir
         let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDK")
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
-            /// Documentation for files
             let files = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: options.testsMocks)
-            /// Documentation for docDir
             let docDir = docs.count > 1 ? srcDir.appendingPathComponent(name) : srcDir
             if docs.count > 1 {
                 try createDirRecursive(docDir.path)
             }
             for (filename, code) in files {
-                /// Documentation for fileUrl
                 var targetDir = docDir
                 if options.testsMocks, !options.noInstallablePackage {
                     if filename == "mocks.swift" {
@@ -215,61 +216,82 @@ struct ToSDK: AsyncParsableCommand {
     }
 }
 
-/// Documentation for ToSDKCLI
+/// CLI subcommand that generates an executable `ArgumentParser` CLI client from an OpenAPI specification.
 struct ToSDKCLI: AsyncParsableCommand {
+    /// Command configuration for `to_sdk_cli`.
     static let configuration = CommandConfiguration(commandName: "to_sdk_cli", abstract: "Generate a Client SDK CLI from an OpenAPI specification.")
 
+    /// Shared OpenAPI generation options.
     @OptionGroup var options: BaseFromOpenAPIOptions
 
+    /// Generates the Swift CLI client files and package scaffolding.
+    ///
+    /// - Throws: `CDDError` if reading specifications or writing generated files fails.
     mutating func run() async throws {
-        /// Documentation for outDir
         let outDir = options.resolveOutputDir()
         print("✅ Generating SDK CLI into \(outDir)")
         try createDirRecursive(outDir)
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDKCLI", isExecutable: true)
 
-        /// Documentation for docs
         let docs = try options.getDocuments()
-        /// Documentation for srcDir
         let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKCLI")
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
-            /// Documentation for code
             let code = emitSDKCLI(document: doc)
-            /// Documentation for fileUrl
             let fileUrl = srcDir.appendingPathComponent("\(name).swift") // using name instead of main if multiple
             try WASIFileHelpers.writeString(code, to: fileUrl.path)
         }
     }
 }
 
-/// Documentation for ToServer
+/// CLI subcommand that generates a Vapor server stub, Fluent models/DAOs, and XCTVapor test suites from an OpenAPI specification.
 struct ToServer: AsyncParsableCommand {
+    /// Command configuration for `to_server`.
     static let configuration = CommandConfiguration(commandName: "to_server", abstract: "Generate a Server stub from an OpenAPI specification.")
 
+    /// Shared OpenAPI generation options.
     @OptionGroup var options: BaseFromOpenAPIOptions
 
+    /// Generates the Vapor server package, routes, models, DAOs, migrations, and test suites.
+    ///
+    /// - Throws: `CDDError` if reading specifications or writing generated files fails.
     mutating func run() async throws {
-        /// Documentation for outDir
         let outDir = options.resolveOutputDir()
         print("✅ Generating Server into \(outDir)")
         try createDirRecursive(outDir)
 
+        let q = String(UnicodeScalar(34))
+        let nl = String(UnicodeScalar(10))
+
         if !options.noInstallablePackage {
-            let vaporDeps = ".package(url: \"https://github.com/vapor/vapor.git\", from: \"4.113.2\")"
-            let dbDeps = options.testsMocks ? ",\n                    .package(url: \"https://github.com/vapor/fluent.git\", from: \"4.8.0\"),\n                    .package(url: \"https://github.com/vapor/fluent-sqlite-driver.git\", from: \"4.1.0\"),\n                    .package(url: \"https://github.com/vadymmarkov/Fakery.git\", from: \"5.0.0\")" : ""
+            let vaporDeps = ".package(url: \(q)https://github.com/vapor/vapor.git\(q), from: \(q)4.113.2\(q))"
+            let dbDeps = options.testsMocks
+                ? "," + nl + "                    .package(url: \(q)https://github.com/vapor/fluent.git\(q), from: \(q)4.8.0\(q)),"
+                + nl + "                    .package(url: \(q)https://github.com/vapor/fluent-sqlite-driver.git\(q), from: \(q)4.1.0\(q)),"
+                + nl + "                    .package(url: \(q)https://github.com/vadymmarkov/Fakery.git\(q), from: \(q)5.0.0\(q))"
+                : ""
 
-            let vaporTargetDeps = ".product(name: \"Vapor\", package: \"vapor\")"
-            let dbTargetDeps = options.testsMocks ? ",\n                            .product(name: \"Fluent\", package: \"fluent\"),\n                            .product(name: \"FluentSQLiteDriver\", package: \"fluent-sqlite-driver\"),\n                            .product(name: \"Fakery\", package: \"Fakery\")" : ""
+            let vaporTargetDeps = ".product(name: \(q)Vapor\(q), package: \(q)vapor\(q))"
+            let dbTargetDeps = options.testsMocks
+                ? "," + nl + "                            .product(name: \(q)Fluent\(q), package: \(q)fluent\(q)),"
+                + nl + "                            .product(name: \(q)FluentSQLiteDriver\(q), package: \(q)fluent-sqlite-driver\(q)),"
+                + nl + "                            .product(name: \(q)Fakery\(q), package: \(q)Fakery\(q))"
+                : ""
 
-            let testsTarget = options.testsMocks ? ",\n                    .testTarget(\n                        name: \"GeneratedServerTests\",\n                        dependencies: [\n                            .target(name: \"GeneratedServer\"),\n                            .product(name: \"XCTVapor\", package: \"vapor\")\n                        ]\n                    )" : ""
+            let testsTarget = options.testsMocks
+                ? "," + nl + "                    .testTarget("
+                + nl + "                        name: \(q)GeneratedServerTests\(q),"
+                + nl + "                        dependencies: ["
+                + nl + "                            .target(name: \(q)GeneratedServer\(q)),"
+                + nl + "                            .product(name: \(q)XCTVapor\(q), package: \(q)vapor\(q))"
+                + nl + "                        ]"
+                + nl + "                    )"
+                : ""
 
-            /// Documentation for packageSwift
             let packageSwift = """
             // swift-tools-version: 6.0
             import PackageDescription
 
-            /// Documentation for package
             let package = Package(
                 name: "GeneratedServer",
                 platforms: [
@@ -288,18 +310,14 @@ struct ToServer: AsyncParsableCommand {
                 ]
             )
             """
-            /// Documentation for pkgUrl
             let pkgUrl = URL(fileURLWithPath: outDir).appendingPathComponent("Package.swift")
             try WASIFileHelpers.writeString(packageSwift, to: pkgUrl.path)
         }
 
         if !options.noGithubActions {
-            /// Documentation for workflowDir
             let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
             try createDirRecursive(workflowDir.path)
-            /// Documentation for workflowUrl
             let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
-            /// Documentation for workflow
             let workflow = """
             name: Swift
             on: [push, pull_request]
@@ -366,7 +384,7 @@ struct ToServer: AsyncParsableCommand {
                     app.databases.use(.sqlite(.memory), as: .sqlite)
             """
             for schema in sortedSchemas {
-                ephemeralModeCode += "\n        app.migrations.add(Create\(schema)())"
+                ephemeralModeCode += nl + "        app.migrations.add(Create\(schema)())"
             }
             ephemeralModeCode += """
 
@@ -404,7 +422,7 @@ struct ToServer: AsyncParsableCommand {
                     app.databases.use(.sqlite(.memory), as: .sqlite)
             """
             for schema in sortedSchemas {
-                seededModeCode += "\n        app.migrations.add(Create\(schema)())"
+                seededModeCode += nl + "        app.migrations.add(Create\(schema)())"
             }
             seededModeCode += """
 
@@ -451,9 +469,7 @@ struct ToServer: AsyncParsableCommand {
             try WASIFileHelpers.writeString(authMiddlewareCode, to: testsDir.appendingPathComponent("AuthMiddlewareTests.swift").path)
         }
 
-        /// Documentation for docs
         let docs = try options.getDocuments()
-        /// Documentation for srcDir
         let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedServer")
         try createDirRecursive(srcDir.path)
 
@@ -471,9 +487,9 @@ struct ToServer: AsyncParsableCommand {
                 let modelsDir = srcDir.appendingPathComponent("Models").path
                 try createDirRecursive(modelsDir)
                 for (schemaName, schema) in schemas.sorted(by: { $0.key < $1.key }) {
-                    var modelCode = "import Foundation\n\n"
+                    var modelCode = "import Foundation" + nl + nl
                     modelCode += emitModel(name: schemaName, schema: schema)
-                    modelCode += "\n"
+                    modelCode += nl
                     let modelUrl = srcDir.appendingPathComponent("Models").appendingPathComponent("\(schemaName).swift")
                     try WASIFileHelpers.writeString(modelCode, to: modelUrl.path)
                 }

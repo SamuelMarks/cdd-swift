@@ -76,9 +76,15 @@ final class SwiftASTParserTests: XCTestCase {
         }
 
         /// Get user profile
+        /// @Route("GET", "/users/{id}")
         /// @link getUserSettings -> getSettings
-        func getProfile() {
+        func getProfile(id: String, filter: CustomFilter?, body: User?, formData: User?, multipartData: User?) -> User {
+        }
 
+        func voidAction() -> Void {}
+
+        final class SampleTests: XCTestCase {
+            func testGetProfile() {}
         }
         """
 
@@ -94,10 +100,11 @@ final class SwiftASTParserTests: XCTestCase {
         XCTAssertNotNil(document.security)
         XCTAssertEqual(document.security?.count, 3)
 
-        let path = document.paths?["/getProfile"]
+        let path = document.paths?["/users/{id}"]
         XCTAssertNotNil(path)
         let getOp = path?.get
         XCTAssertNotNil(getOp?.responses?["200"]?.links)
         XCTAssertEqual(getOp?.responses?["200"]?.links?["getUserSettings"]?.operationId, "getSettings")
+        XCTAssertEqual(document.tags?.first?.name, "testGetProfile")
     }
 }

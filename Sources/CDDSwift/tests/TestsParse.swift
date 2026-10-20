@@ -1,3 +1,4 @@
+/// SwiftSyntax visitor extracting test method metadata from XCTestCase subclasses.
 import Foundation
 import SwiftSyntax
 

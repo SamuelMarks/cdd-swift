@@ -1,3 +1,4 @@
+/// Swift 6 workflow orchestrator SDK emitter for Arazzo 1.1.0 specifications.
 import Foundation
 
 /// Code emitter generating strongly typed Swift 6 workflow orchestrator SDK clients from Arazzo 1.1.0 specifications.
@@ -119,18 +120,23 @@ public enum ArazzoSdkEmitter {
         code += "    /// Underlying API client executing HTTP operations.\n"
         code += "    public let client: " + clientClassName + "\n"
         code += "    /// Map of source description names to their base URLs.\n"
-        code += "    public let sourceDescriptions: [String: String]\n\n"
+        code += "    public let sourceDescriptions: [String: String]\n"
+        code += "    /// Asynchronous operation dispatcher returning a populated `ArazzoExecutionContext` for each step.\n"
+        code += "    public let operationRunner: @Sendable (String, [String: [String: AnyCodable]]) async throws -> ArazzoExecutionContext\n\n"
         code += "    /// Initializes the workflow orchestrator client.\n"
         code += "    ///\n"
         code += "    /// - Parameters:\n"
         code += "    ///   - client: Underlying HTTP client instance.\n"
         code += "    ///   - sourceDescriptions: Source description endpoints mapping.\n"
+        code += "    ///   - operationRunner: Custom step operation dispatcher.\n"
         code += "    public init(\n"
         code += "        client: " + clientClassName + " = " + clientClassName + "(),\n"
-        code += "        sourceDescriptions: [String: String] = [:]\n"
+        code += "        sourceDescriptions: [String: String] = [:],\n"
+        code += "        operationRunner: @escaping @Sendable (String, [String: [String: AnyCodable]]) async throws -> ArazzoExecutionContext = { _, steps in ArazzoExecutionContext(statusCode: 200, steps: steps) }\n"
         code += "    ) {\n"
         code += "        self.client = client\n"
         code += "        self.sourceDescriptions = sourceDescriptions\n"
+        code += "        self.operationRunner = operationRunner\n"
         code += "    }\n\n"
 
         for workflow in specification.workflows {
@@ -194,9 +200,8 @@ public enum ArazzoSdkEmitter {
         code += "            var attempt = 0\n"
         code += "            while attempt <= " + String(maxRetries) + " {\n"
         code += "                do {\n"
-        code += "                    let context = ArazzoExecutionContext(steps: stepOutputs)\n"
-        code += "                    _ = context\n"
         code += "                    // Operation dispatch: " + opId + "\n"
+        code += "                    let context = try await self.operationRunner(\"" + opId + "\", stepOutputs)\n"
 
         if let criteria = step.successCriteria, !criteria.isEmpty {
             code += "                    // Evaluate success criteria\n"
@@ -213,7 +218,7 @@ public enum ArazzoSdkEmitter {
             code += "                    var currentOutputs: [String: AnyCodable] = [:]\n"
             for (k, v) in outputs.sorted(by: { $0.key < $1.key }) {
                 let expr = v.value as? String ?? ""
-                code += "                    currentOutputs[\"" + k + "\"] = AnyCodable(\"" + expr + "\")\n"
+                code += "                    currentOutputs[\"" + k + "\"] = (try? ArazzoExpressionEvaluator.evaluate(expression: \"" + expr + "\", in: context)) ?? AnyCodable(\"" + expr + "\")\n"
             }
             code += "                    stepOutputs[\"" + step.stepId + "\"] = currentOutputs\n"
         } else {

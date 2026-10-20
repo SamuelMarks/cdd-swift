@@ -9,7 +9,7 @@ final class HTTPBridgeTests: XCTestCase {
     }
 
     struct MockToolProxy: APIToolProxy {
-        func execute(toolName: String, arguments _: [String: Any], context: HTTPRequestContext?) async throws -> CallToolResult {
+        func execute(toolName: String, arguments _: [String: AnyCodable], context: HTTPRequestContext?) async throws -> CallToolResult {
             if let ctx = context {
                 let text = TextContent(text: "Executed \(toolName) with auth: \(ctx.authorizationHeader ?? "none")")
                 return CallToolResult(content: [AnyCodable(["type": text.type, "text": text.text])])

@@ -1,3 +1,4 @@
+/// OpenAPI JSON parser and SwiftSyntax AST document reconstructor.
 import Foundation
 import SwiftParser
 import SwiftSyntax
@@ -97,19 +98,19 @@ public class SwiftASTParser {
         for (pathName, pathItem) in finalPaths {
             var updatedItem = pathItem
             if let getOp = updatedItem.get, let opId = getOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.get = Operation(tags: getOp.tags, summary: getOp.summary, description: getOp.description, externalDocs: getOp.externalDocs, operationId: getOp.operationId, parameters: getOp.parameters, requestBody: getOp.requestBody, responses: getOp.responses, callbacks: ["onEvent": cb], deprecated: getOp.deprecated, security: getOp.security, servers: getOp.servers)
+                updatedItem.get = Self.withCallbacks(getOp, callbacks: ["onEvent": cb])
             }
             if let postOp = updatedItem.post, let opId = postOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.post = Operation(tags: postOp.tags, summary: postOp.summary, description: postOp.description, externalDocs: postOp.externalDocs, operationId: postOp.operationId, parameters: postOp.parameters, requestBody: postOp.requestBody, responses: postOp.responses, callbacks: ["onEvent": cb], deprecated: postOp.deprecated, security: postOp.security, servers: postOp.servers)
+                updatedItem.post = Self.withCallbacks(postOp, callbacks: ["onEvent": cb])
             }
             if let putOp = updatedItem.put, let opId = putOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.put = Operation(tags: putOp.tags, summary: putOp.summary, description: putOp.description, externalDocs: putOp.externalDocs, operationId: putOp.operationId, parameters: putOp.parameters, requestBody: putOp.requestBody, responses: putOp.responses, callbacks: ["onEvent": cb], deprecated: putOp.deprecated, security: putOp.security, servers: putOp.servers)
+                updatedItem.put = Self.withCallbacks(putOp, callbacks: ["onEvent": cb])
             }
             if let deleteOp = updatedItem.delete, let opId = deleteOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.delete = Operation(tags: deleteOp.tags, summary: deleteOp.summary, description: deleteOp.description, externalDocs: deleteOp.externalDocs, operationId: deleteOp.operationId, parameters: deleteOp.parameters, requestBody: deleteOp.requestBody, responses: deleteOp.responses, callbacks: ["onEvent": cb], deprecated: deleteOp.deprecated, security: deleteOp.security, servers: deleteOp.servers)
+                updatedItem.delete = Self.withCallbacks(deleteOp, callbacks: ["onEvent": cb])
             }
             if let patchOp = updatedItem.patch, let opId = patchOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.patch = Operation(tags: patchOp.tags, summary: patchOp.summary, description: patchOp.description, externalDocs: patchOp.externalDocs, operationId: patchOp.operationId, parameters: patchOp.parameters, requestBody: patchOp.requestBody, responses: patchOp.responses, callbacks: ["onEvent": cb], deprecated: patchOp.deprecated, security: patchOp.security, servers: patchOp.servers)
+                updatedItem.patch = Self.withCallbacks(patchOp, callbacks: ["onEvent": cb])
             }
             finalPaths[pathName] = updatedItem
         }
@@ -123,13 +124,41 @@ public class SwiftASTParser {
             components = Components(schemas: schemas, securitySchemes: securitySchemes, callbacks: callbacks)
         }
 
+        let testTags: [Tag]? = testVisitor.discoveredTestMethods.isEmpty
+            ? nil
+            : testVisitor.discoveredTestMethods.map { Tag(name: $0, description: "Discovered XCTest method") }
+
         return OpenAPIDocument(
             openapi: "3.2.0",
             info: Info(title: "Parsed API", version: "1.0.0"),
             paths: finalPaths.isEmpty ? nil : finalPaths,
             webhooks: functionVisitor.webhooks.isEmpty ? nil : functionVisitor.webhooks,
             components: components,
-            security: routeVisitor.globalSecurity.isEmpty ? nil : routeVisitor.globalSecurity
+            security: routeVisitor.globalSecurity.isEmpty ? nil : routeVisitor.globalSecurity,
+            tags: testTags
+        )
+    }
+
+    /// Returns a copy of `operation` with the provided `callbacks` attached.
+    ///
+    /// - Parameters:
+    ///   - operation: The source `Operation`.
+    ///   - callbacks: The callbacks dictionary to attach.
+    /// - Returns: A new `Operation` containing the callbacks.
+    private static func withCallbacks(_ operation: Operation, callbacks: [String: Callback]) -> Operation {
+        return Operation(
+            tags: operation.tags,
+            summary: operation.summary,
+            description: operation.description,
+            externalDocs: operation.externalDocs,
+            operationId: operation.operationId,
+            parameters: operation.parameters,
+            requestBody: operation.requestBody,
+            responses: operation.responses,
+            callbacks: callbacks,
+            deprecated: operation.deprecated,
+            security: operation.security,
+            servers: operation.servers
         )
     }
 }

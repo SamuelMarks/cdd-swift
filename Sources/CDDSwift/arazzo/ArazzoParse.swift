@@ -1,3 +1,4 @@
+/// Programmatic document builder and SwiftSyntax AST parser for Arazzo 1.1.0 specifications.
 import Foundation
 import SwiftParser
 import SwiftSyntax
@@ -216,7 +217,10 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
 
         var steps: [ArazzoStep] = []
         if let body = node.body {
-            steps = extractSteps(from: body.description, defaultStepIdPrefix: workflowId)
+            let bodyVisitor = WorkflowStepBodyVisitor(defaultStepIdPrefix: workflowId)
+            bodyVisitor.walk(body)
+            bodyVisitor.finalizePendingStep()
+            steps = bodyVisitor.steps
         }
         if steps.isEmpty {
             steps = [ArazzoStep(stepId: "step1", operationId: workflowId)]
@@ -324,131 +328,171 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
         }
         return nil
     }
+}
 
-    /// Parses a function body text to extract `ArazzoStep` blocks, criteria assertions, and retry policies.
+/// AST `SyntaxVisitor` that traverses a workflow function's `CodeBlockSyntax` to reconstruct `ArazzoStep` definitions, criteria, retry loops, and outputs.
+public final class WorkflowStepBodyVisitor: SyntaxVisitor {
+    /// Default prefix used when synthesizing step identifiers from bare assertions.
+    public let defaultStepIdPrefix: String
+    /// Ordered list of reconstructed `ArazzoStep` definitions.
+    public var steps: [ArazzoStep] = []
+
+    /// Active step identifier being accumulated.
+    private var currentStepId: String?
+    /// Active operation identifier being accumulated.
+    private var currentOpId: String?
+    /// Active success criteria list for the current step.
+    private var currentCriteria: [ArazzoCriterion] = []
+    /// Active retry limit for the current step.
+    private var currentRetries: Int?
+    /// Active output expression mappings for the current step.
+    private var currentOutputs: [String: AnyCodable] = [:]
+
+    /// Initializes a `WorkflowStepBodyVisitor`.
     ///
-    /// - Parameters:
-    ///   - bodyText: Function body source text.
-    ///   - defaultStepIdPrefix: Fallback prefix when no explicit step comments exist.
-    /// - Returns: Ordered array of `ArazzoStep` items.
-    private func extractSteps(from bodyText: String, defaultStepIdPrefix: String) -> [ArazzoStep] {
+    /// - Parameter defaultStepIdPrefix: Fallback prefix for unnamed steps.
+    public init(defaultStepIdPrefix: String) {
+        self.defaultStepIdPrefix = defaultStepIdPrefix
+        super.init(viewMode: .sourceAccurate)
+    }
+
+    /// Inspects leading trivia on every token for `// Step: <id>`, `/// @Step(...)`, and `// Operation dispatch: <opId>` directives.
+    ///
+    /// - Parameter token: The `TokenSyntax` node being visited.
+    /// - Returns: `.visitChildren` to continue traversal.
+    override public func visit(_ token: TokenSyntax) -> SyntaxVisitorContinueKind {
         let q = String(UnicodeScalar(34))
-        var steps: [ArazzoStep] = []
-        let lines = bodyText.components(separatedBy: .newlines)
+        for piece in token.leadingTrivia {
+            switch piece {
+            case let .lineComment(text):
+                let line = text.trimmingCharacters(in: .whitespaces)
+                if line.hasPrefix("// Step: ") {
+                    flushCurrentStep()
+                    currentStepId = String(line.dropFirst("// Step: ".count)).trimmingCharacters(in: .whitespaces)
+                } else if line.hasPrefix("// Operation dispatch: ") {
+                    currentOpId = String(line.dropFirst("// Operation dispatch: ".count)).trimmingCharacters(in: .whitespaces)
+                }
+            case let .docLineComment(text):
+                let line = text.trimmingCharacters(in: .whitespaces)
+                if line.hasPrefix("/// @Step(id: " + q) {
+                    flushCurrentStep()
+                    if let idRange = line.range(of: "id: " + q),
+                       let endId = line.range(of: q, range: idRange.upperBound ..< line.endIndex)
+                    {
+                        currentStepId = String(line[idRange.upperBound ..< endId.lowerBound])
+                    }
+                    if let opRange = line.range(of: "operationId: " + q),
+                       let endOp = line.range(of: q, range: opRange.upperBound ..< line.endIndex)
+                    {
+                        currentOpId = String(line[opRange.upperBound ..< endOp.lowerBound])
+                    }
+                }
+            default:
+                break
+            }
+        }
+        return .visitChildren
+    }
 
-        var currentStepId: String?
-        var currentOpId: String?
-        var currentCriteria: [ArazzoCriterion] = []
-        var currentRetries: Int?
-        var currentOutputs: [String: AnyCodable] = [:]
+    /// Visits `WhileStmtSyntax` nodes (e.g. `while attempt <= 2`) to extract retry limits.
+    ///
+    /// - Parameter node: The `WhileStmtSyntax` node being visited.
+    /// - Returns: `.visitChildren` to inspect statements inside the retry loop.
+    override public func visit(_ node: WhileStmtSyntax) -> SyntaxVisitorContinueKind {
+        let condText = node.conditions.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if condText.hasPrefix("attempt <= ") {
+            let numStr = String(condText.dropFirst("attempt <= ".count)).trimmingCharacters(in: .whitespaces)
+            if let limit = Int(numStr), limit > 0 {
+                currentRetries = limit
+            }
+        }
+        return .visitChildren
+    }
 
-        for rawLine in lines {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.hasPrefix("// Step: ") {
-                if let stepId = currentStepId {
-                    steps.append(buildStep(stepId: stepId, opId: currentOpId, criteria: currentCriteria, retries: currentRetries, outputs: currentOutputs))
-                    currentOpId = nil
-                    currentCriteria = []
-                    currentRetries = nil
-                    currentOutputs = [:]
-                }
-                currentStepId = String(line.dropFirst("// Step: ".count)).trimmingCharacters(in: .whitespaces)
-            } else if line.hasPrefix("/// @Step(id: " + q) {
-                if let stepId = currentStepId {
-                    steps.append(buildStep(stepId: stepId, opId: currentOpId, criteria: currentCriteria, retries: currentRetries, outputs: currentOutputs))
-                    currentOpId = nil
-                    currentCriteria = []
-                    currentRetries = nil
-                    currentOutputs = [:]
-                }
-                if let idRange = line.range(of: "id: " + q),
-                   let endId = line.range(of: q, range: idRange.upperBound ..< line.endIndex)
+    /// Visits `FunctionCallExprSyntax` nodes to detect `client.<op>()`, `operationRunner("<op>", ...)`, `ArazzoCriterion(...)`, and `XCTAssertEqual(...)`.
+    ///
+    /// - Parameter node: The `FunctionCallExprSyntax` node being visited.
+    /// - Returns: `.visitChildren` to inspect nested call expressions.
+    override public func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
+        let callee = node.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if callee.hasPrefix("client.") {
+            let callName = String(callee.dropFirst("client.".count))
+            if currentStepId == nil {
+                currentStepId = callName + "Step"
+            }
+            if currentOpId == nil {
+                currentOpId = callName
+            }
+        } else if callee == "ArazzoCriterion" {
+            var ctxVal: String?
+            var condVal: String?
+            for arg in node.arguments {
+                let label = arg.label?.text
+                if let strLit = arg.expression.as(StringLiteralExprSyntax.self),
+                   let seg = strLit.segments.first?.as(StringSegmentSyntax.self)
                 {
-                    currentStepId = String(line[idRange.upperBound ..< endId.lowerBound])
-                }
-                if let opRange = line.range(of: "operationId: " + q),
-                   let endOp = line.range(of: q, range: opRange.upperBound ..< line.endIndex)
-                {
-                    currentOpId = String(line[opRange.upperBound ..< endOp.lowerBound])
-                }
-            } else if line.hasPrefix("// Operation dispatch: ") {
-                currentOpId = String(line.dropFirst("// Operation dispatch: ".count)).trimmingCharacters(in: .whitespaces)
-            } else if line.contains("client.") {
-                if let clientRange = line.range(of: "client."),
-                   let parenRange = line.range(of: "(", range: clientRange.upperBound ..< line.endIndex)
-                {
-                    let callName = String(line[clientRange.upperBound ..< parenRange.lowerBound]).trimmingCharacters(in: .whitespaces)
-                    if currentStepId == nil {
-                        currentStepId = callName + "Step"
-                    }
-                    if currentOpId == nil {
-                        currentOpId = callName
+                    if label == "context" {
+                        ctxVal = seg.content.text
+                    } else if label == "condition" {
+                        condVal = seg.content.text
                     }
                 }
-            } else if line.hasPrefix("while attempt <= ") {
-                let numStr = String(line.dropFirst("while attempt <= ".count))
-                    .replacingOccurrences(of: "{", with: "")
-                    .trimmingCharacters(in: .whitespaces)
-                if let limit = Int(numStr), limit > 0 {
-                    currentRetries = limit
+            }
+            if let ctx = ctxVal, let cond = condVal {
+                currentCriteria.append(ArazzoCriterion(context: ctx, condition: cond))
+            }
+        } else if callee == "XCTAssertEqual", node.arguments.count >= 2, let firstArg = node.arguments.first {
+            let firstExpr = firstArg.expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            if firstExpr.hasSuffix(".statusCode") {
+                let secondIndex = node.arguments.index(after: node.arguments.startIndex)
+                let codeVal = node.arguments[secondIndex].expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                if currentStepId == nil {
+                    currentStepId = defaultStepIdPrefix + "Step"
                 }
-            } else if line.contains("ArazzoCriterion(context: " + q) {
-                if let ctxRange = line.range(of: "context: " + q),
-                   let endCtx = line.range(of: q, range: ctxRange.upperBound ..< line.endIndex),
-                   let condRange = line.range(of: "condition: " + q),
-                   let endCond = line.range(of: q + ")", range: condRange.upperBound ..< line.endIndex)
-                {
-                    let ctx = String(line[ctxRange.upperBound ..< endCtx.lowerBound])
-                    let cond = String(line[condRange.upperBound ..< endCond.lowerBound])
-                    currentCriteria.append(ArazzoCriterion(context: ctx, condition: cond))
-                }
-            } else if line.hasPrefix("XCTAssertEqual("), line.contains(".statusCode,") {
-                if let commaRange = line.range(of: ".statusCode,"),
-                   let closeParen = line.range(of: ")", range: commaRange.upperBound ..< line.endIndex)
-                {
-                    let codeVal = String(line[commaRange.upperBound ..< closeParen.lowerBound]).trimmingCharacters(in: .whitespaces)
-                    if currentStepId == nil {
-                        currentStepId = defaultStepIdPrefix + "Step"
-                    }
-                    currentCriteria.append(ArazzoCriterion(context: "$statusCode", condition: "== " + codeVal))
-                }
-            } else if line.hasPrefix("currentOutputs[" + q) {
-                if let keyStart = line.range(of: "currentOutputs[" + q),
-                   let keyEnd = line.range(of: q + "]"),
-                   let valStart = line.range(of: "AnyCodable(" + q),
-                   let valEnd = line.range(of: q + ")", range: valStart.upperBound ..< line.endIndex)
-                {
-                    let k = String(line[keyStart.upperBound ..< keyEnd.lowerBound])
-                    let v = String(line[valStart.upperBound ..< valEnd.lowerBound])
-                    currentOutputs[k] = AnyCodable(v)
-                }
+                currentCriteria.append(ArazzoCriterion(context: "$statusCode", condition: "== " + codeVal))
             }
         }
 
-        if let stepId = currentStepId {
-            steps.append(buildStep(stepId: stepId, opId: currentOpId, criteria: currentCriteria, retries: currentRetries, outputs: currentOutputs))
-        }
-        return steps
+        return .visitChildren
     }
 
-    /// Constructs an `ArazzoStep` from accumulated AST step state.
+    /// Visits `SequenceExprSyntax` nodes to capture `currentOutputs["key"] = ...` step output assignments.
     ///
-    /// - Parameters:
-    ///   - stepId: Step identifier.
-    ///   - opId: Operation identifier.
-    ///   - criteria: Extracted success criteria.
-    ///   - retries: Optional retry limit.
-    ///   - outputs: Extracted step outputs.
-    /// - Returns: Constructed `ArazzoStep`.
-    private func buildStep(
-        stepId: String,
-        opId: String?,
-        criteria: [ArazzoCriterion],
-        retries: Int?,
-        outputs: [String: AnyCodable]
-    ) -> ArazzoStep {
+    /// - Parameter node: The `SequenceExprSyntax` node being visited.
+    /// - Returns: `.visitChildren` to continue traversal.
+    override public func visit(_ node: SequenceExprSyntax) -> SyntaxVisitorContinueKind {
+        guard let firstElem = node.elements.first,
+              let subExpr = firstElem.as(SubscriptCallExprSyntax.self),
+              subExpr.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines) == "currentOutputs",
+              let keyArg = subExpr.arguments.first,
+              let keyLit = keyArg.expression.as(StringLiteralExprSyntax.self),
+              let keySeg = keyLit.segments.first?.as(StringSegmentSyntax.self)
+        else {
+            return .visitChildren
+        }
+        let q = String(UnicodeScalar(34))
+        let fullText = node.description
+        if let valStart = fullText.range(of: "AnyCodable(" + q),
+           let valEnd = fullText.range(of: q + ")", range: valStart.upperBound ..< fullText.endIndex)
+        {
+            let k = keySeg.content.text
+            let v = String(fullText[valStart.upperBound ..< valEnd.lowerBound])
+            currentOutputs[k] = AnyCodable(v)
+        }
+        return .visitChildren
+    }
+
+    /// Finalizes any accumulated step at the end of the function body traversal.
+    public func finalizePendingStep() {
+        flushCurrentStep()
+    }
+
+    /// Appends the currently accumulated step to `steps` and resets active step state.
+    private func flushCurrentStep() {
+        guard let stepId = currentStepId else { return }
         var onFailure: [ArazzoFailureAction]?
-        if let retries = retries, retries > 0 {
+        if let retries = currentRetries, retries > 0 {
             onFailure = [
                 ArazzoFailureAction(
                     name: "retryOnFailure",
@@ -458,12 +502,19 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
                 )
             ]
         }
-        return ArazzoStep(
-            stepId: stepId,
-            operationId: opId ?? stepId,
-            successCriteria: criteria.isEmpty ? nil : criteria,
-            onFailure: onFailure,
-            outputs: outputs.isEmpty ? nil : outputs
+        steps.append(
+            ArazzoStep(
+                stepId: stepId,
+                operationId: currentOpId ?? stepId,
+                successCriteria: currentCriteria.isEmpty ? nil : currentCriteria,
+                onFailure: onFailure,
+                outputs: currentOutputs.isEmpty ? nil : currentOutputs
+            )
         )
+        currentStepId = nil
+        currentOpId = nil
+        currentCriteria = []
+        currentRetries = nil
+        currentOutputs = [:]
     }
 }

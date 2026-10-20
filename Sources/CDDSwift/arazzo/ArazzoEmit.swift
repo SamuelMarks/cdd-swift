@@ -1,3 +1,4 @@
+/// JSON and YAML serializer and parser for Arazzo 1.1.0 specifications.
 import Foundation
 
 /// Parses and serializes Arazzo 1.1.0 documents between JSON/YAML text and strongly typed `ArazzoSpecification` models.
@@ -64,11 +65,59 @@ public enum ArazzoEmitter {
             if let summary = wf.summary {
                 lines.append("    summary: " + q + summary + q)
             }
+            if let description = wf.description {
+                lines.append("    description: " + q + description + q)
+            }
+            if let dependsOn = wf.dependsOn, !dependsOn.isEmpty {
+                lines.append("    dependsOn:")
+                for dep in dependsOn {
+                    lines.append("      - " + q + dep + q)
+                }
+            }
             lines.append("    steps:")
             for step in wf.steps {
                 lines.append("      - stepId: " + q + step.stepId + q)
                 if let opId = step.operationId {
                     lines.append("        operationId: " + q + opId + q)
+                }
+                if let opPath = step.operationPath {
+                    lines.append("        operationPath: " + q + opPath + q)
+                }
+                if let wfId = step.workflowId {
+                    lines.append("        workflowId: " + q + wfId + q)
+                }
+                if let criteria = step.successCriteria, !criteria.isEmpty {
+                    lines.append("        successCriteria:")
+                    for crit in criteria {
+                        lines.append("          - context: " + q + crit.context + q)
+                        lines.append("            condition: " + q + crit.condition + q)
+                    }
+                }
+                if let outputs = step.outputs, !outputs.isEmpty {
+                    lines.append("        outputs:")
+                    for k in outputs.keys.sorted() {
+                        if let v = outputs[k] {
+                            lines.append("          " + k + ": " + q + String(describing: v.value) + q)
+                        }
+                    }
+                }
+            }
+            if let outputs = wf.outputs, !outputs.isEmpty {
+                lines.append("    outputs:")
+                for k in outputs.keys.sorted() {
+                    if let v = outputs[k] {
+                        lines.append("      " + k + ": " + q + String(describing: v.value) + q)
+                    }
+                }
+            }
+        }
+        if let components = specification.components, let params = components.parameters, !params.isEmpty {
+            lines.append("components:")
+            lines.append("  parameters:")
+            for k in params.keys.sorted() {
+                if let p = params[k] {
+                    lines.append("    " + k + ":")
+                    lines.append("      name: " + q + p.name + q)
                 }
             }
         }

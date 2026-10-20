@@ -1,3 +1,4 @@
+/// Standard I/O newline-delimited JSON-RPC transport for the Model Context Protocol (MCP).
 import Foundation
 
 /// A protocol defining an asynchronous bidirectional transport for Model Context Protocol (MCP) JSON-RPC messages.
@@ -18,32 +19,43 @@ public protocol MCPTransport: Sendable {
     func close() async throws
 }
 
-/// Internal thread-safe state box for `MCPStdioTransport`.
-private final class StdioTransportState: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _isReading = false
+/// Actor-isolated state container for `MCPStdioTransport`.
+private actor StdioTransportState {
+    /// Boolean flag indicating whether the transport is actively reading.
+    private var isReading = false
 
-    /// Thread-safe getter and setter for whether the transport is actively reading.
-    var isReading: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isReading
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _isReading = newValue
-        }
+    /// Atomically transitions `isReading` from `false` to `true`.
+    ///
+    /// - Returns: `true` if the transition succeeded, `false` if already reading.
+    func beginReading() -> Bool {
+        guard !isReading else { return false }
+        isReading = true
+        return true
+    }
+
+    /// Marks `isReading` as `false`.
+    func stopReading() {
+        isReading = false
+    }
+
+    /// Returns whether the transport is currently in the reading state.
+    ///
+    /// - Returns: `true` if reading is active, `false` otherwise.
+    func checkIsReading() -> Bool {
+        return isReading
     }
 }
 
 /// A standard I/O transport for Model Context Protocol (MCP) communication.
 /// Reads newline-delimited JSON-RPC messages from an `InputStream` and writes newline-delimited JSON-RPC messages to an `OutputStream`.
 public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
+    /// Stream from which incoming JSON-RPC frames are read.
     private let inputStream: InputStream
+    /// Stream to which outgoing JSON-RPC frames are written.
     private let outputStream: OutputStream
+    /// Actor-isolated state tracking active reading status.
     private let state = StdioTransportState()
+    /// JSON encoder configured for single-line message framing.
     private let encoder = JSONEncoder()
 
     /// Initializes a standard I/O transport with explicit input and output streams.
@@ -92,8 +104,8 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     /// - Parameter onMessage: Closure invoked with each complete line's `Data`.
     /// - Throws: `CDDError.mcpTransportError` if reading fails.
     public func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
-        guard !state.isReading else { return }
-        state.isReading = true
+        let didStart = await state.beginReading()
+        guard didStart else { return }
         inputStream.open()
         outputStream.open()
 
@@ -101,7 +113,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
         var buffer = [UInt8](repeating: 0, count: bufferSize)
         var messageData = Data()
 
-        while state.isReading {
+        while await state.checkIsReading() {
             if inputStream.hasBytesAvailable {
                 let bytesRead = inputStream.read(&buffer, maxLength: bufferSize)
                 if bytesRead > 0 {
@@ -116,7 +128,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
                         messageData.removeSubrange(0 ..< newlineRange.upperBound)
                     }
                 } else if bytesRead < 0 {
-                    state.isReading = false
+                    await state.stopReading()
                     break
                 }
             } else {
@@ -127,7 +139,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
 
     /// Stops the read loop and closes both input and output streams.
     public func close() async throws {
-        state.isReading = false
+        await state.stopReading()
         inputStream.close()
         outputStream.close()
     }

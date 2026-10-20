@@ -1,81 +1,240 @@
+/// Core OpenAPI 3.2.0 and Swagger 2.0 specification root, info, server, component, and path models.
 import Foundation
+
+// MARK: - Domain Enums
+
+/// Standard JSON Schema / OpenAPI data types.
+public enum SchemaType: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+    /// UTF-8 character string type (`"string"`).
+    case string
+    /// Floating-point or arbitrary-precision numeric type (`"number"`).
+    case number
+    /// Integral numeric type (`"integer"`).
+    case integer
+    /// Boolean truth value type (`"boolean"`).
+    case boolean
+    /// Ordered list of items type (`"array"`).
+    case array
+    /// Key-value map / structured object type (`"object"`).
+    case object
+    /// Explicit null value type (`"null"`).
+    case null
+}
+
+/// Locations where an OpenAPI or Swagger parameter may be transmitted in an HTTP request.
+public enum ParameterLocation: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+    /// Appended to the URL query string (`"query"`).
+    case query
+    /// Sent as a custom HTTP request header (`"header"`).
+    case header
+    /// Interpolated into the URL path template (`"path"`).
+    case path
+    /// Passed inside the `Cookie` HTTP header (`"cookie"`).
+    case cookie
+    /// Swagger 2.0 request body payload parameter (`"body"`).
+    case body
+    /// Swagger 2.0 URL-encoded or multipart form parameter (`"formData"`).
+    case formData
+}
+
+/// Serialization styles defining how OpenAPI parameter values are delimited and formatted.
+public enum ParameterStyle: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+    /// Semicolon-prefixed path parameters (`"matrix"`).
+    case matrix
+    /// Dot-prefixed path parameters (`"label"`).
+    case label
+    /// Ampersand-separated query or form parameters (`"form"`).
+    case form
+    /// Comma-separated path or header values (`"simple"`).
+    case simple
+    /// Space-separated array or object values (`"spaceDelimited"`).
+    case spaceDelimited
+    /// Pipe-separated array or object values (`"pipeDelimited"`).
+    case pipeDelimited
+    /// Bracketed nested object query parameters (`"deepObject"`).
+    case deepObject
+}
+
+/// Authentication scheme types supported by OpenAPI 3.2.0 and Swagger 2.0.
+public enum SecuritySchemeType: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+    /// API key passed in a header, query parameter, or cookie (`"apiKey"`).
+    case apiKey
+    /// HTTP authentication scheme such as Bearer or Basic (`"http"`).
+    case http
+    /// Client certificate mutual TLS authentication (`"mutualTLS"`).
+    case mutualTLS
+    /// OAuth 2.0 authorization flows (`"oauth2"`).
+    case oauth2
+    /// OpenID Connect Discovery authentication (`"openIdConnect"`).
+    case openIdConnect
+    /// Legacy Swagger 2.0 HTTP Basic authentication (`"basic"`).
+    case basic
+}
+
+/// Standard HTTP request methods supported by OpenAPI 3.2.0 `PathItem` definitions.
+public enum HTTPMethod: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+    /// HTTP `GET` method.
+    case get
+    /// HTTP `PUT` method.
+    case put
+    /// HTTP `POST` method.
+    case post
+    /// HTTP `DELETE` method.
+    case delete
+    /// HTTP `OPTIONS` method.
+    case options
+    /// HTTP `HEAD` method.
+    case head
+    /// HTTP `PATCH` method.
+    case patch
+    /// HTTP `TRACE` method.
+    case trace
+    /// HTTP `QUERY` method introduced in OpenAPI 3.2.0.
+    case query
+}
 
 // MARK: - Root Object
 
-/// Represents an OpenAPI Document.
-public struct OpenAPIDocument: Codable, Equatable {
-    /// The `openapi` property.
+/// Represents an OpenAPI 3.x or Swagger 2.0 root document.
+public struct OpenAPIDocument: Codable, Equatable, Sendable {
+    /// Semantic version string of the OpenAPI specification (e.g. `"3.2.0"`).
     public let openapi: String?
-    /// The `swagger` property.
+    /// Semantic version string of a legacy Swagger specification (e.g. `"2.0"`).
     public let swagger: String?
-    /// The `selfRef` property.
+    /// Canonical `$self` URI identifying this OpenAPI 3.2.0 document.
     public let selfRef: String?
-    /// The `info` property.
+    /// General metadata about the API (`title`, `version`, `description`, etc.).
     public let info: Info
-    /// The `jsonSchemaDialect` property.
+    /// Default JSON Schema dialect URI for `Schema` objects in the document.
     public let jsonSchemaDialect: String?
-    /// The `servers` property.
+    /// Connectivity information for target API servers.
     public let servers: [Server]?
-    /// The `paths` property.
+    /// Available endpoint paths and operations for the API.
     public let paths: [String: PathItem]?
-    /// The `webhooks` property.
+    /// Incoming webhooks that may be sent by the API provider.
     public let webhooks: [String: PathItem]?
-    /// The `components` property.
+    /// Reusable components registry (schemas, parameters, responses, securitySchemes, etc.).
     public let components: Components?
-    /// The `security` property.
+    /// Default security requirements applied across the entire API.
     public let security: [SecurityRequirement]?
-    /// The `tags` property.
+    /// Metadata tags used to group operations.
     public let tags: [Tag]?
-    /// The `externalDocs` property.
+    /// Additional external documentation for the API.
     public let externalDocs: ExternalDocumentation?
 
     // Swagger 2.0 properties
-    /// The `host` property.
+    /// Legacy Swagger 2.0 host name or IP address serving the API.
     public let host: String?
-    /// The `basePath` property.
+    /// Legacy Swagger 2.0 base path prefix on which the API is served.
     public let basePath: String?
-    /// The `schemes` property.
+    /// Legacy Swagger 2.0 transfer protocols (`"http"`, `"https"`, `"ws"`, `"wss"`).
     public let schemes: [String]?
-    /// The `consumes` property.
+    /// Legacy Swagger 2.0 default MIME types the API can consume.
     public let consumes: [String]?
-    /// The `produces` property.
+    /// Legacy Swagger 2.0 default MIME types the API can produce.
     public let produces: [String]?
-    /// The `definitions` property.
+    /// Legacy Swagger 2.0 reusable schema definitions.
     public let definitions: [String: Schema]?
-    /// The `parameters` property.
+    /// Legacy Swagger 2.0 reusable parameter definitions.
     public let parameters: [String: Parameter]?
-    /// The `responses` property.
+    /// Legacy Swagger 2.0 reusable response definitions.
     public let responses: [String: Response]?
-    /// The `securityDefinitions` property.
+    /// Legacy Swagger 2.0 security scheme definitions.
     public let securityDefinitions: [String: SecurityScheme]?
 
-    /// The `CodingKeys` property.
+    /// Coding keys mapping OpenAPI JSON properties to `OpenAPIDocument` fields.
     enum CodingKeys: String, CodingKey {
+        /// Key for `openapi`.
         case openapi
+        /// Key for `swagger`.
         case swagger
+        /// Key for `$self`.
         case selfRef = "$self"
+        /// Key for `info`.
         case info
+        /// Key for `jsonSchemaDialect`.
         case jsonSchemaDialect
+        /// Key for `servers`.
         case servers
+        /// Key for `paths`.
         case paths
+        /// Key for `webhooks`.
         case webhooks
+        /// Key for `components`.
         case components
+        /// Key for `security`.
         case security
+        /// Key for `tags`.
         case tags
+        /// Key for `externalDocs`.
         case externalDocs
+        /// Key for `host`.
         case host
+        /// Key for `basePath`.
         case basePath
+        /// Key for `schemes`.
         case schemes
+        /// Key for `consumes`.
         case consumes
+        /// Key for `produces`.
         case produces
+        /// Key for `definitions`.
         case definitions
+        /// Key for `parameters`.
         case parameters
+        /// Key for `responses`.
         case responses
+        /// Key for `securityDefinitions`.
         case securityDefinitions
     }
 
-    /// The `initializer` property.
-    public init(openapi: String? = nil, swagger: String? = nil, selfRef: String? = nil, info: Info, jsonSchemaDialect: String? = nil, servers: [Server]? = nil, paths: [String: PathItem]? = nil, webhooks: [String: PathItem]? = nil, components: Components? = nil, security: [SecurityRequirement]? = nil, tags: [Tag]? = nil, externalDocs: ExternalDocumentation? = nil, host: String? = nil, basePath: String? = nil, schemes: [String]? = nil, consumes: [String]? = nil, produces: [String]? = nil, definitions: [String: Schema]? = nil, parameters: [String: Parameter]? = nil, responses: [String: Response]? = nil, securityDefinitions: [String: SecurityScheme]? = nil) {
+    /// Initializes an `OpenAPIDocument`.
+    ///
+    /// - Parameters:
+    ///   - openapi: OpenAPI version string (e.g. `"3.2.0"`).
+    ///   - swagger: Legacy Swagger version string (e.g. `"2.0"`).
+    ///   - selfRef: Canonical `$self` URI of the document.
+    ///   - info: Required `Info` metadata object.
+    ///   - jsonSchemaDialect: Optional JSON Schema dialect URI.
+    ///   - servers: Optional array of target `Server` descriptors.
+    ///   - paths: Optional map of URL path templates to `PathItem` definitions.
+    ///   - webhooks: Optional map of webhook names to `PathItem` definitions.
+    ///   - components: Optional reusable `Components` container.
+    ///   - security: Optional global security requirement declarations.
+    ///   - tags: Optional list of API `Tag` objects.
+    ///   - externalDocs: Optional `ExternalDocumentation` reference.
+    ///   - host: Optional Swagger 2.0 host string.
+    ///   - basePath: Optional Swagger 2.0 base path string.
+    ///   - schemes: Optional Swagger 2.0 URI schemes list.
+    ///   - consumes: Optional Swagger 2.0 request MIME types.
+    ///   - produces: Optional Swagger 2.0 response MIME types.
+    ///   - definitions: Optional Swagger 2.0 schema definitions map.
+    ///   - parameters: Optional Swagger 2.0 parameter definitions map.
+    ///   - responses: Optional Swagger 2.0 response definitions map.
+    ///   - securityDefinitions: Optional Swagger 2.0 security definitions map.
+    public init(
+        openapi: String? = nil,
+        swagger: String? = nil,
+        selfRef: String? = nil,
+        info: Info,
+        jsonSchemaDialect: String? = nil,
+        servers: [Server]? = nil,
+        paths: [String: PathItem]? = nil,
+        webhooks: [String: PathItem]? = nil,
+        components: Components? = nil,
+        security: [SecurityRequirement]? = nil,
+        tags: [Tag]? = nil,
+        externalDocs: ExternalDocumentation? = nil,
+        host: String? = nil,
+        basePath: String? = nil,
+        schemes: [String]? = nil,
+        consumes: [String]? = nil,
+        produces: [String]? = nil,
+        definitions: [String: Schema]? = nil,
+        parameters: [String: Parameter]? = nil,
+        responses: [String: Response]? = nil,
+        securityDefinitions: [String: SecurityScheme]? = nil
+    ) {
         self.openapi = openapi
         self.swagger = swagger
         self.selfRef = selfRef
@@ -102,24 +261,33 @@ public struct OpenAPIDocument: Codable, Equatable {
 
 // MARK: - Info Object
 
-/// The `Info` property.
-public struct Info: Codable, Equatable {
-    /// The `title` property.
+/// Metadata about the API described by an `OpenAPIDocument`.
+public struct Info: Codable, Equatable, Sendable {
+    /// Human-readable title of the API.
     public let title: String
-    /// The `summary` property.
+    /// Short summary of the API.
     public let summary: String?
-    /// The `description` property.
+    /// Detailed CommonMark-compatible description of the API.
     public let description: String?
-    /// The `termsOfService` property.
+    /// URL to the Terms of Service for the API.
     public let termsOfService: String?
-    /// The `contact` property.
+    /// Contact information for the exposed API.
     public let contact: Contact?
-    /// The `license` property.
+    /// License information for the exposed API.
     public let license: License?
-    /// The `version` property.
+    /// Version of the OpenAPI document / API implementation.
     public let version: String
 
-    /// The `initializer` property.
+    /// Initializes an `Info` metadata object.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the API.
+    ///   - summary: Optional short summary of the API.
+    ///   - description: Optional detailed description of the API.
+    ///   - termsOfService: Optional URL to the API terms of service.
+    ///   - contact: Optional `Contact` details.
+    ///   - license: Optional `License` details.
+    ///   - version: Semantic version of the API.
     public init(title: String, summary: String? = nil, description: String? = nil, termsOfService: String? = nil, contact: Contact? = nil, license: License? = nil, version: String) {
         self.title = title
         self.summary = summary
@@ -133,16 +301,21 @@ public struct Info: Codable, Equatable {
 
 // MARK: - Contact Object
 
-/// The `Contact` property.
-public struct Contact: Codable, Equatable {
-    /// The `name` property.
+/// Contact information for the exposed API.
+public struct Contact: Codable, Equatable, Sendable {
+    /// Identifying name of the contact person or organization.
     public let name: String?
-    /// The `url` property.
+    /// URL pointing to the contact information.
     public let url: String?
-    /// The `email` property.
+    /// Email address of the contact person or organization.
     public let email: String?
 
-    /// The `initializer` property.
+    /// Initializes a `Contact` object.
+    ///
+    /// - Parameters:
+    ///   - name: Optional contact name.
+    ///   - url: Optional contact URL.
+    ///   - email: Optional contact email address.
     public init(name: String? = nil, url: String? = nil, email: String? = nil) {
         self.name = name
         self.url = url
@@ -152,16 +325,21 @@ public struct Contact: Codable, Equatable {
 
 // MARK: - License Object
 
-/// The `License` property.
-public struct License: Codable, Equatable {
-    /// The `name` property.
+/// License information for the exposed API.
+public struct License: Codable, Equatable, Sendable {
+    /// License name used for the API.
     public let name: String
-    /// The `identifier` property.
+    /// SPDX license expression for the API (e.g. `"Apache-2.0"`).
     public let identifier: String?
-    /// The `url` property.
+    /// URL to the license used for the API.
     public let url: String?
 
-    /// The `initializer` property.
+    /// Initializes a `License` object.
+    ///
+    /// - Parameters:
+    ///   - name: The license display name.
+    ///   - identifier: Optional SPDX license identifier.
+    ///   - url: Optional URL to the full license text.
     public init(name: String, identifier: String? = nil, url: String? = nil) {
         self.name = name
         self.identifier = identifier
@@ -171,18 +349,24 @@ public struct License: Codable, Equatable {
 
 // MARK: - Server Object
 
-/// The `Server` property.
-public struct Server: Codable, Equatable {
-    /// The `url` property.
+/// Represents a target server hosting the API.
+public struct Server: Codable, Equatable, Sendable {
+    /// Target host URL (may contain `{variable}` substitutions).
     public let url: String
-    /// The `description` property.
+    /// Optional string describing the host designated by the URL.
     public let description: String?
-    /// The `name` property.
+    /// Optional human-readable name for the server (OpenAPI 3.2.0).
     public let name: String?
-    /// The `variables` property.
+    /// Map between a variable name and its value for URL template substitution.
     public let variables: [String: ServerVariable]?
 
-    /// The `initializer` property.
+    /// Initializes a `Server` descriptor.
+    ///
+    /// - Parameters:
+    ///   - url: Target server URL or URL template.
+    ///   - description: Optional description of the server environment.
+    ///   - name: Optional server name.
+    ///   - variables: Optional map of URL template variables.
     public init(url: String, description: String? = nil, name: String? = nil, variables: [String: ServerVariable]? = nil) {
         self.url = url
         self.description = description
@@ -193,16 +377,21 @@ public struct Server: Codable, Equatable {
 
 // MARK: - Server Variable Object
 
-/// The `ServerVariable` property.
-public struct ServerVariable: Codable, Equatable {
-    /// The `enum` property.
+/// Represents a Server Variable for server URL template substitution.
+public struct ServerVariable: Codable, Equatable, Sendable {
+    /// Enumeration of string values to be used if the substitution options are from a limited set.
     public let `enum`: [String]?
-    /// The `default` property.
+    /// Default value to use for substitution if an alternate value is not supplied.
     public let `default`: String
-    /// The `description` property.
+    /// Optional description for the server variable.
     public let description: String?
 
-    /// The `initializer` property.
+    /// Initializes a `ServerVariable`.
+    ///
+    /// - Parameters:
+    ///   - enum: Optional allowed string values for the variable.
+    ///   - default: Required default substitution value.
+    ///   - description: Optional description of the variable.
     public init(enum: [String]? = nil, default: String, description: String? = nil) {
         self.enum = `enum`
         self.default = `default`
@@ -212,33 +401,58 @@ public struct ServerVariable: Codable, Equatable {
 
 // MARK: - Components Object
 
-/// The `Components` property.
-public struct Components: Codable, Equatable {
-    /// The `schemas` property.
+/// Holds a set of reusable objects for different aspects of the OpenAPI specification.
+public struct Components: Codable, Equatable, Sendable {
+    /// Reusable `Schema` objects keyed by component name.
     public let schemas: [String: Schema]?
-    /// The `responses` property.
+    /// Reusable `Response` objects keyed by component name.
     public let responses: [String: Response]?
-    /// The `parameters` property.
+    /// Reusable `Parameter` objects keyed by component name.
     public let parameters: [String: Parameter]?
-    /// The `examples` property.
+    /// Reusable `Example` objects keyed by component name.
     public let examples: [String: Example]?
-    /// The `requestBodies` property.
+    /// Reusable `RequestBody` objects keyed by component name.
     public let requestBodies: [String: RequestBody]?
-    /// The `headers` property.
+    /// Reusable `Header` objects keyed by component name.
     public let headers: [String: Header]?
-    /// The `securitySchemes` property.
+    /// Reusable `SecurityScheme` objects keyed by component name.
     public let securitySchemes: [String: SecurityScheme]?
-    /// The `links` property.
+    /// Reusable `Link` objects keyed by component name.
     public let links: [String: Link]?
-    /// The `callbacks` property.
+    /// Reusable `Callback` objects keyed by component name.
     public let callbacks: [String: Callback]?
-    /// The `pathItems` property.
+    /// Reusable `PathItem` objects keyed by component name.
     public let pathItems: [String: PathItem]?
-    /// The `mediaTypes` property.
+    /// Reusable `MediaType` objects keyed by component name (OpenAPI 3.2.0).
     public let mediaTypes: [String: MediaType]?
 
-    /// The `initializer` property.
-    public init(schemas: [String: Schema]? = nil, responses: [String: Response]? = nil, parameters: [String: Parameter]? = nil, examples: [String: Example]? = nil, requestBodies: [String: RequestBody]? = nil, headers: [String: Header]? = nil, securitySchemes: [String: SecurityScheme]? = nil, links: [String: Link]? = nil, callbacks: [String: Callback]? = nil, pathItems: [String: PathItem]? = nil, mediaTypes: [String: MediaType]? = nil) {
+    /// Initializes a `Components` registry.
+    ///
+    /// - Parameters:
+    ///   - schemas: Optional map of reusable schemas.
+    ///   - responses: Optional map of reusable responses.
+    ///   - parameters: Optional map of reusable parameters.
+    ///   - examples: Optional map of reusable examples.
+    ///   - requestBodies: Optional map of reusable request bodies.
+    ///   - headers: Optional map of reusable headers.
+    ///   - securitySchemes: Optional map of reusable security schemes.
+    ///   - links: Optional map of reusable links.
+    ///   - callbacks: Optional map of reusable callbacks.
+    ///   - pathItems: Optional map of reusable path items.
+    ///   - mediaTypes: Optional map of reusable media types.
+    public init(
+        schemas: [String: Schema]? = nil,
+        responses: [String: Response]? = nil,
+        parameters: [String: Parameter]? = nil,
+        examples: [String: Example]? = nil,
+        requestBodies: [String: RequestBody]? = nil,
+        headers: [String: Header]? = nil,
+        securitySchemes: [String: SecurityScheme]? = nil,
+        links: [String: Link]? = nil,
+        callbacks: [String: Callback]? = nil,
+        pathItems: [String: PathItem]? = nil,
+        mediaTypes: [String: MediaType]? = nil
+    ) {
         self.schemas = schemas
         self.responses = responses
         self.parameters = parameters
@@ -255,60 +469,108 @@ public struct Components: Codable, Equatable {
 
 // MARK: - Path Item Object
 
-/// The `PathItem` property.
-public struct PathItem: Codable, Equatable {
-    /// The `ref` property.
+/// Describes the operations available on a single API path.
+public struct PathItem: Codable, Equatable, Sendable {
+    /// External or component `$ref` reference for this path item.
     public let ref: String?
-    /// The `summary` property.
+    /// Optional short summary intended to apply to all operations in this path.
     public let summary: String?
-    /// The `description` property.
+    /// Optional detailed description intended to apply to all operations in this path.
     public let description: String?
-    /// The `get` property.
+    /// Definition of a `GET` operation on this path.
     public var get: Operation?
-    /// The `put` property.
+    /// Definition of a `PUT` operation on this path.
     public var put: Operation?
-    /// The `post` property.
+    /// Definition of a `POST` operation on this path.
     public var post: Operation?
-    /// The `delete` property.
+    /// Definition of a `DELETE` operation on this path.
     public var delete: Operation?
-    /// The `options` property.
+    /// Definition of an `OPTIONS` operation on this path.
     public var options: Operation?
-    /// The `head` property.
+    /// Definition of a `HEAD` operation on this path.
     public var head: Operation?
-    /// The `patch` property.
+    /// Definition of a `PATCH` operation on this path.
     public var patch: Operation?
-    /// The `trace` property.
+    /// Definition of a `TRACE` operation on this path.
     public var trace: Operation?
-    /// The `query` property.
+    /// Definition of a `QUERY` operation on this path (OpenAPI 3.2.0).
     public var query: Operation?
-    /// The `additionalOperations` property.
+    /// Map of custom/additional HTTP method names to `Operation` definitions (OpenAPI 3.2.0).
     public let additionalOperations: [String: Operation]?
-    /// The `servers` property.
+    /// Alternative `Server` array to service all operations in this path.
     public let servers: [Server]?
-    /// The `parameters` property.
+    /// List of parameters that are applicable for all the operations described under this path.
     public let parameters: [Parameter]?
 
-    /// The `CodingKeys` property.
+    /// Coding keys mapping OpenAPI JSON properties to `PathItem` fields.
     enum CodingKeys: String, CodingKey {
+        /// Key for `$ref`.
         case ref = "$ref"
+        /// Key for `summary`.
         case summary
+        /// Key for `description`.
         case description
+        /// Key for `get`.
         case get
+        /// Key for `put`.
         case put
+        /// Key for `post`.
         case post
+        /// Key for `delete`.
         case delete
+        /// Key for `options`.
         case options
+        /// Key for `head`.
         case head
+        /// Key for `patch`.
         case patch
+        /// Key for `trace`.
         case trace
+        /// Key for `query`.
         case query
+        /// Key for `additionalOperations`.
         case additionalOperations
+        /// Key for `servers`.
         case servers
+        /// Key for `parameters`.
         case parameters
     }
 
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, get: Operation? = nil, put: Operation? = nil, post: Operation? = nil, delete: Operation? = nil, options: Operation? = nil, head: Operation? = nil, patch: Operation? = nil, trace: Operation? = nil, query: Operation? = nil, additionalOperations: [String: Operation]? = nil, servers: [Server]? = nil, parameters: [Parameter]? = nil) {
+    /// Initializes a `PathItem`.
+    ///
+    /// - Parameters:
+    ///   - ref: Optional `$ref` pointer string.
+    ///   - summary: Optional path summary.
+    ///   - description: Optional path description.
+    ///   - get: Optional `GET` operation.
+    ///   - put: Optional `PUT` operation.
+    ///   - post: Optional `POST` operation.
+    ///   - delete: Optional `DELETE` operation.
+    ///   - options: Optional `OPTIONS` operation.
+    ///   - head: Optional `HEAD` operation.
+    ///   - patch: Optional `PATCH` operation.
+    ///   - trace: Optional `TRACE` operation.
+    ///   - query: Optional `QUERY` operation.
+    ///   - additionalOperations: Optional map of custom HTTP verbs to operations.
+    ///   - servers: Optional path-level server overrides.
+    ///   - parameters: Optional path-level shared parameters.
+    public init(
+        ref: String? = nil,
+        summary: String? = nil,
+        description: String? = nil,
+        get: Operation? = nil,
+        put: Operation? = nil,
+        post: Operation? = nil,
+        delete: Operation? = nil,
+        options: Operation? = nil,
+        head: Operation? = nil,
+        patch: Operation? = nil,
+        trace: Operation? = nil,
+        query: Operation? = nil,
+        additionalOperations: [String: Operation]? = nil,
+        servers: [Server]? = nil,
+        parameters: [Parameter]? = nil
+    ) {
         self.ref = ref
         self.summary = summary
         self.description = description
@@ -325,1006 +587,49 @@ public struct PathItem: Codable, Equatable {
         self.servers = servers
         self.parameters = parameters
     }
-}
 
-// MARK: - Operation Object
-
-/// The `Operation` property.
-public struct Operation: Codable, Equatable {
-    /// The `tags` property.
-    public let tags: [String]?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `externalDocs` property.
-    public let externalDocs: ExternalDocumentation?
-    /// The `operationId` property.
-    public let operationId: String?
-    /// The `parameters` property.
-    public let parameters: [Parameter]?
-    /// The `requestBody` property.
-    public let requestBody: RequestBody?
-    /// The `responses` property.
-    public let responses: [String: Response]?
-    /// The `callbacks` property.
-    public let callbacks: [String: Callback]?
-    /// The `deprecated` property.
-    public let deprecated: Bool?
-    /// The `security` property.
-    public let security: [SecurityRequirement]?
-    /// The `servers` property.
-    public let servers: [Server]?
-
-    /// The `initializer` property.
-    public init(tags: [String]? = nil, summary: String? = nil, description: String? = nil, externalDocs: ExternalDocumentation? = nil, operationId: String? = nil, parameters: [Parameter]? = nil, requestBody: RequestBody? = nil, responses: [String: Response]? = nil, callbacks: [String: Callback]? = nil, deprecated: Bool? = nil, security: [SecurityRequirement]? = nil, servers: [Server]? = nil) {
-        self.tags = tags
-        self.summary = summary
-        self.description = description
-        self.externalDocs = externalDocs
-        self.operationId = operationId
-        self.parameters = parameters
-        self.requestBody = requestBody
-        self.responses = responses
-        self.callbacks = callbacks
-        self.deprecated = deprecated
-        self.security = security
-        self.servers = servers
+    /// Returns all non-nil standard HTTP operations defined on this `PathItem` in canonical order.
+    public var operationsByMethod: [(HTTPMethod, Operation)] {
+        var result: [(HTTPMethod, Operation)] = []
+        if let op = get {
+            result.append((.get, op))
+        }
+        if let op = put {
+            result.append((.put, op))
+        }
+        if let op = post {
+            result.append((.post, op))
+        }
+        if let op = delete {
+            result.append((.delete, op))
+        }
+        if let op = options {
+            result.append((.options, op))
+        }
+        if let op = head {
+            result.append((.head, op))
+        }
+        if let op = patch {
+            result.append((.patch, op))
+        }
+        if let op = trace {
+            result.append((.trace, op))
+        }
+        if let op = query {
+            result.append((.query, op))
+        }
+        return result
     }
 }
 
-// MARK: - External Documentation Object
-
-/// The `ExternalDocumentation` property.
-public struct ExternalDocumentation: Codable, Equatable, Sendable {
-    /// The `description` property.
-    public let description: String?
-    /// The `url` property.
-    public let url: String
-
-    /// The `initializer` property.
-    public init(description: String? = nil, url: String) {
-        self.description = description
-        self.url = url
-    }
-}
-
-// MARK: - Parameter Object
-
-/// The `Parameter` property.
-public struct Parameter: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `name` property.
-    public let name: String?
-    /// The `in` property.
-    public let `in`: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `required` property.
-    public let required: Bool?
-    /// The `deprecated` property.
-    public let deprecated: Bool?
-    /// The `allowEmptyValue` property.
-    public let allowEmptyValue: Bool?
-    /// The `style` property.
-    public let style: String?
-    /// The `explode` property.
-    public let explode: Bool?
-    /// The `allowReserved` property.
-    public let allowReserved: Bool?
-    /// The `schema` property.
-    public let schema: Schema?
-    /// The `example` property.
-    public let example: AnyCodable?
-    /// The `examples` property.
-    public let examples: [String: Example]?
-    /// The `content` property.
-    public let content: [String: MediaType]?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case name
-        case `in`
-        case description
-        case required
-        case deprecated
-        case allowEmptyValue
-        case style
-        case explode
-        case allowReserved
-        case schema
-        case example
-        case examples
-        case content
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, name: String? = nil, in location: String? = nil, description: String? = nil, required: Bool? = nil, deprecated: Bool? = nil, allowEmptyValue: Bool? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil, schema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, content: [String: MediaType]? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.name = name
-        self.in = location
-        self.description = description
-        self.required = required
-        self.deprecated = deprecated
-        self.allowEmptyValue = allowEmptyValue
-        self.style = style
-        self.explode = explode
-        self.allowReserved = allowReserved
-        self.schema = schema
-        self.example = example
-        self.examples = examples
-        self.content = content
-    }
-}
-
-// MARK: - Request Body Object
-
-/// The `RequestBody` property.
-public struct RequestBody: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `content` property.
-    public let content: [String: MediaType]?
-    /// The `required` property.
-    public let required: Bool?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case description
-        case content
-        case required
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, content: [String: MediaType]? = nil, required: Bool? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
-        self.content = content
-        self.required = required
-    }
-}
-
-// MARK: - Media Type Object
-
-/// The `MediaType` property.
-public struct MediaType: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `schema` property.
-    public let schema: Schema?
-    /// The `itemSchema` property.
-    public let itemSchema: Schema?
-    /// The `example` property.
-    public let example: AnyCodable?
-    /// The `examples` property.
-    public let examples: [String: Example]?
-    /// The `encoding` property.
-    public let encoding: [String: EncodingObject]?
-    /// The `prefixEncoding` property.
-    public let prefixEncoding: [EncodingObject]?
-    /// The `itemEncoding` property.
-    public let itemEncoding: EncodingObject?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case schema
-        case itemSchema
-        case example
-        case examples
-        case encoding
-        case prefixEncoding
-        case itemEncoding
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, schema: Schema? = nil, itemSchema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, encoding: [String: EncodingObject]? = nil, prefixEncoding: [EncodingObject]? = nil, itemEncoding: EncodingObject? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.schema = schema
-        self.itemSchema = itemSchema
-        self.example = example
-        self.examples = examples
-        self.encoding = encoding
-        self.prefixEncoding = prefixEncoding
-        self.itemEncoding = itemEncoding
-    }
-}
-
-// MARK: - Encoding Object
-
-/// The `EncodingObject` property.
-public final class EncodingObject: Codable, Equatable {
-    /// The `contentType` property.
-    public let contentType: String?
-    /// The `headers` property.
-    public let headers: [String: Header]?
-    /// The `encoding` property.
-    public let encoding: [String: EncodingObject]?
-    /// The `prefixEncoding` property.
-    public let prefixEncoding: [EncodingObject]?
-    /// The `itemEncoding` property.
-    public let itemEncoding: EncodingObject?
-    /// The `style` property.
-    public let style: String?
-    /// The `explode` property.
-    public let explode: Bool?
-    /// The `allowReserved` property.
-    public let allowReserved: Bool?
-
-    /// The `initializer` property.
-    public init(contentType: String? = nil, headers: [String: Header]? = nil, encoding: [String: EncodingObject]? = nil, prefixEncoding: [EncodingObject]? = nil, itemEncoding: EncodingObject? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil) {
-        self.contentType = contentType
-        self.headers = headers
-        self.encoding = encoding
-        self.prefixEncoding = prefixEncoding
-        self.itemEncoding = itemEncoding
-        self.style = style
-        self.explode = explode
-        self.allowReserved = allowReserved
-    }
-
-    public static func == (lhs: EncodingObject, rhs: EncodingObject) -> Bool {
-        return lhs.contentType == rhs.contentType && lhs.headers == rhs.headers && lhs.encoding == rhs.encoding && lhs.prefixEncoding == rhs.prefixEncoding && lhs.itemEncoding == rhs.itemEncoding && lhs.style == rhs.style && lhs.explode == rhs.explode && lhs.allowReserved == rhs.allowReserved
-    }
-}
-
-// MARK: - Response Object
-
-/// The `Response` property.
-public struct Response: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `headers` property.
-    public let headers: [String: Header]?
-    /// The `content` property.
-    public let content: [String: MediaType]?
-    /// The `links` property.
-    public let links: [String: Link]?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case description
-        case headers
-        case content
-        case links
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, headers: [String: Header]? = nil, content: [String: MediaType]? = nil, links: [String: Link]? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
-        self.headers = headers
-        self.content = content
-        self.links = links
-    }
-}
-
-// MARK: - Callback Object
-
-/// The `Callback` property.
-public typealias Callback = [String: PathItem]
-
-// MARK: - Example Object
-
-/// The `Example` property.
-public struct Example: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `dataValue` property.
-    public let dataValue: AnyCodable?
-    /// The `serializedValue` property.
-    public let serializedValue: String?
-    /// The `value` property.
-    public let value: AnyCodable?
-    /// The `externalValue` property.
-    public let externalValue: String?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case description
-        case dataValue
-        case serializedValue
-        case value
-        case externalValue
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, dataValue: AnyCodable? = nil, serializedValue: String? = nil, value: AnyCodable? = nil, externalValue: String? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
-        self.dataValue = dataValue
-        self.serializedValue = serializedValue
-        self.value = value
-        self.externalValue = externalValue
-    }
-}
-
-// MARK: - Link Object
-
-/// The `Link` property.
-public struct Link: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `operationRef` property.
-    public let operationRef: String?
-    /// The `operationId` property.
-    public let operationId: String?
-    /// The `parameters` property.
-    public let parameters: [String: AnyCodable]?
-    /// The `requestBody` property.
-    public let requestBody: AnyCodable?
-    /// The `description` property.
-    public let description: String?
-    /// The `server` property.
-    public let server: Server?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case operationRef
-        case operationId
-        case parameters
-        case requestBody
-        case description
-        case server
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, operationRef: String? = nil, operationId: String? = nil, parameters: [String: AnyCodable]? = nil, requestBody: AnyCodable? = nil, description: String? = nil, server: Server? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.operationRef = operationRef
-        self.operationId = operationId
-        self.parameters = parameters
-        self.requestBody = requestBody
-        self.description = description
-        self.server = server
-    }
-}
-
-// MARK: - Header Object
-
-/// The `Header` property.
-public struct Header: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `required` property.
-    public let required: Bool?
-    /// The `deprecated` property.
-    public let deprecated: Bool?
-    /// The `allowEmptyValue` property.
-    public let allowEmptyValue: Bool?
-    /// The `style` property.
-    public let style: String?
-    /// The `explode` property.
-    public let explode: Bool?
-    /// The `allowReserved` property.
-    public let allowReserved: Bool?
-    /// The `schema` property.
-    public let schema: Schema?
-    /// The `example` property.
-    public let example: AnyCodable?
-    /// The `examples` property.
-    public let examples: [String: Example]?
-    /// The `content` property.
-    public let content: [String: MediaType]?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case description
-        case required
-        case deprecated
-        case allowEmptyValue
-        case style
-        case explode
-        case allowReserved
-        case schema
-        case example
-        case examples
-        case content
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, description: String? = nil, required: Bool? = nil, deprecated: Bool? = nil, allowEmptyValue: Bool? = nil, style: String? = nil, explode: Bool? = nil, allowReserved: Bool? = nil, schema: Schema? = nil, example: AnyCodable? = nil, examples: [String: Example]? = nil, content: [String: MediaType]? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
-        self.required = required
-        self.deprecated = deprecated
-        self.allowEmptyValue = allowEmptyValue
-        self.style = style
-        self.explode = explode
-        self.allowReserved = allowReserved
-        self.schema = schema
-        self.example = example
-        self.examples = examples
-        self.content = content
-    }
-}
-
-// MARK: - Tag Object
-
-/// The `Tag` property.
-public struct Tag: Codable, Equatable {
-    /// The `name` property.
-    public let name: String
-    /// The `description` property.
-    public let description: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `parent` property.
-    public let parent: String?
-    /// The `kind` property.
-    public let kind: String?
-    /// The `externalDocs` property.
-    public let externalDocs: ExternalDocumentation?
-
-    /// The `initializer` property.
-    public init(name: String, description: String? = nil, summary: String? = nil, parent: String? = nil, kind: String? = nil, externalDocs: ExternalDocumentation? = nil) {
-        self.name = name
-        self.description = description
-        self.summary = summary
-        self.parent = parent
-        self.kind = kind
-        self.externalDocs = externalDocs
-    }
-}
-
-// MARK: - Security Requirement Object
-
-/// The `SecurityRequirement` property.
-public typealias SecurityRequirement = [String: [String]]
-
-// MARK: - Security Scheme Object
-
-/// The `SecurityScheme` property.
-public struct SecurityScheme: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String?
-    /// The `summary` property.
-    public let summary: String?
-    /// The `type` property.
-    public let type: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `name` property.
-    public let name: String?
-    /// The `in` property.
-    public let `in`: String?
-    /// The `scheme` property.
-    public let scheme: String?
-    /// The `bearerFormat` property.
-    public let bearerFormat: String?
-    /// The `flows` property.
-    public let flows: OAuthFlows?
-    /// The `openIdConnectUrl` property.
-    public let openIdConnectUrl: String?
-    /// The `oauth2MetadataUrl` property.
-    public let oauth2MetadataUrl: String?
-    /// The `deprecated` property.
-    public let deprecated: Bool?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case type
-        case description
-        case name
-        case `in`
-        case scheme
-        case bearerFormat
-        case flows
-        case openIdConnectUrl
-        case oauth2MetadataUrl
-        case deprecated
-    }
-
-    /// The `initializer` property.
-    public init(ref: String? = nil, summary: String? = nil, type: String? = nil, description: String? = nil, name: String? = nil, in location: String? = nil, scheme: String? = nil, bearerFormat: String? = nil, flows: OAuthFlows? = nil, openIdConnectUrl: String? = nil, oauth2MetadataUrl: String? = nil, deprecated: Bool? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.type = type
-        self.description = description
-        self.name = name
-        self.in = location
-        self.scheme = scheme
-        self.bearerFormat = bearerFormat
-        self.flows = flows
-        self.openIdConnectUrl = openIdConnectUrl
-        self.oauth2MetadataUrl = oauth2MetadataUrl
-        self.deprecated = deprecated
-    }
-}
-
-// MARK: - OAuth Flows Object
-
-/// The `OAuthFlows` property.
-public struct OAuthFlows: Codable, Equatable {
-    /// The `implicit` property.
-    public let implicit: OAuthFlow?
-    /// The `password` property.
-    public let password: OAuthFlow?
-    /// The `clientCredentials` property.
-    public let clientCredentials: OAuthFlow?
-    /// The `authorizationCode` property.
-    public let authorizationCode: OAuthFlow?
-    /// The `deviceAuthorization` property.
-    public let deviceAuthorization: OAuthFlow?
-
-    /// The `initializer` property.
-    public init(implicit: OAuthFlow? = nil, password: OAuthFlow? = nil, clientCredentials: OAuthFlow? = nil, authorizationCode: OAuthFlow? = nil, deviceAuthorization: OAuthFlow? = nil) {
-        self.implicit = implicit
-        self.password = password
-        self.clientCredentials = clientCredentials
-        self.authorizationCode = authorizationCode
-        self.deviceAuthorization = deviceAuthorization
-    }
-}
-
-// MARK: - OAuth Flow Object
-
-/// The `OAuthFlow` property.
-public struct OAuthFlow: Codable, Equatable {
-    /// The `authorizationUrl` property.
-    public let authorizationUrl: String?
-    /// The `tokenUrl` property.
-    public let tokenUrl: String?
-    /// The `refreshUrl` property.
-    public let refreshUrl: String?
-    /// The `deviceAuthorizationUrl` property.
-    public let deviceAuthorizationUrl: String?
-    /// The `scopes` property.
-    public let scopes: [String: String]?
-
-    /// The `initializer` property.
-    public init(authorizationUrl: String? = nil, tokenUrl: String? = nil, refreshUrl: String? = nil, deviceAuthorizationUrl: String? = nil, scopes: [String: String]? = nil) {
-        self.authorizationUrl = authorizationUrl
-        self.tokenUrl = tokenUrl
-        self.refreshUrl = refreshUrl
-        self.deviceAuthorizationUrl = deviceAuthorizationUrl
-        self.scopes = scopes
-    }
-}
-
-// MARK: - Schema Object
-
-/// The `Schema` property.
-public struct Schema: Codable, Equatable, Sendable {
-    // Basic types
-    /// The `type` property.
-    public let type: String?
-    /// The `properties` property.
-    public let properties: [String: Schema]?
-    /// The `additionalProperties` property.
-    public let additionalProperties: SchemaItem?
-    /// The `items` property.
-    public let items: SchemaItem?
-    /// The `prefixItems` property.
-    public let prefixItems: [Schema]?
-    /// The `required` property.
-    public let required: [String]?
-    /// The `ref` property.
-    public let ref: String?
-
-    // JSON Schema metadata and validation keywords
-    /// The `title` property.
-    public let title: String?
-    /// The `description` property.
-    public let description: String?
-    /// The `format` property.
-    public let format: String?
-    /// The `default_value` property.
-    public let default_value: AnyCodable?
-    /// The `const_value` property.
-    public let const_value: AnyCodable?
-
-    /// The `multipleOf` property.
-    public let multipleOf: Double?
-    /// The `maximum` property.
-    public let maximum: Double?
-    /// The `exclusiveMaximum` property.
-    public let exclusiveMaximum: Double?
-    /// The `minimum` property.
-    public let minimum: Double?
-    /// The `exclusiveMinimum` property.
-    public let exclusiveMinimum: Double?
-
-    /// The `maxLength` property.
-    public let maxLength: Int?
-    /// The `minLength` property.
-    public let minLength: Int?
-    /// The `pattern` property.
-    public let pattern: String?
-
-    /// The `maxItems` property.
-    public let maxItems: Int?
-    /// The `minItems` property.
-    public let minItems: Int?
-    /// The `uniqueItems` property.
-    public let uniqueItems: Bool?
-    /// The `contains` property.
-    public let contains: SchemaItem?
-    /// The `minContains` property.
-    public let minContains: Int?
-    /// The `maxContains` property.
-    public let maxContains: Int?
-
-    /// The `maxProperties` property.
-    public let maxProperties: Int?
-    /// The `minProperties` property.
-    public let minProperties: Int?
-    /// The `dependentRequired` property.
-    public let dependentRequired: [String: [String]]?
-    /// The `dependentSchemas` property.
-    public let dependentSchemas: [String: Schema]?
-    /// The `propertyNames` property.
-    public let propertyNames: SchemaItem?
-    /// The `patternProperties` property.
-    public let patternProperties: [String: Schema]?
-    /// The `unevaluatedItems` property.
-    public let unevaluatedItems: SchemaItem?
-    /// The `unevaluatedProperties` property.
-    public let unevaluatedProperties: SchemaItem?
-
-    /// The `enum_values` property.
-    public let enum_values: [AnyCodable]?
-
-    // Media type and content encoding
-    /// The `contentEncoding` property.
-    public let contentEncoding: String?
-    /// The `contentMediaType` property.
-    public let contentMediaType: String?
-    /// The `contentSchema` property.
-    public let contentSchema: SchemaItem?
-
-    // Polymorphism
-    /// The `allOf` property.
-    public let allOf: [Schema]?
-    /// The `oneOf` property.
-    public let oneOf: [Schema]?
-    /// The `anyOf` property.
-    public let anyOf: [Schema]?
-    /// The `not` property.
-    public let not: SchemaItem?
-
-    /// The `if_schema` property.
-    public let if_schema: SchemaItem?
-    /// The `then_schema` property.
-    public let then_schema: SchemaItem?
-    /// The `else_schema` property.
-    public let else_schema: SchemaItem?
-
-    // Identifiers and Dialects
-    /// The `id` property.
-    public let id: String?
-    /// The `anchor` property.
-    public let anchor: String?
-    /// The `dynamicAnchor` property.
-    public let dynamicAnchor: String?
-    /// The `vocabulary` property.
-    public let vocabulary: [String: Bool]?
-    /// The `dynamicRef` property.
-    public let dynamicRef: String?
-    /// The `defs` property.
-    public let defs: [String: Schema]?
-
-    // OpenAPI specific
-    /// The `discriminator` property.
-    public let discriminator: Discriminator?
-    /// The `xml` property.
-    public let xml: XML?
-    /// The `externalDocs` property.
-    public let externalDocs: ExternalDocumentation?
-    /// The `example` property.
-    public let example: AnyCodable?
-    /// The `deprecated` property.
-    public let deprecated: Bool?
-    /// The `readOnly` property.
-    public let readOnly: Bool?
-    /// The `writeOnly` property.
-    public let writeOnly: Bool?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case type
-        case properties
-        case additionalProperties
-        case items
-        case prefixItems
-        case required
-        case ref = "$ref"
-
-        case title
-        case description
-        case format
-        case default_value = "default"
-        case const_value = "const"
-
-        case multipleOf
-        case maximum
-        case exclusiveMaximum
-        case minimum
-        case exclusiveMinimum
-
-        case maxLength
-        case minLength
-        case pattern
-
-        case maxItems
-        case minItems
-        case uniqueItems
-        case contains
-        case minContains
-        case maxContains
-
-        case maxProperties
-        case minProperties
-        case dependentRequired
-        case dependentSchemas
-        case propertyNames
-        case patternProperties
-        case unevaluatedItems
-        case unevaluatedProperties
-
-        case enum_values = "enum"
-
-        case contentEncoding
-        case contentMediaType
-        case contentSchema
-
-        case allOf
-        case oneOf
-        case anyOf
-        case not
-
-        case if_schema = "if"
-        case then_schema = "then"
-        case else_schema = "else"
-
-        case id = "$id"
-        case anchor = "$anchor"
-        case dynamicAnchor = "$dynamicAnchor"
-        case vocabulary = "$vocabulary"
-        case dynamicRef = "$dynamicRef"
-        case defs = "$defs"
-
-        case discriminator
-        case xml
-        case externalDocs
-        case example
-        case deprecated
-        case readOnly
-        case writeOnly
-    }
-
-    /// The `initializer` property.
-    public init(
-        type: String? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil, prefixItems: [Schema]? = nil, required: [String]? = nil, ref: String? = nil,
-        title: String? = nil, description: String? = nil, format: String? = nil, default_value: AnyCodable? = nil, const_value: AnyCodable? = nil,
-        multipleOf: Double? = nil, maximum: Double? = nil, exclusiveMaximum: Double? = nil, minimum: Double? = nil, exclusiveMinimum: Double? = nil,
-        maxLength: Int? = nil, minLength: Int? = nil, pattern: String? = nil,
-        maxItems: Int? = nil, minItems: Int? = nil, uniqueItems: Bool? = nil, contains: SchemaItem? = nil, minContains: Int? = nil, maxContains: Int? = nil,
-        maxProperties: Int? = nil, minProperties: Int? = nil, dependentRequired: [String: [String]]? = nil, dependentSchemas: [String: Schema]? = nil, propertyNames: SchemaItem? = nil, patternProperties: [String: Schema]? = nil, unevaluatedItems: SchemaItem? = nil, unevaluatedProperties: SchemaItem? = nil,
-        enum_values: [AnyCodable]? = nil,
-        contentEncoding: String? = nil, contentMediaType: String? = nil, contentSchema: SchemaItem? = nil,
-        allOf: [Schema]? = nil, oneOf: [Schema]? = nil, anyOf: [Schema]? = nil, not: SchemaItem? = nil,
-        if_schema: SchemaItem? = nil, then_schema: SchemaItem? = nil, else_schema: SchemaItem? = nil,
-        id: String? = nil, anchor: String? = nil, dynamicAnchor: String? = nil, vocabulary: [String: Bool]? = nil, dynamicRef: String? = nil, defs: [String: Schema]? = nil,
-        discriminator: Discriminator? = nil, xml: XML? = nil, externalDocs: ExternalDocumentation? = nil, example: AnyCodable? = nil, deprecated: Bool? = nil, readOnly: Bool? = nil, writeOnly: Bool? = nil
-    ) {
-        self.type = type
-        self.properties = properties
-        self.additionalProperties = additionalProperties
-        self.items = items
-        self.prefixItems = prefixItems
-        self.required = required
-        self.ref = ref
-
-        self.title = title
-        self.description = description
-        self.format = format
-        self.default_value = default_value
-        self.const_value = const_value
-
-        self.multipleOf = multipleOf
-        self.maximum = maximum
-        self.exclusiveMaximum = exclusiveMaximum
-        self.minimum = minimum
-        self.exclusiveMinimum = exclusiveMinimum
-
-        self.maxLength = maxLength
-        self.minLength = minLength
-        self.pattern = pattern
-
-        self.maxItems = maxItems
-        self.minItems = minItems
-        self.uniqueItems = uniqueItems
-        self.contains = contains
-        self.minContains = minContains
-        self.maxContains = maxContains
-
-        self.maxProperties = maxProperties
-        self.minProperties = minProperties
-        self.dependentRequired = dependentRequired
-        self.dependentSchemas = dependentSchemas
-        self.propertyNames = propertyNames
-        self.patternProperties = patternProperties
-        self.unevaluatedItems = unevaluatedItems
-        self.unevaluatedProperties = unevaluatedProperties
-
-        self.enum_values = enum_values
-
-        self.contentEncoding = contentEncoding
-        self.contentMediaType = contentMediaType
-        self.contentSchema = contentSchema
-
-        self.allOf = allOf
-        self.oneOf = oneOf
-        self.anyOf = anyOf
-        self.not = not
-
-        self.if_schema = if_schema
-        self.then_schema = then_schema
-        self.else_schema = else_schema
-
-        self.id = id
-        self.anchor = anchor
-        self.dynamicAnchor = dynamicAnchor
-        self.vocabulary = vocabulary
-        self.dynamicRef = dynamicRef
-        self.defs = defs
-
-        self.discriminator = discriminator
-        self.xml = xml
-        self.externalDocs = externalDocs
-        self.example = example
-        self.deprecated = deprecated
-        self.readOnly = readOnly
-        self.writeOnly = writeOnly
-    }
-}
-
-// MARK: - Discriminator Object
-
-/// The `Discriminator` property.
-public struct Discriminator: Codable, Equatable, Sendable {
-    /// The `propertyName` property.
-    public let propertyName: String
-    /// The `mapping` property.
-    public let mapping: [String: String]?
-    /// The `defaultMapping` property.
-    public let defaultMapping: String?
-
-    /// The `initializer` property.
-    public init(propertyName: String, mapping: [String: String]? = nil, defaultMapping: String? = nil) {
-        self.propertyName = propertyName
-        self.mapping = mapping
-        self.defaultMapping = defaultMapping
-    }
-}
-
-// MARK: - XML Object
-
-/// The `XML` property.
-public struct XML: Codable, Equatable, Sendable {
-    /// The `name` property.
-    public let name: String?
-    /// The `namespace` property.
-    public let namespace: String?
-    /// The `prefix` property.
-    public let prefix: String?
-    /// The `attribute` property.
-    public let attribute: Bool?
-    /// The `wrapped` property.
-    public let wrapped: Bool?
-    /// The `nodeType` property.
-    public let nodeType: String?
-
-    /// The `initializer` property.
-    public init(name: String? = nil, namespace: String? = nil, prefix: String? = nil, attribute: Bool? = nil, wrapped: Bool? = nil, nodeType: String? = nil) {
-        self.name = name
-        self.namespace = namespace
-        self.prefix = prefix
-        self.attribute = attribute
-        self.wrapped = wrapped
-        self.nodeType = nodeType
-    }
-}
-
-// MARK: - Schema Item Object
-
-/// The `SchemaItem` property.
-public struct SchemaItem: Codable, Equatable, Sendable {
-    /// The `type` property.
-    public let type: String?
-    /// The `ref` property.
-    public let ref: String?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case type
-        case ref = "$ref"
-    }
-
-    /// The `initializer` property.
-    public init(type: String? = nil, ref: String? = nil) {
-        self.type = type
-        self.ref = ref
-    }
-}
-
-// MARK: - Paths Object
-
-/// The `Paths` property.
+/// Typealias for a dictionary of endpoint path templates mapped to `PathItem` definitions.
 public typealias Paths = [String: PathItem]
 
-// MARK: - Responses Object
-
-/// The `Responses` property.
+/// Typealias for a dictionary of HTTP status codes mapped to `Response` definitions.
 public typealias Responses = [String: Response]
 
-// MARK: - Reference Object
+/// Typealias for a dictionary of runtime expression URLs mapped to `PathItem` callback definitions.
+public typealias Callback = [String: PathItem]
 
-/// The `Reference` property.
-public struct Reference: Codable, Equatable {
-    /// The `ref` property.
-    public let ref: String
-    /// The `summary` property.
-    public let summary: String?
-    /// The `description` property.
-    public let description: String?
-
-    /// The `CodingKeys` property.
-    enum CodingKeys: String, CodingKey {
-        case ref = "$ref"
-        case summary
-        case description
-    }
-
-    public init(ref: String, summary: String? = nil, description: String? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
-    }
-}
+/// Typealias for a security requirement mapping security scheme names to required OAuth2/OIDC scope lists.
+public typealias SecurityRequirement = [String: [String]]

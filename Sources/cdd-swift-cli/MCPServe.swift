@@ -1,14 +1,19 @@
+/// CLI subcommand starting the Model Context Protocol (MCP) server over standard I/O.
 import ArgumentParser
 import CDDSwift
 import Foundation
 
-/// MCP Server command
+/// MCP Server command.
 struct MCPServe: AsyncParsableCommand {
+    /// Command configuration for the `mcp` CLI subcommand.
     static let configuration = CommandConfiguration(commandName: "mcp", abstract: "Start the Model Context Protocol (MCP) server via stdio.")
 
-    /// For testing purposes to inject a mock transport
+    /// Optional mock transport injected during unit testing.
     nonisolated(unsafe) static var mockTransport: MCPTransport?
 
+    /// Starts the MCP server session and registers tool and resource handlers.
+    ///
+    /// - Throws: An error if the transport or server session fails to start.
     mutating func run() async throws {
         let transport = MCPServe.mockTransport ?? MCPStdioTransport()
 

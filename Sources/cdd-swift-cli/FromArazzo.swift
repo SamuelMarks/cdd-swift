@@ -1,3 +1,4 @@
+/// CLI command group for generating Swift SDKs, CLIs, tests, and servers from Arazzo 1.1.0 specifications.
 import ArgumentParser
 import CDDSwift
 import Foundation

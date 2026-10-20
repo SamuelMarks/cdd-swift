@@ -1,3 +1,4 @@
+/// CLI command for generating JSON-formatted API documentation snippets from OpenAPI specifications.
 import ArgumentParser
 import CDDSwift
 import Foundation

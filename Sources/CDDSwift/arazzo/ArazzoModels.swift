@@ -1,3 +1,4 @@
+/// Data models representing Arazzo 1.1.0 workflow specifications, steps, criteria, and actions.
 import Foundation
 
 /// Defines the source type for target APIs linked in an Arazzo document.
@@ -498,11 +499,17 @@ public struct ArazzoSpecification: Codable, Sendable, Equatable {
 
     /// The CodingKeys for ArazzoSpecification.
     enum CodingKeys: String, CodingKey {
+        /// Key for the `arazzo` specification version field.
         case arazzo
+        /// Key for the `$self` canonical document URI field.
         case selfRef = "$self"
+        /// Key for the `info` metadata object.
         case info
+        /// Key for the `sourceDescriptions` list.
         case sourceDescriptions
+        /// Key for the `workflows` list.
         case workflows
+        /// Key for the `components` registry object.
         case components
     }
 

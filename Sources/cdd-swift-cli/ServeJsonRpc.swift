@@ -1,3 +1,4 @@
+/// HTTP JSON-RPC 2.0 server command exposing CDD Swift operations over Swifter.
 #if !os(WASI)
     import ArgumentParser
     import CDDSwift

@@ -1,3 +1,4 @@
+/// Swift DocC comment emitter for OpenAPI descriptions.
 import Foundation
 
 /// Emits a docstring for Swift code generation.
@@ -11,10 +12,8 @@ public func emitDocstring(_ description: String?, indent: Int = 0) -> String {
     let prefix = String(repeating: " ", count: indent)
 
     // Sanitize basic Markdown/HTML issues for Swift documentation
-    // sanitized
     let sanitized = desc.replacingOccurrences(of: "*/", with: "*\\/")
 
-    // lines
     let lines = sanitized.split(separator: "\n")
     return lines.map { "\(prefix)/// \($0)" }.joined(separator: "\n") + "\n"
 }

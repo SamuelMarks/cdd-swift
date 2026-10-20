@@ -77,10 +77,20 @@ final class ArazzoServerEmitTests: XCTestCase {
         let wf = ArazzoWorkflow(
             workflowId: "syncUsers",
             summary: "Synchronizes users",
+            description: "Detailed workflow sync",
+            dependsOn: ["initFlow"],
             steps: [
-                ArazzoStep(stepId: "fetchStep", operationId: "listUsers"),
+                ArazzoStep(
+                    stepId: "fetchStep",
+                    operationId: "listUsers",
+                    operationPath: "/paths/~1users/get",
+                    workflowId: "subWf",
+                    successCriteria: [ArazzoCriterion(context: "$statusCode", condition: "== 200")],
+                    outputs: ["userId": AnyCodable("$response.body#/id")]
+                ),
                 ArazzoStep(stepId: "bareStep")
-            ]
+            ],
+            outputs: ["syncedId": AnyCodable("$steps.fetchStep.outputs.userId")]
         )
         let spec = ArazzoSpecification(
             selfRef: "https://example.com/self.json",
@@ -88,7 +98,8 @@ final class ArazzoServerEmitTests: XCTestCase {
             sourceDescriptions: [
                 ArazzoSourceDescription(name: "usersApi", url: "./users.json", type: .openapi)
             ],
-            workflows: [wf]
+            workflows: [wf],
+            components: ArazzoComponents(parameters: ["p1": ArazzoParameter(name: "X-Key", in: .header, value: AnyCodable("v"))])
         )
 
         let json = try ArazzoEmitter.emitJSON(from: spec)

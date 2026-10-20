@@ -1,3 +1,4 @@
+/// Generator for producing JSON-formatted executable API code snippets from OpenAPI documents.
 import Foundation
 
 /// Generator for producing JSON-formatted API documentation.
@@ -45,20 +46,8 @@ public enum DocsJsonGenerator {
         var operations = [DocsJsonOperation]()
 
         for (path, pathItem) in document.paths ?? [:] {
-            // Map HTTP methods to their optional Operation representations.
-            let methods: [(String, Operation?)] = [
-                ("get", pathItem.get),
-                ("post", pathItem.post),
-                ("put", pathItem.put),
-                ("delete", pathItem.delete),
-                ("patch", pathItem.patch),
-                ("options", pathItem.options),
-                ("head", pathItem.head),
-                ("trace", pathItem.trace)
-            ]
-
-            for (method, operation) in methods {
-                guard let op = operation else { continue }
+            for (httpMethod, op) in pathItem.operationsByMethod {
+                let method = httpMethod.rawValue
 
                 // Determine the operation identifier.
                 let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
@@ -125,8 +114,6 @@ public enum DocsJsonGenerator {
         // Configure JSON encoder with pretty printing.
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-
-        // Encode the model to JSON data safely.
         var encodedData = Data()
         if let data = try? encoder.encode(root) {
             encodedData = data

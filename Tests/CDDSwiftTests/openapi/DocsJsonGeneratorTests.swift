@@ -1,7 +1,10 @@
+/// Unit tests for `DocsJsonGenerator` snippet generation and options.
 @testable import CDDSwift
 import XCTest
 
+/// Test suite verifying `DocsJsonGenerator` across server configurations and wrapping/import flags.
 final class DocsJsonGeneratorTests: XCTestCase {
+    /// Verifies generating Docs JSON with and without imports, wrappers, and custom servers.
     func testDocsJsonGeneration() throws {
         let builder = OpenAPIDocumentBuilder(title: "Sample API", version: "1.0.0")
             .addPath("/test", item: PathItem(
@@ -55,6 +58,7 @@ final class DocsJsonGeneratorTests: XCTestCase {
         XCTAssertNil(minCode.wrapper_start)
         XCTAssertNil(minCode.wrapper_end)
         XCTAssertTrue(minCode.snippet.contains("URLSession"))
+
         // 5. Default Arguments
         let defaultJsonStr = DocsJsonGenerator.generate(from: document)
         let defaultData = try XCTUnwrap(defaultJsonStr.data(using: .utf8))
@@ -66,5 +70,11 @@ final class DocsJsonGeneratorTests: XCTestCase {
         let mixed1 = DocsJsonGenerator.generate(from: document, includeImports: false)
         let mixed2 = DocsJsonGenerator.generate(from: document, includeWrapping: false)
         XCTAssertNotEqual(mixed1, mixed2)
+
+        // 7. Custom server URL, nil paths, and nil operationId
+        let docWithServer = OpenAPIDocument(openapi: "3", info: Info(title: "test", version: "1"), servers: [Server(url: "https://custom.url")], paths: ["/anon": PathItem(get: Operation(operationId: nil))])
+        XCTAssertTrue(DocsJsonGenerator.generate(from: docWithServer).contains("swift"))
+        let docNilPaths = OpenAPIDocument(openapi: "3", info: Info(title: "test", version: "1"), paths: nil)
+        XCTAssertTrue(DocsJsonGenerator.generate(from: docNilPaths).contains("swift"))
     }
 }

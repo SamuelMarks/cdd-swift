@@ -1,3 +1,4 @@
+/// Cross-platform POSIX and Foundation filesystem helpers compatible with macOS, Linux, and WASI.
 #if canImport(Darwin)
     import Darwin
 #elseif canImport(Glibc)

@@ -1,3 +1,4 @@
+/// Non-destructive AST code merger for Arazzo 1.1.0 Swift workflow sources.
 import Foundation
 import SwiftParser
 import SwiftSyntax

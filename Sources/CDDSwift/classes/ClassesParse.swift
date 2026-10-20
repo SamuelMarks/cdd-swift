@@ -1,3 +1,4 @@
+/// SwiftSyntax visitor extracting Codable structs, enums, and typealiases into OpenAPI schemas.
 import Foundation
 import SwiftParser
 import SwiftSyntax
@@ -7,13 +8,19 @@ public class ModelVisitor: SyntaxVisitor {
     /// Dictionary of extracted schemas mapped by name.
     public var schemas: [String: Schema] = [:]
 
+    /// Initializes the `ModelVisitor` with a syntax tree traversal mode.
+    ///
+    /// - Parameter viewMode: The `SyntaxTreeViewMode` used when walking syntax nodes.
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Visits and parses Struct declarations.
+    /// Visits and parses `enum` declarations into string-backed or `oneOf` OpenAPI schemas.
+    ///
+    /// - Parameter node: The `EnumDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after extracting the enum cases.
     override public func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the name of the Enum.
         let enumName = node.name.text
-        // Check if the struct conforms to Codable, Encodable, or Decodable.
+        // Check if the enum conforms to Codable, Encodable, Decodable, or String.
         var isCodable = false
         if let inheritanceClause = node.inheritanceClause {
             for type in inheritanceClause.inheritedTypes {
@@ -40,7 +47,6 @@ public class ModelVisitor: SyntaxVisitor {
                         if let assocValue = element.parameterClause {
                             hasAssociatedValues = true
                             if let firstParam = assocValue.parameters.first {
-                                // declaration
                                 let (schema, _) = parseType(firstParam.type)
                                 oneOfSchemas.append(schema)
                             }
@@ -59,7 +65,6 @@ public class ModelVisitor: SyntaxVisitor {
                 }
             }
 
-            // enumDescription
             let enumDescription = parseDocstring(from: Syntax(node))
 
             if hasAssociatedValues {
@@ -78,7 +83,10 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    /// Visits and parses Struct declarations.
+    /// Visits and parses `struct` declarations into object OpenAPI schemas.
+    ///
+    /// - Parameter node: The `StructDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after extracting the struct properties.
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the name of the Struct.
         let structName = node.name.text
@@ -99,40 +107,29 @@ public class ModelVisitor: SyntaxVisitor {
         if isCodable {
             // Map property names to their corresponding schemas.
             var properties: [String: Schema] = [:]
-            // required
             var required: [String] = []
-            // structDescription
             let structDescription = parseDocstring(from: Syntax(node))
 
             for member in node.memberBlock.members {
                 if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                    /// Properationdescription.
                     let propDescription = parseDocstring(from: Syntax(varDecl))
                     for binding in varDecl.bindings {
                         if let pattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                             // The name of the property.
                             let propName = pattern.identifier.text
-                            // typeSyntax
                             let typeSyntax = typeAnnotation.type
 
-                            // declaration
                             var (schema, isOptional) = parseType(typeSyntax)
 
-                            // min
                             var min: Double?
-                            // max
                             var max: Double?
-                            /// Minlen.
                             var minLen: Int?
-                            /// Maxlen.
                             var maxLen: Int?
-                            // patternStr
                             var patternStr: String?
 
                             if let attributes = binding.parent?.parent?.as(VariableDeclSyntax.self)?.attributes {
                                 for attr in attributes {
                                     if let customAttr = attr.as(AttributeSyntax.self) {
-                                        // attrName
                                         let attrName = customAttr.attributeName.trimmedDescription
                                         if let args = customAttr.arguments?.as(LabeledExprListSyntax.self), let firstArg = args.first {
                                             if attrName == "Minimum", let val = Double(firstArg.expression.trimmedDescription) {
@@ -157,39 +154,14 @@ public class ModelVisitor: SyntaxVisitor {
                                 }
                             }
 
-                            if let desc = propDescription {
-                                schema = Schema(
-                                    type: schema.type,
-                                    properties: schema.properties,
-                                    additionalProperties: schema.additionalProperties,
-                                    items: schema.items,
-                                    prefixItems: schema.prefixItems,
-                                    required: schema.required,
-                                    ref: schema.ref,
-                                    description: desc,
-                                    format: schema.format,
-                                    maximum: max ?? schema.maximum,
-                                    minimum: min ?? schema.minimum,
-                                    maxLength: maxLen ?? schema.maxLength,
-                                    minLength: minLen ?? schema.minLength,
-                                    pattern: patternStr ?? schema.pattern
-                                )
-                            } else if min != nil || max != nil || minLen != nil || maxLen != nil || patternStr != nil {
-                                schema = Schema(
-                                    type: schema.type,
-                                    properties: schema.properties,
-                                    additionalProperties: schema.additionalProperties,
-                                    items: schema.items,
-                                    prefixItems: schema.prefixItems,
-                                    required: schema.required,
-                                    ref: schema.ref,
-                                    description: schema.description,
-                                    format: schema.format,
-                                    maximum: max ?? schema.maximum,
-                                    minimum: min ?? schema.minimum,
-                                    maxLength: maxLen ?? schema.maxLength,
-                                    minLength: minLen ?? schema.minLength,
-                                    pattern: patternStr ?? schema.pattern
+                            if propDescription != nil || min != nil || max != nil || minLen != nil || maxLen != nil || patternStr != nil {
+                                schema = schema.updating(
+                                    description: propDescription,
+                                    minimum: min,
+                                    maximum: max,
+                                    minLength: minLen,
+                                    maxLength: maxLen,
+                                    pattern: patternStr
                                 )
                             }
 
@@ -215,7 +187,10 @@ public class ModelVisitor: SyntaxVisitor {
         return .skipChildren
     }
 
-    /// Visits and parses Struct declarations.
+    /// Visits and parses `typealias` declarations into OpenAPI schemas.
+    ///
+    /// - Parameter node: The `TypeAliasDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after recording the typealias schema.
     override public func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
         let name = node.name.text
         let (schema, _) = parseType(node.initializer.value)
@@ -223,27 +198,7 @@ public class ModelVisitor: SyntaxVisitor {
         let description = parseDocstring(from: Syntax(node))
         var finalSchema = schema
         if let desc = description {
-            finalSchema = Schema(
-                type: schema.type,
-                properties: schema.properties,
-                additionalProperties: schema.additionalProperties,
-                items: schema.items,
-                prefixItems: schema.prefixItems,
-                required: schema.required,
-                ref: schema.ref,
-                description: desc,
-                format: schema.format,
-                maximum: schema.maximum,
-                minimum: schema.minimum,
-                maxLength: schema.maxLength,
-                minLength: schema.minLength,
-                pattern: schema.pattern,
-                enum_values: schema.enum_values,
-                allOf: schema.allOf,
-                oneOf: schema.oneOf,
-                anyOf: schema.anyOf,
-                discriminator: schema.discriminator
-            )
+            finalSchema = schema.updating(description: desc)
         }
 
         schemas[name] = finalSchema
@@ -251,46 +206,40 @@ public class ModelVisitor: SyntaxVisitor {
     }
 
     /// Parses a Swift type into an OpenAPI Schema.
-    private func parseType(_ type: TypeSyntax) -> (Schema, Bool) {
+    ///
+    /// - Parameter type: The `TypeSyntax` node to inspect.
+    /// - Returns: A tuple of the inferred `Schema` and a boolean indicating whether the type is optional.
+    public func parseType(_ type: TypeSyntax) -> (Schema, Bool) {
         if let optType = type.as(OptionalTypeSyntax.self) {
-            // declaration
             let (schema, _) = parseType(optType.wrappedType)
             return (schema, true)
         } else if let identType = type.as(IdentifierTypeSyntax.self) {
-            /// Typename.
             let typeName = identType.name.text
             return (mapPrimitive(typeName), false)
         } else if let arrayType = type.as(ArrayTypeSyntax.self) {
-            // declaration
             let (itemSchema, _) = parseType(arrayType.element)
 
-            // items
             let items: SchemaItem
             if let ref = itemSchema.ref {
                 items = SchemaItem(ref: ref)
             } else {
-                items = SchemaItem(type: itemSchema.type)
+                items = SchemaItem(type: itemSchema.type, format: itemSchema.format)
             }
 
-            // arraySchema
             let arraySchema = Schema(type: "array", items: items)
             return (arraySchema, false)
         } else if let dictType = type.as(DictionaryTypeSyntax.self) {
-            // declaration
             let (valueSchema, _) = parseType(dictType.value)
-            // item
             let item: SchemaItem
             if let ref = valueSchema.ref {
                 item = SchemaItem(ref: ref)
             } else {
-                item = SchemaItem(type: valueSchema.type)
+                item = SchemaItem(type: valueSchema.type, format: valueSchema.format)
             }
             return (Schema(type: "object", additionalProperties: item), false)
         } else if let tupleType = type.as(TupleTypeSyntax.self) {
-            // prefixItems
             var prefixItems: [Schema] = []
             for element in tupleType.elements {
-                // declaration
                 let (elemSchema, _) = parseType(element.type)
                 prefixItems.append(elemSchema)
             }
@@ -301,7 +250,10 @@ public class ModelVisitor: SyntaxVisitor {
     }
 
     /// Maps a primitive Swift type to an OpenAPI Schema.
-    private func mapPrimitive(_ name: String) -> Schema {
+    ///
+    /// - Parameter name: The Swift type identifier string.
+    /// - Returns: The mapped OpenAPI `Schema`.
+    public func mapPrimitive(_ name: String) -> Schema {
         switch name {
         case "String": return Schema(type: "string")
         case "Int": return Schema(type: "integer", format: "int32")
@@ -311,6 +263,8 @@ public class ModelVisitor: SyntaxVisitor {
         case "Bool": return Schema(type: "boolean")
         case "Date": return Schema(type: "string", format: "date-time")
         case "UUID": return Schema(type: "string", format: "uuid")
+        case "Data": return Schema(type: "string", format: "binary")
+        case "AnyCodable": return Schema(type: "object")
         default:
             return Schema(ref: "#/components/schemas/\(name)")
         }

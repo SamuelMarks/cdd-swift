@@ -1,3 +1,4 @@
+/// SwiftSyntax visitor extracting OpenAPI webhooks and callbacks from Swift protocols.
 import SwiftSyntax
 
 /// Parses webhooks / callback functions to OpenAPI definitions.
@@ -8,8 +9,15 @@ public class FunctionVisitor: SyntaxVisitor {
     /// Dictionary of parsed callbacks where key is the operation name.
     public var callbacks: [String: Callback] = [:]
 
+    /// Initializes the `FunctionVisitor` with a syntax tree traversal mode.
+    ///
+    /// - Parameter viewMode: The `SyntaxTreeViewMode` used when walking the syntax tree.
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
+    /// Visits protocol declarations to extract `WebhooksDelegate` and `*Callbacks` definitions.
+    ///
+    /// - Parameter node: The `ProtocolDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after extracting protocol member functions.
     override public func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the name of the protocol being visited.
         let name = node.name.text

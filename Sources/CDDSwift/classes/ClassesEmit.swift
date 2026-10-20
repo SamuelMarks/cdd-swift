@@ -1,6 +1,22 @@
+/// Swift model, enum, and typealias code emitter for OpenAPI schemas.
 import Foundation
 
+/// Describes a resolved schema property used during Swift struct emission.
+private struct ModelPropertyDescriptor {
+    /// The property identifier name.
+    let name: String
+    /// The OpenAPI schema defining the property's type and constraints.
+    let schema: Schema
+    /// Indicates whether the property is required on the parent schema.
+    let isRequired: Bool
+}
+
 /// Emits Swift models from OpenAPI schemas.
+///
+/// - Parameters:
+///   - name: The PascalCase model name.
+///   - schema: The OpenAPI `Schema` to render as a Swift struct, enum, or typealias.
+/// - Returns: Generated Swift source code for the model.
 public func emitModel(name: String, schema: Schema) -> String {
     // Initialize the output string for the Swift model.
     var output = ""
@@ -149,16 +165,14 @@ public func emitModel(name: String, schema: Schema) -> String {
     }
 
     output += "public struct \(name): Codable, Equatable {\n"
-    // swiftlint:disable:next large_tuple
-    var allProperties: [(name: String, schema: Schema, isRequired: Bool)] = []
+    var allProperties: [ModelPropertyDescriptor] = []
 
     if let allOf = schema.allOf {
         for subSchema in allOf {
             if let props = subSchema.properties {
                 for (propName, propSchema) in props {
-                    // isReq
                     let isReq = subSchema.required?.contains(propName) ?? false
-                    allProperties.append((propName, propSchema, isReq))
+                    allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
                 }
             }
         }
@@ -166,13 +180,11 @@ public func emitModel(name: String, schema: Schema) -> String {
 
     if let properties = schema.properties {
         for (propName, propSchema) in properties {
-            // isReq
             let isReq = schema.required?.contains(propName) ?? false
-            allProperties.append((propName, propSchema, isReq))
+            allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
         }
     }
 
-    // uniquePropsMap
     var uniquePropsMap: [String: (Schema, Bool)] = [:]
     for prop in allProperties {
         uniquePropsMap[prop.name] = (prop.schema, prop.isRequired)
@@ -182,11 +194,9 @@ public func emitModel(name: String, schema: Schema) -> String {
     let sortedProps = uniquePropsMap.sorted { $0.key < $1.key }
 
     for (propName, propData) in sortedProps {
-        /// Properationschema.
         let propSchema = propData.0
         output += emitDocstring(propSchema.description, indent: 4)
 
-        // valDocs
         var valDocs: [String] = []
         if let min = propSchema.minimum {
             valDocs.append("Minimum: \(min)")
@@ -208,14 +218,10 @@ public func emitModel(name: String, schema: Schema) -> String {
             output += "    /// - \(vDoc)\n"
         }
 
-        // swiftType
         let swiftType = mapType(schema: propSchema)
-        /// Isrequired.
         let isRequired = propData.1
-        /// Operationtionalsuffix.
         let optionalSuffix = isRequired ? "" : "?"
 
-        // propertyWrappers
         var propertyWrappers: [String] = []
         if let min = propSchema.minimum {
             propertyWrappers.append("@Minimum(\(min))")
@@ -242,13 +248,9 @@ public func emitModel(name: String, schema: Schema) -> String {
 
     if !sortedProps.isEmpty {
         output += "\n"
-        // params
         let params = sortedProps.map { propName, propData -> String in
-            // swiftType
             let swiftType = mapType(schema: propData.0)
-            // Check if the property is in the required set.
             let isRequired = propData.1
-            // Apply the optional suffix if not required.
             let optionalSuffix = isRequired ? "" : "?"
             return "\(propName): \(swiftType)\(optionalSuffix)\(isRequired ? "" : " = nil")"
         }.joined(separator: ", ")
@@ -267,6 +269,9 @@ public func emitModel(name: String, schema: Schema) -> String {
 }
 
 /// Helper mapping schema types to Swift.
+///
+/// - Parameter schema: The OpenAPI `Schema` to map to a Swift type string.
+/// - Returns: The corresponding Swift type string.
 public func mapType(schema: Schema) -> String {
     if let ref = schema.ref ?? schema.dynamicRef {
         return lastPathSegment(ref)

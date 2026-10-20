@@ -1,3 +1,4 @@
+/// SwiftSyntax visitor extracting OpenAPI path items from mock API client classes.
 import Foundation
 import SwiftSyntax
 
@@ -5,9 +6,16 @@ import SwiftSyntax
 public class MockVisitor: SyntaxVisitor {
     /// Dictionary of OpenAPI PathItems inferred from mock functions.
     public var inferredPaths: [String: PathItem] = [:]
+
+    /// Initializes the `MockVisitor` with a syntax tree traversal mode.
+    ///
+    /// - Parameter viewMode: The `SyntaxTreeViewMode` used when walking the syntax tree.
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
     /// Visits function declarations to infer mocked operations.
+    ///
+    /// - Parameter node: The `FunctionDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after recording the mocked operation.
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the function name.
         let name = node.name.text

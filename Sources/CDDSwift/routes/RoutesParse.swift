@@ -1,3 +1,4 @@
+/// SwiftSyntax visitor extracting OpenAPI paths, operations, and security schemes from APIClient structs.
 import Foundation
 import SwiftParser
 import SwiftSyntax
@@ -13,9 +14,15 @@ public class RouteVisitor: SyntaxVisitor {
     /// Global Security Requirements applied to the API Client.
     public var globalSecurity: [SecurityRequirement] = []
 
+    /// Initializes the `RouteVisitor` with a syntax tree traversal mode.
+    ///
+    /// - Parameter viewMode: The `SyntaxTreeViewMode` used when walking syntax nodes.
     override public init(viewMode: SyntaxTreeViewMode) { super.init(viewMode: viewMode) }
 
-    /// Visits and parses Struct declarations to find the APIClient.
+    /// Visits `struct` declarations to inspect `APIClient` token properties and infer security schemes.
+    ///
+    /// - Parameter node: The `StructDeclSyntax` node being visited.
+    /// - Returns: `.visitChildren` to continue visiting member functions.
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the struct name.
         let name = node.name.text
@@ -50,16 +57,15 @@ public class RouteVisitor: SyntaxVisitor {
         return .visitChildren
     }
 
-    /// Visits and parses Struct declarations to find the APIClient.
+    /// Visits `func` declarations inside `APIClient` to extract OpenAPI operations, parameters, and links.
+    ///
+    /// - Parameter node: The `FunctionDeclSyntax` node being visited.
+    /// - Returns: `.skipChildren` after extracting the operation metadata.
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        // Extract the struct name.
-        // Extract the struct name.
         let name = node.name.text
 
         // Determine the HTTP method from the function name prefix.
         var method = ""
-        // pathName
-        // pathName
         var pathName = "/" + name
         if name.lowercased().hasPrefix("get") {
             method = "get"
@@ -75,33 +81,21 @@ public class RouteVisitor: SyntaxVisitor {
             method = "unknown"
         }
 
-        // operationId
-        // operationId
         let operationId = name
-        /// Description.
-        /// Description.
         let description = parseDocstring(from: Syntax(node))
 
         // Look for defined links
         var links: [String: Link]?
-        // cleanDescription
         var cleanDescription = description
         if let desc = description, desc.contains("@link") || desc.contains("@Route(") {
-            // lines
-            // lines
             let lines = desc.components(separatedBy: .newlines)
-            // extractedLinks
             var extractedLinks: [String: Link] = [:]
-            // finalLines
             var finalLines: [String] = []
             for line in lines {
                 if line.contains("@link") {
-                    // parts
                     let parts = line.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
                     if parts.count == 2 {
-                        // left
                         let left = parts[0].replacingOccurrences(of: "@link", with: "").trimmingCharacters(in: .whitespaces)
-                        // right
                         let right = parts[1]
                         extractedLinks[left] = Link(operationId: right)
                     }
@@ -123,31 +117,39 @@ public class RouteVisitor: SyntaxVisitor {
             }
         }
 
-        // Look for parameters
+        // Look for parameters and request body
         var parameters: [Parameter] = []
-        // Look for request body
-        // Look for request body
         var requestBody: RequestBody?
+        let typeParser = ModelVisitor(viewMode: .sourceAccurate)
 
         for param in node.signature.parameterClause.parameters {
-            /// Parameter name.
-            /// Parameter name.
             let pName = param.firstName.text
+            let (paramSchema, isOpt) = typeParser.parseType(param.type)
+            let isReq = !isOpt && param.defaultValue == nil
             if pName == "body" {
-                requestBody = RequestBody(content: ["application/json": MediaType(schema: Schema(type: "object"))], required: true)
+                requestBody = RequestBody(content: ["application/json": MediaType(schema: paramSchema.ref != nil ? paramSchema : Schema(type: "object"))], required: isReq)
             } else if pName == "formData" {
-                requestBody = RequestBody(content: ["application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object"))], required: true)
+                requestBody = RequestBody(content: ["application/x-www-form-urlencoded": MediaType(schema: paramSchema.ref != nil ? paramSchema : Schema(type: "object"))], required: isReq)
             } else if pName == "multipartData" {
-                requestBody = RequestBody(content: ["multipart/form-data": MediaType(schema: Schema(type: "object"))], required: true)
+                requestBody = RequestBody(content: ["multipart/form-data": MediaType(schema: paramSchema.ref != nil ? paramSchema : Schema(type: "object"))], required: isReq)
             } else {
-                parameters.append(Parameter(name: pName, in: "query", schema: Schema(type: "string")))
+                let inLocation = pathName.contains("{\(pName)}") ? "path" : "query"
+                let effectiveSchema = paramSchema.ref != nil ? Schema(type: "string") : paramSchema
+                parameters.append(Parameter(name: pName, in: inLocation, required: isReq ? true : nil, schema: effectiveSchema))
             }
         }
 
-        // operation
-        let operation = Operation(summary: cleanDescription, description: cleanDescription, operationId: operationId, parameters: parameters.isEmpty ? nil : parameters, requestBody: requestBody, responses: ["200": Response(description: "Success", links: links)], security: nil)
+        var responseContent: [String: MediaType]?
+        if let returnClause = node.signature.returnClause {
+            let retText = returnClause.type.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            if retText != "Void" && retText != "()" {
+                let (retSchema, _) = typeParser.parseType(returnClause.type)
+                responseContent = ["application/json": MediaType(schema: retSchema)]
+            }
+        }
 
-        // Create or update the PathItem with the inferred operation.
+        let operation = Operation(summary: cleanDescription, description: cleanDescription, operationId: operationId, parameters: parameters.isEmpty ? nil : parameters, requestBody: requestBody, responses: ["200": Response(description: "Success", content: responseContent, links: links)], security: nil)
+
         // Create or update the PathItem with the inferred operation.
         var pathItem = paths[pathName] ?? PathItem()
         switch method {

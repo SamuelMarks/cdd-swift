@@ -66,4 +66,42 @@ final class E2ETests: XCTestCase {
         let json = "{}"
         XCTAssertThrowsError(try OpenAPIParser.parse(json: json))
     }
+
+    func testArazzoRoundTripAndSyntaxValidity() throws {
+        let step1 = ArazzoStep(
+            stepId: "loginStep",
+            operationId: "loginUser",
+            successCriteria: [ArazzoCriterion(context: "$statusCode", condition: "== 200")],
+            onFailure: [ArazzoFailureAction(name: "retryOnFailure", type: .retry, retryAfter: 1.0, retryLimit: 2)],
+            outputs: ["token": AnyCodable("$response.body#/token")]
+        )
+        let wf = ArazzoWorkflow(
+            workflowId: "authFlow",
+            summary: "Authenticate user",
+            inputs: Schema(type: "object", properties: ["username": Schema(type: "string")], required: ["username"]),
+            steps: [step1],
+            outputs: ["sessionToken": AnyCodable("$steps.loginStep.outputs.token")]
+        )
+        let spec = ArazzoSpecification(
+            info: ArazzoInfo(title: "Auth Workflows", version: "1.0.0"),
+            sourceDescriptions: [ArazzoSourceDescription(name: "authApi", url: "https://api.example.com/openapi.json", type: .openapi)],
+            workflows: [wf]
+        )
+
+        let sdkCode = ArazzoSdkEmitter.emitWorkflowClient(from: spec)
+        let cliCode = ArazzoCliEmitter.emitWorkflowCLI(from: spec)
+        let serverCode = ArazzoServerEmitter.emitServerOrchestrator(from: spec)
+        let testCode = ArazzoTestEmitter.emitTestSuite(from: spec)
+
+        XCTAssertFalse(Parser.parse(source: sdkCode).hasError)
+        XCTAssertFalse(Parser.parse(source: cliCode).hasError)
+        XCTAssertFalse(Parser.parse(source: serverCode).hasError)
+        XCTAssertFalse(Parser.parse(source: testCode).hasError)
+
+        let parsedFromSdk = try SwiftASTArazzoParser().parseSpecification(from: sdkCode)
+        XCTAssertEqual(parsedFromSdk.workflows.first?.workflowId, "authFlow")
+        XCTAssertEqual(parsedFromSdk.workflows.first?.steps.first?.stepId, "loginStep")
+        XCTAssertEqual(parsedFromSdk.workflows.first?.steps.first?.operationId, "loginUser")
+        XCTAssertEqual(parsedFromSdk.workflows.first?.steps.first?.onFailure?.first?.retryLimit, 2)
+    }
 }

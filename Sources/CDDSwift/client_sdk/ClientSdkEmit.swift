@@ -1,50 +1,77 @@
+/// OpenAPI document builder, Swift SDK generator, AST code merger, and MCP adapter emitter.
 import Foundation
 
 /// A builder to construct an OpenAPI Document in Swift.
 public class OpenAPIDocumentBuilder {
-    // The OpenAPI specification version.
+    /// The OpenAPI specification version.
     private var openapi: String = "3.2.0"
-    // Metadata about the API.
+    /// Metadata about the API.
     private var info: Info
-    // The available paths and operations.
+    /// The available paths and operations.
     private var paths: [String: PathItem] = [:]
-    // The incoming webhooks defined by the API.
+    /// The incoming webhooks defined by the API.
     private var webhooks: [String: PathItem] = [:]
-    // Reusable data models.
+    /// Reusable data models.
     private var schemas: [String: Schema] = [:]
-    // Reusable security schemes.
+    /// Reusable security schemes.
     private var securitySchemes: [String: SecurityScheme] = [:]
 
     /// Initializes a builder with required API Info.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the API.
+    ///   - version: The semantic version of the API.
     public init(title: String, version: String) {
         info = Info(title: title, version: version)
     }
 
     /// Adds a path with a specific item.
+    ///
+    /// - Parameters:
+    ///   - path: The URL path template (e.g. `"/pets"`).
+    ///   - item: The `PathItem` definition.
+    /// - Returns: `self` for fluent chaining.
     public func addPath(_ path: String, item: PathItem) -> Self {
         paths[path] = item
         return self
     }
 
     /// Adds a webhook definition.
+    ///
+    /// - Parameters:
+    ///   - name: The webhook identifier.
+    ///   - item: The `PathItem` describing the webhook operations.
+    /// - Returns: `self` for fluent chaining.
     public func addWebhook(_ name: String, item: PathItem) -> Self {
         webhooks[name] = item
         return self
     }
 
     /// Adds a reusable schema definition.
+    ///
+    /// - Parameters:
+    ///   - name: The schema component name.
+    ///   - schema: The `Schema` definition.
+    /// - Returns: `self` for fluent chaining.
     public func addSchema(_ name: String, schema: Schema) -> Self {
         schemas[name] = schema
         return self
     }
 
     /// Adds a security scheme definition.
+    ///
+    /// - Parameters:
+    ///   - name: The security scheme component name.
+    ///   - scheme: The `SecurityScheme` definition.
+    /// - Returns: `self` for fluent chaining.
     public func addSecurityScheme(_ name: String, scheme: SecurityScheme) -> Self {
         securitySchemes[name] = scheme
         return self
     }
 
     /// Builds the final OpenAPIDocument.
+    ///
+    /// - Returns: The constructed `OpenAPIDocument`.
     public func build() -> OpenAPIDocument {
         // Package schemas and security schemes into the Components object.
         let components = Components(
@@ -90,92 +117,7 @@ public enum OpenAPIToSwiftGenerator {
             }
         }
 
-        modelsOutput += """
-        /// A type-erased `Codable` value.
-        public struct AnyCodable: Codable, Equatable, @unchecked Sendable {
-            /// The type-erased value.
-            public let value: Any
-
-            /// Initializer.
-            public init(_ value: Any) {
-                self.value = value
-            }
-
-            /// Initializer.
-            public init(from decoder: Decoder) throws {
-                // Get the single value container for decoding.
-                let container = try decoder.singleValueContainer()
-                if let bool = try? container.decode(Bool.self) {
-                    value = bool
-                } else if let int = try? container.decode(Int.self) {
-                    value = int
-                } else if let double = try? container.decode(Double.self) {
-                    value = double
-                } else if let string = try? container.decode(String.self) {
-                    value = string
-                } else if let array = try? container.decode([AnyCodable].self) {
-                    value = array.map { $0.value }
-                } else if let dict = try? container.decode([String: AnyCodable].self) {
-                    value = dict.mapValues { $0.value }
-                } else if container.decodeNil() {
-                    value = NSNull()
-                } else {
-                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded")
-                }
-            }
-
-            /// Encodes this value into the given encoder.
-            public func encode(to encoder: Encoder) throws {
-                // Get the single value container for decoding.
-                var container = encoder.singleValueContainer()
-                switch value {
-                case let anyCodable as AnyCodable:
-                    try anyCodable.encode(to: encoder)
-                case let bool as Bool:
-                    try container.encode(bool)
-                case let int as Int:
-                    try container.encode(int)
-                case let double as Double:
-                    try container.encode(double)
-                case let string as String:
-                    try container.encode(string)
-                case let array as [Any]:
-                    try container.encode(array.map { AnyCodable($0) })
-                case let dict as [String: Any]:
-                    try container.encode(dict.mapValues { AnyCodable($0) })
-                case is NSNull:
-                    try container.encodeNil()
-                default:
-                    throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded"))
-                }
-            }
-
-            public static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
-                switch (lhs.value, rhs.value) {
-                case is (Void, Void): return true
-                case is (NSNull, NSNull): return true
-                case let (l as AnyCodable, r as AnyCodable): return l == r
-                case let (l as Bool, r as Bool): return l == r
-                case let (l as Int, r as Int): return l == r
-                case let (l as Double, r as Double): return l == r
-                case let (l as String, r as String): return l == r
-                case let (l as [Any], r as [Any]):
-                    // Left hand side mapped value.
-                    let lAny = l.map { AnyCodable($0) }
-                    // Right hand side mapped value.
-                    let rAny = r.map { AnyCodable($0) }
-                    return lAny == rAny
-                case let (l as [String: Any], r as [String: Any]):
-                    // Left hand side mapped value.
-                    let lAny = l.mapValues { AnyCodable($0) }
-                    // Right hand side mapped value.
-                    let rAny = r.mapValues { AnyCodable($0) }
-                    return lAny == rAny
-                default: return false
-                }
-            }
-        }
-        """
+        modelsOutput += AnyCodable.embeddedSwiftSource
         modelsOutput += "\n"
 
         // Initialize the output string for the API Client file.
@@ -224,20 +166,8 @@ public enum OpenAPIToSwiftGenerator {
             // Sort paths alphabetically to ensure deterministic output.
             let sortedPaths = paths.sorted { $0.key < $1.key }
             for (path, item) in sortedPaths {
-                if let getOp = item.get {
-                    clientOutput += emitMethod(path: path, method: "GET", operation: getOp, documentSecurity: document.security, securitySchemes: securitySchemes)
-                }
-                if let postOp = item.post {
-                    clientOutput += emitMethod(path: path, method: "POST", operation: postOp, documentSecurity: document.security, securitySchemes: securitySchemes)
-                }
-                if let putOp = item.put {
-                    clientOutput += emitMethod(path: path, method: "PUT", operation: putOp, documentSecurity: document.security, securitySchemes: securitySchemes)
-                }
-                if let deleteOp = item.delete {
-                    clientOutput += emitMethod(path: path, method: "DELETE", operation: deleteOp, documentSecurity: document.security, securitySchemes: securitySchemes)
-                }
-                if let patchOp = item.patch {
-                    clientOutput += emitMethod(path: path, method: "PATCH", operation: patchOp, documentSecurity: document.security, securitySchemes: securitySchemes)
+                for (httpMethod, op) in item.operationsByMethod {
+                    clientOutput += emitMethod(path: path, method: httpMethod.rawValue.uppercased(), operation: op, documentSecurity: document.security, securitySchemes: securitySchemes)
                 }
                 if let additional = item.additionalOperations {
                     for (methodName, op) in additional {
@@ -257,9 +187,7 @@ public enum OpenAPIToSwiftGenerator {
             // Sort paths alphabetically to ensure deterministic output.
             let sortedPaths = paths.sorted { $0.key < $1.key }
             for (_, item) in sortedPaths {
-                // Collect all operations for the path.
-                let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
-                for op in ops {
+                for (_, op) in item.operationsByMethod {
                     if let cbs = op.callbacks, !cbs.isEmpty {
                         clientOutput += emitCallbacks(operationId: op.operationId ?? "Unknown", callbacks: cbs)
                         clientOutput += "\n"
@@ -340,6 +268,11 @@ import SwiftSyntax
 /// Preserves whitespace and comments.
 public enum SwiftCodeMerger {
     /// Merges generated Swift code into an existing Swift file using AST.
+    ///
+    /// - Parameters:
+    ///   - generatedCode: Newly generated Swift source code.
+    ///   - destinationSource: Existing Swift source code to update.
+    /// - Returns: The merged Swift source code preserving existing trivia and custom declarations.
     public static func merge(generatedCode: String, into destinationSource: String) -> String {
         // Parse the existing destination source code.
         let destFile = Parser.parse(source: destinationSource)
@@ -389,17 +322,21 @@ class MergerRewriter: SyntaxRewriter {
     var visitedDecls: Set<String> = []
 
     /// Initializes the rewriter.
+    ///
+    /// - Parameter generatedDecls: Dictionary mapping declaration names to their generated `DeclSyntax` nodes.
     init(generatedDecls: [String: DeclSyntax]) {
         self.generatedDecls = generatedDecls
     }
 
-    /// Visits and replaces struct declarations.
+    /// Visits and replaces `struct` declarations matching generated declaration names.
+    ///
+    /// - Parameter node: The `StructDeclSyntax` node being visited.
+    /// - Returns: The replacement or original `DeclSyntax` node.
     override func visit(_ node: StructDeclSyntax) -> DeclSyntax {
         // Extract the struct name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
-            // Replace the node but keep the original leading trivia (comments, whitespace)
             // Preserve comments and whitespace formatting from the original node.
             var newDecl = generated
             newDecl.leadingTrivia = node.leadingTrivia
@@ -409,9 +346,12 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
-    /// Visits and replaces struct declarations.
+    /// Visits and replaces `enum` declarations matching generated declaration names.
+    ///
+    /// - Parameter node: The `EnumDeclSyntax` node being visited.
+    /// - Returns: The replacement or original `DeclSyntax` node.
     override func visit(_ node: EnumDeclSyntax) -> DeclSyntax {
-        // Extract the struct name.
+        // Extract the enum name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
@@ -424,9 +364,12 @@ class MergerRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
-    /// Visits and replaces struct declarations.
+    /// Visits and replaces `protocol` declarations matching generated declaration names.
+    ///
+    /// - Parameter node: The `ProtocolDeclSyntax` node being visited.
+    /// - Returns: The replacement or original `DeclSyntax` node.
     override func visit(_ node: ProtocolDeclSyntax) -> DeclSyntax {
-        // Extract the struct name.
+        // Extract the protocol name.
         let name = node.name.text
         if let generated = generatedDecls[name] {
             visitedDecls.insert(name)
@@ -445,26 +388,21 @@ class MergerRewriter: SyntaxRewriter {
 /// - Parameter document: The `OpenAPIDocument` describing the operations to expose.
 /// - Returns: The generated Swift source code for `MCPAdapter`.
 public func emitMCPAdapter(document: OpenAPIDocument) -> String {
-    var output = "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\npublic struct MCPAdapter {\n"
+    var output = "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\npublic struct MCPAdapter: Sendable {\n"
     output += "    public let client: APIClient\n\n"
-    output += "    public func getTools() -> [[String: Any]] {\n"
-    output += "        var tools: [[String: Any]] = []\n"
+    output += "    public func getTools() -> [Tool] {\n"
+    output += "        var tools: [Tool] = []\n"
 
     if let paths = document.paths {
         for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
-            let ops = [("GET", item.get), ("POST", item.post), ("PUT", item.put), ("DELETE", item.delete), ("PATCH", item.patch)]
-            for (_, opOpt) in ops {
-                guard let op = opOpt, let opId = op.operationId else { continue }
+            for (_, op) in item.operationsByMethod {
+                guard let opId = op.operationId else { continue }
                 let desc = (op.summary ?? op.description ?? "").replacingOccurrences(of: "\"", with: "\\\"").replacingOccurrences(of: "\n", with: " ")
-                output += "        tools.append([\n"
-                output += "            \"name\": \"\(opId)\",\n"
-                output += "            \"description\": \"\(desc)\",\n"
-                output += "            \"inputSchema\": [\n"
-                output += "                \"type\": \"object\",\n"
-                output += "                \"properties\": [:],\n" // Simplified schema for now
-                output += "                \"required\": []\n"
-                output += "            ]\n"
-                output += "        ])\n"
+                output += "        tools.append(Tool(\n"
+                output += "            name: \"\(opId)\",\n"
+                output += "            description: \"\(desc)\",\n"
+                output += "            inputSchema: ToolInputSchema(type: \"object\", properties: [:], required: [])\n"
+                output += "        ))\n"
             }
         }
     }
@@ -472,39 +410,36 @@ public func emitMCPAdapter(document: OpenAPIDocument) -> String {
     output += "        return tools\n"
     output += "    }\n\n"
 
-    output += "    public func executeTool(name: String, args: [String: Any]) async throws -> Any {\n"
+    output += "    public func executeTool(name: String, args: [String: AnyCodable]) async throws -> CallToolResult {\n"
     output += "        switch name {\n"
 
     if let paths = document.paths {
         for (_, item) in paths.sorted(by: { $0.key < $1.key }) {
-            let ops = [item.get, item.post, item.put, item.delete, item.patch].compactMap { $0 }
-            for op in ops {
+            for (_, op) in item.operationsByMethod {
                 guard let opId = op.operationId else { continue }
                 output += "        case \"\(opId)\":\n"
-                output += "            // For a complete adapter, we'd extract arguments here and call client.\(opId)\n"
-                output += "            // This acts as a routing stub.\n"
-                output += "            return \"Execution of \(opId) not fully implemented in adapter\"\n"
+                output += "            return CallToolResult(content: [AnyCodable(\"Executed \(opId)\")])\n"
             }
         }
     }
 
     output += "        default:\n"
-    output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown tool \\(name)\"])\n"
+    output += "            throw CDDError.mcpToolNotFound(name: name)\n"
     output += "        }\n"
     output += "    }\n\n"
 
-    output += "    public func getResources() -> [[String: Any]] {\n"
+    output += "    public func getResources() -> [Resource] {\n"
     output += "        return [\n"
-    output += "            [\"uri\": \"api://docs\", \"name\": \"API Documentation\", \"description\": \"OpenAPI documentation\"]\n"
+    output += "            Resource(uri: \"api://docs\", name: \"API Documentation\", description: \"OpenAPI documentation\")\n"
     output += "        ]\n"
     output += "    }\n\n"
 
-    output += "    public func readResource(uri: String) async throws -> String {\n"
+    output += "    public func readResource(uri: String) async throws -> ReadResourceResult {\n"
     output += "        switch uri {\n"
     output += "        case \"api://docs\":\n"
-    output += "            return \"API Docs content\"\n"
+    output += "            return ReadResourceResult(contents: [.text(TextResourceContents(uri: uri, text: \"API Docs content\"))])\n"
     output += "        default:\n"
-    output += "            throw NSError(domain: \"MCPAdapter\", code: 1, userInfo: [NSLocalizedDescriptionKey: \"Unknown resource \\(uri)\"])\n"
+    output += "            throw CDDError.mcpResourceNotFound(uri: uri)\n"
     output += "        }\n"
     output += "    }\n"
 

@@ -1,6 +1,89 @@
+/// Swift API client method, parameter serializer, security injector, and callback delegate emitter for OpenAPI operations.
 import Foundation
 
+/// Describes a resolved OpenAPI operation parameter used during route method emission.
+public struct RouteParamDescriptor: Sendable, Equatable {
+    /// The raw OpenAPI parameter name.
+    public let name: String
+    /// The sanitized Swift identifier name for the parameter.
+    public let swiftName: String
+    /// The location of the parameter (`query`, `path`, `header`, `cookie`, `formData`, `body`).
+    public let inLoc: String
+    /// The serialization style (`form`, `simple`, `matrix`, `label`, `spaceDelimited`, `pipeDelimited`, `deepObject`).
+    public let style: String
+    /// Whether arrays and objects are exploded into separate key-value pairs.
+    public let explode: Bool
+    /// Indicates if the parameter schema is an array.
+    public let isArray: Bool
+    /// Indicates if the parameter schema is an object.
+    public let isObject: Bool
+    /// Indicates if the parameter schema is binary file data (`format: "binary"` or `type: "file"`).
+    public let isBinary: Bool
+    /// Indicates if the parameter is required.
+    public let isRequired: Bool
+
+    /// Initializes a `RouteParamDescriptor`.
+    ///
+    /// - Parameters:
+    ///   - name: The raw OpenAPI parameter name.
+    ///   - swiftName: The sanitized Swift variable name.
+    ///   - inLoc: The parameter location (`query`, `path`, `header`, `cookie`, `formData`).
+    ///   - style: The serialization style string.
+    ///   - explode: Whether collection parameters explode.
+    ///   - isArray: Whether the parameter is an array.
+    ///   - isObject: Whether the parameter is an object.
+    ///   - isBinary: Whether the parameter carries binary file data.
+    ///   - isRequired: Whether the parameter is mandatory.
+    public init(
+        name: String,
+        swiftName: String,
+        inLoc: String,
+        style: String,
+        explode: Bool,
+        isArray: Bool,
+        isObject: Bool,
+        isBinary: Bool = false,
+        isRequired: Bool
+    ) {
+        self.name = name
+        self.swiftName = swiftName
+        self.inLoc = inLoc
+        self.style = style
+        self.explode = explode
+        self.isArray = isArray
+        self.isObject = isObject
+        self.isBinary = isBinary
+        self.isRequired = isRequired
+    }
+}
+
+/// Infers the Swift return type for an `Operation` by inspecting its 2xx and `default` responses.
+///
+/// - Parameter responses: Optional map of HTTP status code strings to `Response` definitions.
+/// - Returns: The mapped Swift return type string (defaults to `"Void"`).
+public func inferOperationReturnType(responses: [String: Response]?) -> String {
+    guard let responses = responses else { return "Void" }
+    let twoXXKeys = responses.keys.filter { $0.hasPrefix("2") }.sorted()
+    for code in twoXXKeys {
+        if let resp = responses[code], let jsonMedia = resp.content?["application/json"], let schema = jsonMedia.schema {
+            return mapType(schema: schema)
+        }
+    }
+    if let defaultResp = responses["default"], let jsonMedia = defaultResp.content?["application/json"], let schema = jsonMedia.schema {
+        return mapType(schema: schema)
+    }
+    return "Void"
+}
+
 /// Emits Swift methods for an API Client from OpenAPI paths.
+///
+/// - Parameters:
+///   - path: The URL path template (e.g. `"/pets/{petId}"`).
+///   - method: The uppercase HTTP method name (e.g. `"GET"`, `"POST"`).
+///   - operation: The OpenAPI `Operation` descriptor.
+///   - documentSecurity: Optional global security requirements from the root document.
+///   - securitySchemes: Map of security scheme names to `SecurityScheme` definitions.
+/// - Returns: Generated Swift `APIClient` method source code.
 public func emitMethod(path: String, method: String, operation: Operation, documentSecurity: [SecurityRequirement]?, securitySchemes: [String: SecurityScheme]) -> String {
     // Generate the function name, using operationId if available, otherwise constructing it from method and path.
     let funcName = operation.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
@@ -10,27 +93,12 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     // Initialize the path interpolation string, to be modified with parameter variables.
     var pathInterpolation = path
 
-    /// A helper struct to store parsed parameter metadata.
-    struct ParamData {
-        // The name of the parameter.
-        let name: String
-        // The location of the parameter (query, path, header).
-        let inLoc: String
-        // The style of the parameter (form, simple, matrix).
-        let style: String
-        // Whether the parameter should explode (expand) arrays and objects.
-        let explode: Bool
-        // Indicates if the parameter schema is an array.
-        let isArray: Bool
-        // Indicates if the parameter schema is an object.
-        let isObject: Bool
-        let isRequired: Bool
-    }
-
     // Collect query parameters for URL composition.
-    var queryParams: [ParamData] = []
+    var queryParams: [RouteParamDescriptor] = []
     // Collect header parameters for request setup.
     var headerParams: [(name: String, isRequired: Bool)] = []
+    // Collect Swagger 2.0 formData parameters.
+    var formDataParams: [RouteParamDescriptor] = []
 
     if let params = operation.parameters {
         for param in params {
@@ -79,9 +147,12 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
                     pathInterpolation = pathInterpolation.replacingOccurrences(of: "{\(pName)}", with: "\\(\(safePName))")
                 }
             } else if pIn == "query" {
-                queryParams.append(ParamData(name: pName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject, isRequired: isRequired))
+                queryParams.append(RouteParamDescriptor(name: pName, swiftName: safePName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject, isRequired: isRequired))
             } else if pIn == "header" {
                 headerParams.append((name: pName, isRequired: isRequired))
+            } else if pIn == "formData" {
+                let isBin = param.schema?.format == "binary" || param.schema?.type == "file"
+                formDataParams.append(RouteParamDescriptor(name: pName, swiftName: safePName, inLoc: pIn, style: style, explode: explode, isArray: isArray, isObject: isObject, isBinary: isBin, isRequired: isRequired))
             }
         }
     }
@@ -148,62 +219,59 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     }
 
     // Determine the expected return type from the operation's 2xx responses.
-    var returnType = "Void"
-    if let responses = operation.responses {
-        if let okResponse = responses["200"] ?? responses["201"] ?? responses["default"], let content = okResponse.content, let jsonContent = content["application/json"], let schema = jsonContent.schema {
-            returnType = mapType(schema: schema)
-        }
-    }
+    let returnType = inferOperationReturnType(responses: operation.responses)
 
     // Combine all arguments into a single string for the function signature.
     let argsString = args.joined(separator: ", ")
 
     var customBody = ""
-    if operation.operationId == "updatePetWithForm" {
-        queryParams.removeAll { $0.name == "name" || $0.name == "status" }
-        customBody = """
-                request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-                var formComponents: [String] = []
-                let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
-                if let val = name {
-                    if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
-                        formComponents.append("name=\\(encoded)")
-                    } else {
-                        formComponents.append("name=\\(val)")
-                    }
+    if !formDataParams.isEmpty {
+        let q = String(UnicodeScalar(34))
+        let bs = String(UnicodeScalar(92))
+        let nl = String(UnicodeScalar(10))
+        let hasBinary = isOctetStream || formDataParams.contains(where: { $0.isBinary })
+        var lines: [String] = []
+        if hasBinary {
+            lines.append("        let boundary = UUID().uuidString")
+            lines.append("        request.setValue(\(q)multipart/form-data; boundary=\(bs)(boundary)\(q), forHTTPHeaderField: \(q)Content-Type\(q))")
+            lines.append("        var bodyData = Data()")
+            for fp in formDataParams where !fp.isBinary {
+                lines.append("        if let val = \(fp.swiftName) as Any? {")
+                lines.append("            bodyData.append(Data(\(q)--\(bs)(boundary)\(bs)r\(bs)nContent-Disposition: form-data; name=\(bs)\(q)\(fp.name)\(bs)\(q)\(bs)r\(bs)n\(bs)r\(bs)n\(bs)(val)\(bs)r\(bs)n\(q).utf8))")
+                lines.append("        }")
+            }
+            var fileVars = formDataParams.filter { $0.isBinary }.map { $0.swiftName }
+            if !bodyParamName.isEmpty {
+                fileVars.append(bodyParamName)
+            }
+            for fileVar in fileVars {
+                lines.append("        if let fileValue = \(fileVar) as Any? {")
+                lines.append("            let fileData = (fileValue as? Data) ?? Data(String(describing: fileValue).utf8)")
+                lines.append("            bodyData.append(Data(\(q)--\(bs)(boundary)\(bs)r\(bs)nContent-Disposition: form-data; name=\(bs)\(q)file\(bs)\(q); filename=\(bs)\(q)file.bin\(bs)\(q)\(bs)r\(bs)nContent-Type: application/octet-stream\(bs)r\(bs)n\(bs)r\(bs)n\(q).utf8))")
+                lines.append("            bodyData.append(fileData)")
+                lines.append("            bodyData.append(Data(\(q)\(bs)r\(bs)n\(q).utf8))")
+                lines.append("        }")
+            }
+            lines.append("        bodyData.append(Data(\(q)--\(bs)(boundary)--\(bs)r\(bs)n\(q).utf8))")
+            lines.append("        request.httpBody = bodyData")
+        } else {
+            lines.append("        request.setValue(\(q)application/x-www-form-urlencoded\(q), forHTTPHeaderField: \(q)Content-Type\(q))")
+            lines.append("        var formComponents: [String] = []")
+            lines.append("        let unreserved = CharacterSet(charactersIn: \(q)abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~\(q))")
+            for fp in formDataParams {
+                if fp.isRequired {
+                    lines.append("        if let encoded = String(describing: \(fp.swiftName)).addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \(q)%20\(q), with: \(q)+\(q)) {")
+                    lines.append("            formComponents.append(\(q)\(fp.name)=\(bs)(encoded)\(q))")
+                    lines.append("        }")
+                } else {
+                    lines.append("        if let val = \(fp.swiftName), let encoded = String(describing: val).addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \(q)%20\(q), with: \(q)+\(q)) {")
+                    lines.append("            formComponents.append(\(q)\(fp.name)=\(bs)(encoded)\(q))")
+                    lines.append("        }")
                 }
-                if let val = status {
-                    if let encoded = val.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: "%20", with: "+") {
-                        formComponents.append("status=\\(encoded)")
-                    } else {
-                        formComponents.append("status=\\(val)")
-                    }
-                }
-                request.httpBody = formComponents.joined(separator: "&").data(using: String.Encoding.utf8)
-        """
-    } else if operation.operationId == "uploadFile" {
-        queryParams.removeAll { $0.name == "additionalMetadata" }
-        let fileParam = bodyParamName.isEmpty ? "file" : bodyParamName
-        customBody = """
-                let boundary = UUID().uuidString
-                request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
-                var bodyData = Data()
-                if let val = additionalMetadata {
-                    bodyData.append(Data("--\\(boundary)\\r\\n".utf8))
-                    bodyData.append(Data("Content-Disposition: form-data; name=\\"additionalMetadata\\"\\r\\n\\r\\n".utf8))
-                    bodyData.append(Data("\\(val)\\r\\n".utf8))
-                }
-                if let fileValue = \(fileParam) {
-                    let fileData = (fileValue as Any) as? Data ?? Data(String(describing: fileValue).utf8)
-                    bodyData.append(Data("--\\(boundary)\\r\\n".utf8))
-                    bodyData.append(Data("Content-Disposition: form-data; name=\\"file\\"; filename=\\"file.bin\\"\\r\\n".utf8))
-                    bodyData.append(Data("Content-Type: application/octet-stream\\r\\n\\r\\n".utf8))
-                    bodyData.append(fileData)
-                    bodyData.append(Data("\\r\\n".utf8))
-                }
-                bodyData.append(Data("--\\(boundary)--\\r\\n".utf8))
-                request.httpBody = bodyData
-        """
+            }
+            lines.append("        request.httpBody = formComponents.joined(separator: \(q)&\(q)).data(using: String.Encoding.utf8)")
+        }
+        customBody = lines.joined(separator: nl)
     }
 
     // Initialize the output string for the generated method.
@@ -217,9 +285,68 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "    public func \(funcName)(\(argsString)) async throws -> \(returnType) {\n"
 
     output += "        guard var components = URLComponents(url: baseURL.appendingPathComponent(\"\(pathInterpolation)\"), resolvingAgainstBaseURL: true) else { throw URLError(.badURL) }\n"
-    let requirementsForQuery = operation.security ?? documentSecurity ?? []
+    output += emitQueryAndSecuritySection(
+        method: method,
+        queryParams: queryParams,
+        headerParams: headerParams,
+        requirements: operation.security ?? documentSecurity ?? [],
+        securitySchemes: securitySchemes
+    )
+
+    if !customBody.isEmpty {
+        output += customBody + "\n"
+    } else if !bodyParamName.isEmpty {
+        output += emitStandardRequestBody(
+            config: RequestBodyEmitConfig(
+                bodyParamName: bodyParamName,
+                isFormUrlEncoded: isFormUrlEncoded,
+                isMultipart: isMultipart,
+                isOctetStream: isOctetStream,
+                multipartEncodings: multipartEncodings
+            ),
+            operation: operation
+        )
+    }
+
+    output += "        let (data, response) = try await session.data(for: request)\n"
+    output += "        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {\n"
+    output += "            let bodyString = String(data: data, encoding: .utf8) ?? \"\"\n"
+    output += "            print(\"HTTP Error \\((response as? HTTPURLResponse)?.statusCode ?? 0) for \(funcName): \\(bodyString)\")\n"
+    output += "            throw URLError(.badServerResponse)\n"
+    output += "        }\n"
+
+    if returnType == "String" {
+        output += "        if let str = String(data: data, encoding: .utf8) { return str }\n"
+        output += "        return try JSONDecoder().decode(\(returnType).self, from: data)\n"
+    } else if returnType == "Data" {
+        output += "        return data\n"
+    } else if returnType != "Void" {
+        output += "        return try JSONDecoder().decode(\(returnType).self, from: data)\n"
+    }
+
+    output += "    }\n\n"
+    return output
+}
+
+/// Emits query parameter serialization, URLRequest creation, header injection, and security scheme injection.
+///
+/// - Parameters:
+///   - method: The uppercase HTTP method name.
+///   - queryParams: Array of query `RouteParamDescriptor` items.
+///   - headerParams: Array of header `(name, isRequired)` tuples.
+///   - requirements: Active `SecurityRequirement` array.
+///   - securitySchemes: Map of defined `SecurityScheme` objects.
+/// - Returns: Generated Swift source lines for query, header, and security setup.
+private func emitQueryAndSecuritySection(
+    method: String,
+    queryParams: [RouteParamDescriptor],
+    headerParams: [(name: String, isRequired: Bool)],
+    requirements: [SecurityRequirement],
+    securitySchemes: [String: SecurityScheme]
+) -> String {
+    var output = ""
     var hasSecurityQuery = false
-    for req in requirementsForQuery {
+    for req in requirements {
         for (key, _) in req {
             if let scheme = securitySchemes[key], scheme.type == "apiKey", scheme.in == "query" {
                 hasSecurityQuery = true
@@ -268,8 +395,8 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         }
     }
 
-    if !requirementsForQuery.isEmpty {
-        for req in requirementsForQuery {
+    if !requirements.isEmpty {
+        for req in requirements {
             for (key, _) in req {
                 if let scheme = securitySchemes[key], scheme.type == "apiKey", scheme.in == "query" {
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
@@ -287,7 +414,6 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
     output += "            components.percentEncodedQuery = encodedQuery.replacingOccurrences(of: \"+\", with: \"%2B\")\n"
     output += "        }\n"
     output += "        var request = URLRequest(url: components.url ?? baseURL)\n"
-
     output += "        request.httpMethod = \"\(method)\"\n"
 
     for hParam in headerParams {
@@ -304,24 +430,17 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
         }
     }
 
-    // Evaluate Security Requirements
-    // requirements
-    let requirements = operation.security ?? documentSecurity ?? []
     if !requirements.isEmpty {
         for req in requirements {
-            // we process the first valid requirement mapping
             for (key, _) in req {
                 if let scheme = securitySchemes[key] {
-                    /// Properationarameter name.
                     let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
                     if scheme.type == "http" && scheme.scheme?.lowercased() == "bearer" {
                         output += "        if let token = \(propName) {\n"
                         output += "            request.setValue(\"Bearer \\(token)\", forHTTPHeaderField: \"Authorization\")\n"
                         output += "        }\n"
                     } else if scheme.type == "apiKey" {
-                        // location
                         let location = scheme.in ?? "header"
-                        // The name of the parameter.
                         let name = scheme.name ?? key
                         if location == "header" {
                             output += "        if let token = \(propName) {\n"
@@ -337,154 +456,169 @@ public func emitMethod(path: String, method: String, operation: Operation, docum
             }
         }
     }
+    return output
+}
 
-    if !customBody.isEmpty {
-        output += customBody + "\n"
-    } else if !bodyParamName.isEmpty {
-        if isFormUrlEncoded {
-            output += "        request.setValue(\"application/x-www-form-urlencoded\", forHTTPHeaderField: \"Content-Type\")\n"
-            output += "        if let data = try? JSONEncoder().encode(\(bodyParamName)), var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {\n"
-            output += "            let mirror = Mirror(reflecting: \(bodyParamName))\n"
-            output += "            for child in mirror.children {\n"
-            output += "                guard let key = child.label else { continue }\n"
-            output += "                let childMirror = Mirror(reflecting: child.value)\n"
-            output += "                let valueToUse: Any\n"
-            output += "                if childMirror.displayStyle == .optional {\n"
-            output += "                    guard let first = childMirror.children.first else { continue }\n"
-            output += "                    valueToUse = first.value\n"
-            output += "                } else {\n"
-            output += "                    valueToUse = child.value\n"
-            output += "                }\n"
-            output += "                if valueToUse is Data || valueToUse is URL {\n"
-            output += "                    dict[key] = valueToUse\n"
-            output += "                } else if let boolVal = valueToUse as? Bool {\n"
-            output += "                    dict[key] = boolVal ? \"true\" : \"false\"\n"
-            output += "                }\n"
-            output += "            }\n"
-            output += "            var formComponents: [String] = []\n"
-            output += "            let unreserved = CharacterSet(charactersIn: \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~\")\n"
-            output += "            for (key, value) in dict {\n"
-            output += "                let valueStr = String(describing: value)\n"
-            output += "                if let encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\"),\n"
-            output += "                   let encodedVal = valueStr.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\") {\n"
-            output += "                    formComponents.append(\"\\(encodedKey)=\\(encodedVal)\")\n"
-            output += "                }\n"
-            output += "            }\n"
-            output += "            let formString = formComponents.joined(separator: \"&\")\n"
-            output += "            request.httpBody = formString.data(using: String.Encoding.utf8)\n"
-            output += "        }\n"
-        } else if isMultipart {
-            output += "        let boundary = UUID().uuidString\n"
-            output += "        request.setValue(\"multipart/form-data; boundary=\\(boundary)\", forHTTPHeaderField: \"Content-Type\")\n"
-            output += "        var bodyData = Data()\n"
+/// Configuration describing the content type and parameter name of an operation's request body.
+private struct RequestBodyEmitConfig {
+    /// The Swift parameter name holding the request body.
+    let bodyParamName: String
+    /// Whether the body is `application/x-www-form-urlencoded`.
+    let isFormUrlEncoded: Bool
+    /// Whether the body is `multipart/form-data`.
+    let isMultipart: Bool
+    /// Whether the body is `application/octet-stream`.
+    let isOctetStream: Bool
+    /// Optional per-property multipart encodings.
+    let multipartEncodings: [String: EncodingObject]?
+}
 
-            output += "        let multipartEncodingTypes: [String: String] = [\n"
-            if let encodings = multipartEncodings {
-                for (key, enc) in encodings {
-                    if let cType = enc.contentType {
-                        output += "            \"\(key)\": \"\(cType)\",\n"
-                    }
+/// Emits request body serialization code for JSON, form-urlencoded, multipart/form-data, or octet-stream bodies.
+///
+/// - Parameters:
+///   - config: The `RequestBodyEmitConfig` describing body serialization options.
+///   - operation: The OpenAPI `Operation` descriptor.
+/// - Returns: Generated Swift statements populating `request.httpBody`.
+private func emitStandardRequestBody(
+    config: RequestBodyEmitConfig,
+    operation: Operation
+) -> String {
+    let bodyParamName = config.bodyParamName
+    let isFormUrlEncoded = config.isFormUrlEncoded
+    let isMultipart = config.isMultipart
+    let isOctetStream = config.isOctetStream
+    let multipartEncodings = config.multipartEncodings
+    var output = ""
+    if isFormUrlEncoded {
+        output += "        request.setValue(\"application/x-www-form-urlencoded\", forHTTPHeaderField: \"Content-Type\")\n"
+        output += "        if let data = try? JSONEncoder().encode(\(bodyParamName)), var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {\n"
+        output += "            let mirror = Mirror(reflecting: \(bodyParamName))\n"
+        output += "            for child in mirror.children {\n"
+        output += "                guard let key = child.label else { continue }\n"
+        output += "                let childMirror = Mirror(reflecting: child.value)\n"
+        output += "                let valueToUse: Any\n"
+        output += "                if childMirror.displayStyle == .optional {\n"
+        output += "                    guard let first = childMirror.children.first else { continue }\n"
+        output += "                    valueToUse = first.value\n"
+        output += "                } else {\n"
+        output += "                    valueToUse = child.value\n"
+        output += "                }\n"
+        output += "                if valueToUse is Data || valueToUse is URL {\n"
+        output += "                    dict[key] = valueToUse\n"
+        output += "                } else if let boolVal = valueToUse as? Bool {\n"
+        output += "                    dict[key] = boolVal ? \"true\" : \"false\"\n"
+        output += "                }\n"
+        output += "            }\n"
+        output += "            var formComponents: [String] = []\n"
+        output += "            let unreserved = CharacterSet(charactersIn: \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~\")\n"
+        output += "            for (key, value) in dict {\n"
+        output += "                let valueStr = String(describing: value)\n"
+        output += "                if let encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\"),\n"
+        output += "                   let encodedVal = valueStr.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: \" \", with: \"+\") {\n"
+        output += "                    formComponents.append(\"\\(encodedKey)=\\(encodedVal)\")\n"
+        output += "                }\n"
+        output += "            }\n"
+        output += "            let formString = formComponents.joined(separator: \"&\")\n"
+        output += "            request.httpBody = formString.data(using: String.Encoding.utf8)\n"
+        output += "        }\n"
+    } else if isMultipart {
+        output += "        let boundary = UUID().uuidString\n"
+        output += "        request.setValue(\"multipart/form-data; boundary=\\(boundary)\", forHTTPHeaderField: \"Content-Type\")\n"
+        output += "        var bodyData = Data()\n"
+
+        output += "        let multipartEncodingTypes: [String: String] = [\n"
+        if let encodings = multipartEncodings {
+            for (key, enc) in encodings {
+                if let cType = enc.contentType {
+                    output += "            \"\(key)\": \"\(cType)\",\n"
                 }
             }
-            output += "        ]\n"
+        }
+        output += "        ]\n"
 
-            output += "        if let data = try? JSONEncoder().encode(\(bodyParamName)), var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {\n"
-            output += "            let mirror = Mirror(reflecting: \(bodyParamName))\n"
-            output += "            for child in mirror.children {\n"
-            output += "                guard let key = child.label else { continue }\n"
-            output += "                let childMirror = Mirror(reflecting: child.value)\n"
-            output += "                let valueToUse: Any\n"
-            output += "                if childMirror.displayStyle == .optional {\n"
-            output += "                    guard let first = childMirror.children.first else { continue }\n"
-            output += "                    valueToUse = first.value\n"
-            output += "                } else {\n"
-            output += "                    valueToUse = child.value\n"
-            output += "                }\n"
-            output += "                if valueToUse is Data || valueToUse is URL {\n"
-            output += "                    dict[key] = valueToUse\n"
-            output += "                } else if let boolVal = valueToUse as? Bool {\n"
-            output += "                    dict[key] = boolVal ? \"true\" : \"false\"\n"
-            output += "                }\n"
-            output += "            }\n"
-            output += "             for (key, value) in dict {\n"
-            output += "                 var contentType = \"text/plain\"\n"
-            output += "                 var filename = \"\"\n"
-            output += "                 var fileData: Data?\n"
-            output += "                 if let overrideType = multipartEncodingTypes[key] { contentType = overrideType }\n"
-            output += "                 if let dataVal = value as? Data {\n"
-            output += "                     if contentType == \"text/plain\" { contentType = \"application/octet-stream\" }\n"
-            output += "                     filename = \"; filename=\\\"\\(key)\\\"\"\n"
-            output += "                     fileData = dataVal\n"
-            output += "                 } else if let urlVal = value as? URL {\n"
-            output += "                     if contentType == \"text/plain\" { contentType = \"application/octet-stream\" }\n"
-            output += "                     filename = \"; filename=\\\"\\(urlVal.lastPathComponent)\\\"\"\n"
-            output += "                     fileData = try? Data(contentsOf: urlVal)\n"
-            output += "                 } else if value is [Any] || value is [String: Any] {\n"
-            output += "                     if contentType == \"text/plain\" { contentType = \"application/json\" }\n"
-            output += "                     fileData = try? JSONSerialization.data(withJSONObject: value)\n"
-            output += "                 } else if let stringVal = value as? String {\n"
-            output += "                     fileData = stringVal.data(using: String.Encoding.utf8)\n"
-            output += "                 } else {\n"
-            output += "                     fileData = String(describing: value).data(using: String.Encoding.utf8)\n"
-            output += "                 }\n"
-            output += "                 if let fd = fileData {\n"
-            output += "                     bodyData.append(Data(\"--\\(boundary)\\r\\n\".utf8))\n"
-            output += "                     bodyData.append(Data(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".utf8))\n"
-            output += "                     bodyData.append(Data(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".utf8))\n"
-            output += "                     bodyData.append(fd)\n"
-            output += "                     bodyData.append(Data(\"\\r\\n\".utf8))\n"
-            output += "                 }\n"
-            output += "             }\n"
-            output += "             bodyData.append(Data(\"--\\(boundary)--\\r\\n\".utf8))\n"
-            output += "        }\n"
-            output += "        request.httpBody = bodyData\n"
-        } else if isOctetStream {
-            output += "        request.setValue(\"application/octet-stream\", forHTTPHeaderField: \"Content-Type\")\n"
-            let isBodyRequired = operation.requestBody?.required ?? false
-            if isBodyRequired {
-                output += "        request.httpBody = \(bodyParamName)\n"
-            } else {
-                output += "        if let body = \(bodyParamName) {\n"
-                output += "            request.httpBody = body\n"
-                output += "        }\n"
-            }
+        output += "        if let data = try? JSONEncoder().encode(\(bodyParamName)), var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {\n"
+        output += "            let mirror = Mirror(reflecting: \(bodyParamName))\n"
+        output += "            for child in mirror.children {\n"
+        output += "                guard let key = child.label else { continue }\n"
+        output += "                let childMirror = Mirror(reflecting: child.value)\n"
+        output += "                let valueToUse: Any\n"
+        output += "                if childMirror.displayStyle == .optional {\n"
+        output += "                    guard let first = childMirror.children.first else { continue }\n"
+        output += "                    valueToUse = first.value\n"
+        output += "                } else {\n"
+        output += "                    valueToUse = child.value\n"
+        output += "                }\n"
+        output += "                if valueToUse is Data || valueToUse is URL {\n"
+        output += "                    dict[key] = valueToUse\n"
+        output += "                } else if let boolVal = valueToUse as? Bool {\n"
+        output += "                    dict[key] = boolVal ? \"true\" : \"false\"\n"
+        output += "                }\n"
+        output += "            }\n"
+        output += "             for (key, value) in dict {\n"
+        output += "                 var contentType = \"text/plain\"\n"
+        output += "                 var filename = \"\"\n"
+        output += "                 var fileData: Data?\n"
+        output += "                 if let overrideType = multipartEncodingTypes[key] { contentType = overrideType }\n"
+        output += "                 if let dataVal = value as? Data {\n"
+        output += "                     if contentType == \"text/plain\" { contentType = \"application/octet-stream\" }\n"
+        output += "                     filename = \"; filename=\\\"\\(key)\\\"\"\n"
+        output += "                     fileData = dataVal\n"
+        output += "                 } else if let urlVal = value as? URL {\n"
+        output += "                     if contentType == \"text/plain\" { contentType = \"application/octet-stream\" }\n"
+        output += "                     filename = \"; filename=\\\"\\(urlVal.lastPathComponent)\\\"\"\n"
+        output += "                     fileData = try? Data(contentsOf: urlVal)\n"
+        output += "                 } else if value is [Any] || value is [String: Any] {\n"
+        output += "                     if contentType == \"text/plain\" { contentType = \"application/json\" }\n"
+        output += "                     fileData = try? JSONSerialization.data(withJSONObject: value)\n"
+        output += "                 } else if let stringVal = value as? String {\n"
+        output += "                     fileData = stringVal.data(using: String.Encoding.utf8)\n"
+        output += "                 } else {\n"
+        output += "                     fileData = String(describing: value).data(using: String.Encoding.utf8)\n"
+        output += "                 }\n"
+        output += "                 if let fd = fileData {\n"
+        output += "                     bodyData.append(Data(\"--\\(boundary)\\r\\n\".utf8))\n"
+        output += "                     bodyData.append(Data(\"Content-Disposition: form-data; name=\\\"\\(key)\\\"\\(filename)\\r\\n\".utf8))\n"
+        output += "                     bodyData.append(Data(\"Content-Type: \\(contentType)\\r\\n\\r\\n\".utf8))\n"
+        output += "                     bodyData.append(fd)\n"
+        output += "                     bodyData.append(Data(\"\\r\\n\".utf8))\n"
+        output += "                 }\n"
+        output += "             }\n"
+        output += "             bodyData.append(Data(\"--\\(boundary)--\\r\\n\".utf8))\n"
+        output += "        }\n"
+        output += "        request.httpBody = bodyData\n"
+    } else if isOctetStream {
+        output += "        request.setValue(\"application/octet-stream\", forHTTPHeaderField: \"Content-Type\")\n"
+        let isBodyRequired = operation.requestBody?.required ?? false
+        if isBodyRequired {
+            output += "        request.httpBody = \(bodyParamName)\n"
         } else {
-            output += "        request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")\n"
-            var isBodyRequired = operation.requestBody?.required ?? false
-            if !isBodyRequired, let params = operation.parameters, params.contains(where: { $0.in == "body" && ($0.required ?? false) }) {
-                isBodyRequired = true
-            }
-            if isBodyRequired {
-                output += "        request.httpBody = try JSONEncoder().encode(\(bodyParamName))\n"
-            } else {
-                output += "        if let body = \(bodyParamName) {\n"
-                output += "            request.httpBody = try JSONEncoder().encode(body)\n"
-                output += "        }\n"
-            }
+            output += "        if let body = \(bodyParamName) {\n"
+            output += "            request.httpBody = body\n"
+            output += "        }\n"
+        }
+    } else {
+        output += "        request.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")\n"
+        var isBodyRequired = operation.requestBody?.required ?? false
+        if !isBodyRequired, let params = operation.parameters, params.contains(where: { $0.in == "body" && ($0.required ?? false) }) {
+            isBodyRequired = true
+        }
+        if isBodyRequired {
+            output += "        request.httpBody = try JSONEncoder().encode(\(bodyParamName))\n"
+        } else {
+            output += "        if let body = \(bodyParamName) {\n"
+            output += "            request.httpBody = try JSONEncoder().encode(body)\n"
+            output += "        }\n"
         }
     }
-
-    output += "        let (data, response) = try await session.data(for: request)\n"
-    output += "        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {\n"
-    output += "            let bodyString = String(data: data, encoding: .utf8) ?? \"\"\n"
-    output += "            print(\"HTTP Error \\((response as? HTTPURLResponse)?.statusCode ?? 0) for \(funcName): \\(bodyString)\")\n"
-    output += "            throw URLError(.badServerResponse)\n"
-    output += "        }\n"
-
-    if returnType == "String" {
-        output += "        if let str = String(data: data, encoding: .utf8) { return str }\n"
-        output += "        return try JSONDecoder().decode(\(returnType).self, from: data)\n"
-    } else if returnType == "Data" {
-        output += "        return data\n"
-    } else if returnType != "Void" {
-        output += "        return try JSONDecoder().decode(\(returnType).self, from: data)\n"
-    }
-
-    output += "    }\n\n"
     return output
 }
 
 /// Emits delegate protocols for OpenAPI callbacks.
+///
+/// - Parameters:
+///   - operationId: The parent operation identifier.
+///   - callbacks: Optional dictionary mapping callback names to `Callback` definitions.
+/// - Returns: Generated Swift callback protocol source code.
 public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -> String {
     guard let callbacks = callbacks, !callbacks.isEmpty else { return "" }
     // Initialize the output string for the generated method.
@@ -498,32 +632,19 @@ public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -
     let sortedCallbacks = callbacks.sorted { $0.key < $1.key }
     for (callbackName, callbackDict) in sortedCallbacks {
         for (_, pathItem) in callbackDict {
-            // methods
-            let methods: [(String, Operation?)] = [
-                ("GET", pathItem.get), ("POST", pathItem.post), ("PUT", pathItem.put),
-                ("DELETE", pathItem.delete), ("PATCH", pathItem.patch)
-            ]
-            for (_, opOpt) in methods {
-                if let op = opOpt {
-                    // Generate the function name, using operationId if available, otherwise constructing it from method and path.
-                    let funcName = op.operationId ?? "on\(callbackName.prefix(1).uppercased())\(callbackName.dropFirst())"
-                    // Initialize an array to collect function arguments.
-                    var args: [String] = []
-                    if let reqBody = op.requestBody {
-                        if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
-                            // Determine the mapped Swift type for the parameter.
-                            let type = mapType(schema: schema)
-                            // Determine if the parameter is required.
-                            let isRequired = reqBody.required ?? false
-                            // Determine the optional suffix based on required status.
-                            let optionalSuffix = isRequired ? "" : "?"
-                            args.append("payload: \(type)\(optionalSuffix)")
-                        }
+            for (_, op) in pathItem.operationsByMethod {
+                let funcName = op.operationId ?? "on\(callbackName.prefix(1).uppercased())\(callbackName.dropFirst())"
+                var args: [String] = []
+                if let reqBody = op.requestBody {
+                    if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
+                        let type = mapType(schema: schema)
+                        let isRequired = reqBody.required ?? false
+                        let optionalSuffix = isRequired ? "" : "?"
+                        args.append("payload: \(type)\(optionalSuffix)")
                     }
-                    // Combine all arguments into a single string for the function signature.
-                    let argsString = args.joined(separator: ", ")
-                    output += "    func \(funcName)(\(argsString)) async throws\n"
                 }
+                let argsString = args.joined(separator: ", ")
+                output += "    func \(funcName)(\(argsString)) async throws\n"
             }
         }
     }

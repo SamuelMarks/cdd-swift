@@ -1,67 +1,64 @@
+/// Server-Sent Events (SSE) and HTTP POST transport for the Model Context Protocol (MCP).
 import Foundation
 
-/// Internal thread-safe state box for `MCPSSETransport`.
-private final class SSETransportState: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _isReading = false
-    private var _messageHandler: (@Sendable (Data) async -> Void)?
-    private var _eventEmitter: (@Sendable (String, Data) async throws -> Void)?
+/// Actor-isolated state container for `MCPSSETransport`, providing compile-time `Sendable` safety without `NSLock`.
+private actor SSETransportState {
+    /// Flag indicating whether the transport is open.
+    private var isReading = false
+    /// Callback for incoming client POST payloads.
+    private var messageHandler: (@Sendable (Data) async -> Void)?
+    /// Callback for outgoing SSE events.
+    private var eventEmitter: (@Sendable (String, Data) async throws -> Void)?
 
     /// Initializes the state with an event emitter closure.
     ///
     /// - Parameter eventEmitter: The closure invoked to emit SSE events.
     init(eventEmitter: (@Sendable (String, Data) async throws -> Void)?) {
-        _eventEmitter = eventEmitter
+        self.eventEmitter = eventEmitter
     }
 
-    /// Thread-safe access to the reading state.
-    var isReading: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isReading
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _isReading = newValue
-        }
+    /// Configures the message handler and marks the transport as reading.
+    ///
+    /// - Parameter handler: Incoming message callback closure.
+    func activate(handler: @escaping @Sendable (Data) async -> Void) {
+        messageHandler = handler
+        isReading = true
     }
 
-    /// Thread-safe access to the incoming message handler.
-    var messageHandler: (@Sendable (Data) async -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _messageHandler
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _messageHandler = newValue
-        }
+    /// Closes the state and clears all registered callbacks.
+    func deactivate() {
+        isReading = false
+        messageHandler = nil
+        eventEmitter = nil
     }
 
-    /// Thread-safe access to the SSE event emitter closure.
-    var eventEmitter: (@Sendable (String, Data) async throws -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _eventEmitter
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _eventEmitter = newValue
-        }
+    /// Emits a named SSE event if an event emitter is registered.
+    ///
+    /// - Parameters:
+    ///   - event: The SSE event name.
+    ///   - data: The serialized event data.
+    /// - Throws: Any error thrown by `eventEmitter`.
+    func emit(event: String, data: Data) async throws {
+        try await eventEmitter?(event, data)
+    }
+
+    /// Returns the active message handler if the transport is currently reading.
+    ///
+    /// - Returns: The registered `@Sendable (Data) async -> Void` closure, or `nil`.
+    func activeHandler() -> (@Sendable (Data) async -> Void)? {
+        guard isReading else { return nil }
+        return messageHandler
     }
 }
 
 /// An SSE-based transport for the Model Context Protocol (MCP).
 /// Handles sending messages via Server-Sent Events (SSE) and receiving client messages via HTTP POST.
-public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
+public final class MCPSSETransport: MCPTransport {
+    /// The HTTP POST endpoint URL advertised to connected SSE clients.
     private let endpoint: URL
+    /// JSON encoder used to serialize outgoing SSE event payloads.
     private let encoder = JSONEncoder()
+    /// Actor-isolated state holding the active callbacks.
     private let state: SSETransportState
 
     /// Initializes a new Server-Sent Events (SSE) transport.
@@ -81,7 +78,7 @@ public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
     /// - Throws: An error if encoding or emitting the SSE event fails.
     public func send<T: Encodable>(_ message: T) async throws {
         let data = try encoder.encode(message)
-        try await state.eventEmitter?("message", data)
+        try await state.emit(event: "message", data: data)
     }
 
     /// Registers the incoming message callback and emits the initial `"endpoint"` SSE event.
@@ -89,18 +86,15 @@ public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
     /// - Parameter onMessage: Closure invoked whenever `handleIncomingPost(data:)` receives data.
     /// - Throws: An error if emitting the `"endpoint"` SSE event fails.
     public func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
-        state.messageHandler = onMessage
-        state.isReading = true
+        await state.activate(handler: onMessage)
 
         let endpointData = try encoder.encode(endpoint.absoluteString)
-        try await state.eventEmitter?("endpoint", endpointData)
+        try await state.emit(event: "endpoint", data: endpointData)
     }
 
     /// Closes the SSE transport and releases registered handlers.
     public func close() async throws {
-        state.isReading = false
-        state.messageHandler = nil
-        state.eventEmitter = nil
+        await state.deactivate()
     }
 
     /// Bridges an incoming HTTP POST request body to the active MCP session.
@@ -108,7 +102,7 @@ public final class MCPSSETransport: MCPTransport, @unchecked Sendable {
     /// - Parameter data: Raw JSON-RPC body bytes from the HTTP POST request.
     /// - Throws: `JSONRPCErrorDetail` with `.internalError` if the transport has not been started or is already closed.
     public func handleIncomingPost(data: Data) async throws {
-        guard state.isReading, let handler = state.messageHandler else {
+        guard let handler = await state.activeHandler() else {
             throw JSONRPCErrorDetail(code: .internalError, message: "Transport not started or closed")
         }
         await handler(data)

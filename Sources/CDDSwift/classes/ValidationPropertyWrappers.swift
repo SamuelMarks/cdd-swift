@@ -1,3 +1,4 @@
+/// Property wrappers enforcing OpenAPI numeric and string validation constraints at runtime.
 import Foundation
 
 @propertyWrapper

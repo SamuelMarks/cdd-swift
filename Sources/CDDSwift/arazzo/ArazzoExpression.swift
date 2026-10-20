@@ -1,3 +1,4 @@
+/// Runtime expression, JSON Pointer, and criterion evaluator for Arazzo 1.1.0 workflows.
 import Foundation
 
 /// Runtime execution state container against which Arazzo expressions and criteria are evaluated.

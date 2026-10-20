@@ -1,3 +1,4 @@
+/// XCTest and Swift Testing integration test suite emitter for Arazzo 1.1.0 workflows.
 import Foundation
 
 /// Code emitter generating executable `XCTestCase` and Swift Testing (`@Suite`, `@Test`) suites from Arazzo 1.1.0 workflows.
@@ -129,14 +130,14 @@ public enum ArazzoTestEmitter {
         for workflow in specification.workflows {
             let funcName = ArazzoSdkEmitter.sanitizeIdentifier(workflow.workflowId)
             let baseName = ArazzoSdkEmitter.pascalCase(workflow.workflowId)
+            let expectedOutputCount = workflow.outputs?.count ?? 0
             lines.append("")
             lines.append("    // @Test(" + q + (workflow.summary ?? workflow.workflowId) + q + ")")
             lines.append("    /// Executes workflow `" + workflow.workflowId + "` using `#expect` assertions.")
             lines.append("    public func " + funcName + "() async throws {")
             lines.append("        let client = WorkflowsClient()")
             lines.append("        let outputs = try await client." + funcName + "(inputs: " + baseName + "Inputs())")
-            lines.append("        // #expect(!outputs.values.isEmpty || outputs.values.isEmpty)")
-            lines.append("        _ = outputs")
+            lines.append("        XCTAssertGreaterThanOrEqual(outputs.values.count, " + String(expectedOutputCount) + ")")
             lines.append("    }")
         }
 

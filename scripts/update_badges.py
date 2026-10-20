@@ -8,6 +8,9 @@ import subprocess
 import sys
 from typing import List, Optional
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from find_missing_docs import scan_sources
+
 
 def get_color(percentage: float) -> str:
     """Map a coverage percentage (0-100) to a shields.io badge color name.
@@ -81,7 +84,7 @@ def resolve_test_binaries(bin_path: str) -> List[str]:
 def parse_llvm_cov_total(stdout: str) -> Optional[float]:
     """Parse the `TOTAL` summary row from `llvm-cov report` output.
 
-    Returns the minimum coverage percentage across regions, functions, and lines.
+    Returns the minimum coverage percentage across regions, functions, lines, and branches.
 
     Args:
         stdout: The standard output string from `llvm-cov report`.
@@ -165,7 +168,7 @@ def get_test_coverage() -> float:
     profdata = os.path.join(bin_path, "codecov", "default.profdata")
 
     cov = run_llvm_cov_report(llvm_cov_cmd, profdata, test_bins)
-    if cov is None or cov == 0.0:
+    if cov is None or cov < 100.0:
         test_run = subprocess.run(
             [swift_bin, "test", "--enable-code-coverage"],
             capture_output=True,
@@ -189,40 +192,17 @@ def get_test_coverage() -> float:
 def get_doc_coverage() -> float:
     """Calculate the documentation coverage percentage across `Sources/`.
 
+    Uses `scan_sources` from `find_missing_docs.py` to enforce 100% file header,
+    type, property, enum case, method, initializer, and parameter documentation.
+
     Returns:
         The documentation coverage percentage from 0.0 to 100.0.
     """
-    decl_pattern = re.compile(
-        r"^\s*(?:public\s+|internal\s+|fileprivate\s+|private\s+)?(?:final\s+)?(?:class|struct|enum|protocol|func)\s+[A-Za-z0-9_]+"
-    )
-    total_decls = 0
-    documented_decls = 0
-
-    for root, _, files in os.walk("Sources"):
-        for file in files:
-            if not file.endswith(".swift"):
-                continue
-            with open(os.path.join(root, file), "r", encoding="utf-8") as f:
-                lines = f.readlines()
-
-            for i, line in enumerate(lines):
-                if decl_pattern.search(line):
-                    total_decls += 1
-                    j = i - 1
-                    is_documented = False
-                    while j >= 0:
-                        prev_line = lines[j].strip()
-                        if not prev_line or prev_line.startswith("@"):
-                            j -= 1
-                            continue
-                        if prev_line.startswith("///") or prev_line.endswith("*/"):
-                            is_documented = True
-                        break
-                    if is_documented:
-                        documented_decls += 1
-
+    total_decls, documented_decls, issues = scan_sources("Sources")
     if total_decls == 0:
         return 100.0
+    if issues and documented_decls == total_decls:
+        return max(0.0, ((total_decls - len(issues)) / total_decls) * 100.0)
     return (documented_decls / total_decls) * 100.0
 
 

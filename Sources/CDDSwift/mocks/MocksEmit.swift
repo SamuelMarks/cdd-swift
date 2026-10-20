@@ -1,6 +1,10 @@
+/// Swift mock API client code emitter for OpenAPI paths.
 import Foundation
 
 /// Emits Mock API client code.
+///
+/// - Parameter paths: Optional map of OpenAPI path templates to `PathItem` definitions.
+/// - Returns: Generated `MockAPIClient` Swift class source code.
 public func emitMockClient(paths: [String: PathItem]?) -> String {
     // Initialize the Mock API Client string.
     var output = "public class MockAPIClient {\n"

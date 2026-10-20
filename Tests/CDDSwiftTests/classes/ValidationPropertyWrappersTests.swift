@@ -71,7 +71,14 @@ final class ValidationPropertyWrappersTests: XCTestCase {
             (.mcpTransportError("closed"), "MCP transport error: closed"),
             (.jsonRpcError(code: -32600, message: "invalid"), "JSON-RPC error (-32600): invalid"),
             (.processExecutionFailed(executable: "/bin/x", message: "missing"), "Process execution failed for /bin/x: missing"),
-            (.validationFailed(field: "age", reason: "< 0"), "Validation failed for 'age': < 0")
+            (.validationFailed(field: "age", reason: "< 0"), "Validation failed for 'age': < 0"),
+            (.fileSystemError(operation: "open", path: "/tmp/x", errnoCode: 13), "File system error during open at '/tmp/x' (errno 13)"),
+            (.commandExecutionFailed(command: "build", reason: "exit 1"), "Command 'build' failed: exit 1"),
+            (.unsupportedSpecificationVersion(spec: "OpenAPI", version: "1.0"), "Unsupported OpenAPI specification version: 1.0"),
+            (.mcpToolNotFound(name: "unknownTool"), "Unknown MCP tool: 'unknownTool'"),
+            (.mcpResourceNotFound(uri: "api://missing"), "Unknown MCP resource URI: 'api://missing'"),
+            (.jsonEncodingFailed(reason: "nan"), "JSON encoding failed: nan"),
+            (.jsonDecodingFailed(reason: "eof"), "JSON decoding failed: eof")
         ]
         for (error, expected) in errors {
             XCTAssertEqual(error.description, expected)

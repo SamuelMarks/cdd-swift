@@ -1,3 +1,4 @@
+/// Server-side synthetic workflow driver and healthcheck probe emitter for Arazzo 1.1.0 specifications.
 import Foundation
 
 /// Code emitter generating server-side synthetic workflow drivers and healthcheck probe orchestrators for Vapor and Hummingbird backends.

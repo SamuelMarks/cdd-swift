@@ -1,3 +1,4 @@
+/// CLI command for parsing Swift workflow source files into an Arazzo 1.1.0 specification.
 import ArgumentParser
 import CDDSwift
 import Foundation
