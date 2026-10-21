@@ -37,7 +37,11 @@ let package = Package(
             dependencies: [
                 "CDDSwift",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Swifter", package: "swifter", condition: .when(platforms: [.macOS, .macCatalyst, .linux, .windows, .iOS, .tvOS, .watchOS, .android, .openbsd]))
+                .product(
+                    name: "Swifter",
+                    package: "swifter",
+                    condition: .when(platforms: [.macOS, .macCatalyst, .linux, .windows, .iOS, .tvOS, .watchOS, .android, .openbsd])
+                )
             ]
         ),
         .testTarget(

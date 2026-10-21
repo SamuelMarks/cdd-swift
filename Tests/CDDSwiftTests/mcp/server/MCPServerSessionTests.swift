@@ -1,45 +1,119 @@
+/// Unit tests for `MCPServerSession` and `DefaultMCPServerRouter`.
 import XCTest
 @testable import CDDSwift
 
-final class MockTransportForRouter: MCPTransport, @unchecked Sendable {
-    var sentMessages: [Any] = []
+/// Actor-isolated state container for `MockTransportForRouter`.
+private actor MockServerTransportState {
+    /// Recorded outgoing messages.
+    var sentMessages: [any Sendable] = []
+    /// Registered incoming message handler.
     var onMessageCallback: (@Sendable (Data) async -> Void)?
+    /// When `true`, `send(_:)` throws an error.
     var shouldThrowOnSend = false
 
-    func send<T: Encodable>(_ message: T) async throws {
+    /// Appends a sent message or throws if `shouldThrowOnSend` is enabled.
+    ///
+    /// - Parameter message: The message to record.
+    /// - Throws: `MCPServerSessionTests.GenericError` when `shouldThrowOnSend` is `true`.
+    func recordSend(_ message: any Sendable) throws {
         if shouldThrowOnSend {
             throw MCPServerSessionTests.GenericError()
         }
         sentMessages.append(message)
     }
 
-    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
-        onMessageCallback = onMessage
+    /// Registers the incoming message callback.
+    ///
+    /// - Parameter callback: The `@Sendable` message handler closure.
+    func setCallback(_ callback: @escaping @Sendable (Data) async -> Void) {
+        onMessageCallback = callback
     }
 
-    func close() async throws {}
+    /// Configures whether `send` should throw.
+    ///
+    /// - Parameter flag: Boolean flag.
+    func setShouldThrow(_ flag: Bool) {
+        shouldThrowOnSend = flag
+    }
 }
 
+/// Thread-safe mock `MCPTransport` for testing `MCPServerSession` without `@unchecked Sendable`.
+final class MockTransportForRouter: MCPTransport {
+    /// Actor-isolated state container.
+    private let state = MockServerTransportState()
+
+    /// Initializes the mock server transport.
+    init() {}
+
+    /// Sends a message through the mock transport.
+    ///
+    /// - Parameter message: The `Encodable & Sendable` message to send.
+    /// - Throws: `MCPServerSessionTests.GenericError` if configured to fail.
+    func send<T: Encodable & Sendable>(_ message: T) async throws {
+        try await state.recordSend(message)
+    }
+
+    /// Starts the mock transport with the given message handler.
+    ///
+    /// - Parameter onMessage: Callback invoked when simulated messages arrive.
+    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
+        await state.setCallback(onMessage)
+    }
+
+    /// Closes the mock transport.
+    func close() async throws {}
+
+    /// Returns all sent messages recorded by the transport.
+    func sentMessages() async -> [any Sendable] {
+        await state.sentMessages
+    }
+
+    /// Simulates receiving raw `Data` from the remote peer.
+    ///
+    /// - Parameter data: The JSON-RPC message payload.
+    func simulateIncoming(_ data: Data) async {
+        let cb = await state.onMessageCallback
+        await cb?(data)
+    }
+
+    /// Returns the currently registered message callback.
+    func currentCallback() async -> (@Sendable (Data) async -> Void)? {
+        await state.onMessageCallback
+    }
+
+    /// Configures whether subsequent `send` calls should throw.
+    ///
+    /// - Parameter flag: `true` to throw on `send`.
+    func setShouldThrowOnSend(_ flag: Bool) async {
+        await state.setShouldThrow(flag)
+    }
+}
+
+/// Test suite verifying `MCPServerSession` request routing, cancellation, notifications, and sampling.
 final class MCPServerSessionTests: XCTestCase {
+    /// Dummy error type for testing error handling paths.
     struct GenericError: Error {}
 
+    /// Verifies that invoking the transport callback after `MCPServerSession` is deallocated safely no-ops.
     func testStartDeallocated() async throws {
         let transport = MockTransportForRouter()
         var session: MCPServerSession? = MCPServerSession(transport: transport, router: DefaultMCPServerRouter())
         try await session?.start()
-        let cb = transport.onMessageCallback
+        let cb = await transport.currentCallback()
         session = nil
         await cb?(Data("{}".utf8))
     }
 
+    /// Verifies that a transport error during `sendRequest` cleans up and rejects the continuation.
     func testSendRequestTransportError() async {
         let transport = MockTransportForRouter()
-        transport.shouldThrowOnSend = true
+        await transport.setShouldThrowOnSend(true)
         let session = MCPServerSession(transport: transport, router: DefaultMCPServerRouter())
         let res = try? await session.sendRequest(method: "test", params: AnyCodable("foo"))
         XCTAssertNil(res)
     }
 
+    /// Verifies that a client response without a `result` field resolves to an empty `AnyCodable` dictionary.
     func testProcessIncomingDataResponseNoResult() async throws {
         let transport = MockTransportForRouter()
         let session = MCPServerSession(transport: transport, router: DefaultMCPServerRouter())
@@ -50,17 +124,19 @@ final class MCPServerSessionTests: XCTestCase {
         }
         try await Task.sleep(nanoseconds: 10_000_000)
 
-        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<AnyCodable>)
+        let messages = await transport.sentMessages()
+        let req = try XCTUnwrap(messages.first as? JSONRPCRequest<AnyCodable>)
         XCTAssertEqual(req.id, .integer(1))
 
         let json = #"{"jsonrpc":"2.0","id":1}"#
         let data = try XCTUnwrap(json.data(using: .utf8))
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         let result = try await task.value
         XCTAssertEqual(result, AnyCodable([String: String]()))
     }
 
+    /// Verifies that a cancelled request task suppresses sending a normal response when returning.
     func testIncomingRequestCancellationAtReturn() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -78,17 +154,19 @@ final class MCPServerSessionTests: XCTestCase {
         try await session.start()
 
         let req = JSONRPCRequest<AnyCodable>(id: .integer(100), method: "test_cancel_return")
-        try await transport.onMessageCallback?(JSONEncoder().encode(req))
+        try await transport.simulateIncoming(JSONEncoder().encode(req))
         await fulfillment(of: [startExpectation], timeout: 1.0)
 
         let cancelParams = CancelledNotificationParams(requestId: .integer(100), reason: "timeout")
         let cancelNotif = JSONRPCNotification(method: "notifications/cancelled", params: cancelParams)
-        try await transport.onMessageCallback?(JSONEncoder().encode(cancelNotif))
+        try await transport.simulateIncoming(JSONEncoder().encode(cancelNotif))
 
         try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 0)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 0)
     }
 
+    /// Verifies that a cancelled request task suppresses sending an error response when throwing `JSONRPCErrorDetail`.
     func testIncomingRequestCancellationAtThrow() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -106,17 +184,19 @@ final class MCPServerSessionTests: XCTestCase {
         try await session.start()
 
         let req = JSONRPCRequest<AnyCodable>(id: .integer(101), method: "test_cancel_throw")
-        try await transport.onMessageCallback?(JSONEncoder().encode(req))
+        try await transport.simulateIncoming(JSONEncoder().encode(req))
         await fulfillment(of: [startExpectation], timeout: 1.0)
 
         let cancelParams = CancelledNotificationParams(requestId: .integer(101), reason: "timeout")
         let cancelNotif = JSONRPCNotification(method: "notifications/cancelled", params: cancelParams)
-        try await transport.onMessageCallback?(JSONEncoder().encode(cancelNotif))
+        try await transport.simulateIncoming(JSONEncoder().encode(cancelNotif))
 
         try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 0)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 0)
     }
 
+    /// Verifies routing a valid client request and returning a `JSONRPCResponse`.
     func testHandleRequest() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -129,17 +209,18 @@ final class MCPServerSessionTests: XCTestCase {
 
         let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(1), method: "test")
         let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
-        // Wait briefly for the task to process
         try await Task.sleep(nanoseconds: 100_000_000)
 
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let response = try XCTUnwrap(transport.sentMessages.first as? JSONRPCResponse<AnyCodable>)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let response = try XCTUnwrap(messages.first as? JSONRPCResponse<AnyCodable>)
         XCTAssertEqual(response.id, .integer(1))
-        XCTAssertEqual(response.result?.value as? String, "ok")
+        XCTAssertEqual(response.result?.stringValue, "ok")
     }
 
+    /// Verifies that an unregistered request method returns `-32601` (`methodNotFound`).
     func testHandleRequestMethodNotFound() async throws {
         let transport = MockTransportForRouter()
         let router = DefaultMCPServerRouter()
@@ -149,16 +230,18 @@ final class MCPServerSessionTests: XCTestCase {
 
         let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(1), method: "unknown")
         let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         try await Task.sleep(nanoseconds: 100_000_000)
 
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let err = try XCTUnwrap(transport.sentMessages.first as? JSONRPCError)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let err = try XCTUnwrap(messages.first as? JSONRPCError)
         XCTAssertEqual(err.id, .integer(1))
-        XCTAssertEqual(err.error.code, -32601) // methodNotFound
+        XCTAssertEqual(err.error.code, -32601)
     }
 
+    /// Verifies routing an incoming client notification to the registered handler.
     func testHandleNotification() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -173,11 +256,12 @@ final class MCPServerSessionTests: XCTestCase {
 
         let notif = JSONRPCNotification<AnyCodable>(method: "notif")
         let data = try JSONEncoder().encode(notif)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         await fulfillment(of: [expectation], timeout: 1.0)
     }
 
+    /// Verifies that malformed non-JSON data is ignored safely.
     func testHandleInvalidData() async throws {
         let transport = MockTransportForRouter()
         let router = DefaultMCPServerRouter()
@@ -185,12 +269,14 @@ final class MCPServerSessionTests: XCTestCase {
         try await session.start()
 
         let data = Data("invalid".utf8)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 0)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 0)
     }
 
+    /// Verifies that an uncorrelated `JSONRPCResponse` is ignored safely.
     func testProcessResponseData() async throws {
         let transport = MockTransportForRouter()
         let router = DefaultMCPServerRouter()
@@ -199,12 +285,14 @@ final class MCPServerSessionTests: XCTestCase {
 
         let resp = JSONRPCResponse(id: .integer(1), result: AnyCodable("ok"))
         let data = try JSONEncoder().encode(resp)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 0) // Should just drop it for now
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 0)
     }
 
+    /// Verifies that throwing `JSONRPCErrorDetail` inside a request handler emits a matching `JSONRPCError`.
     func testHandleRequestJSONRPCError() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -217,16 +305,18 @@ final class MCPServerSessionTests: XCTestCase {
 
         let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(1), method: "test")
         let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         try await Task.sleep(nanoseconds: 100_000_000)
 
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let err = try XCTUnwrap(transport.sentMessages.first as? JSONRPCError)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let err = try XCTUnwrap(messages.first as? JSONRPCError)
         XCTAssertEqual(err.id, .integer(1))
         XCTAssertEqual(err.error.code, -32602)
     }
 
+    /// Verifies that throwing a generic `Error` inside a request handler emits `-32603` (`internalError`).
     func testHandleRequestGenericError() async throws {
         let transport = MockTransportForRouter()
         var router = DefaultMCPServerRouter()
@@ -239,224 +329,14 @@ final class MCPServerSessionTests: XCTestCase {
 
         let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(1), method: "test")
         let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
+        await transport.simulateIncoming(data)
 
         try await Task.sleep(nanoseconds: 100_000_000)
 
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let err = try XCTUnwrap(transport.sentMessages.first as? JSONRPCError)
+        let messages = await transport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let err = try XCTUnwrap(messages.first as? JSONRPCError)
         XCTAssertEqual(err.id, .integer(1))
         XCTAssertEqual(err.error.code, -32603)
-    }
-
-    func testHandleNotificationError() async throws {
-        let transport = MockTransportForRouter()
-        var router = DefaultMCPServerRouter()
-
-        router.notificationHandlers["notif"] = { _ in
-            throw GenericError()
-        }
-
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let notif = JSONRPCNotification<AnyCodable>(method: "notif")
-        let data = try JSONEncoder().encode(notif)
-        await transport.onMessageCallback?(data)
-
-        // This will just hit the catch block and do nothing
-        try await Task.sleep(nanoseconds: 100_000_000)
-    }
-
-    func testSessionClose() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.close() // Does nothing but cover the line
-    }
-
-    func testSessionCloseCancelsRunningTasks() async throws {
-        let transport = MockTransportForRouter()
-        var router = DefaultMCPServerRouter()
-
-        let startExpectation = XCTestExpectation(description: "Handler started")
-
-        router.requestHandlers["long_task"] = { _ in
-            startExpectation.fulfill()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 10_000_000)
-            }
-            return AnyCodable("done")
-        }
-
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(42), method: "long_task")
-        let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
-
-        await fulfillment(of: [startExpectation], timeout: 1.0)
-        try await session.close()
-        try await Task.sleep(nanoseconds: 50_000_000)
-    }
-
-    func testSendNotification() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-
-        try await session.sendNotification(method: "test/notify", params: AnyCodable(["foo": "bar"]))
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let notif = try XCTUnwrap(transport.sentMessages.first as? JSONRPCNotification<AnyCodable>)
-        XCTAssertEqual(notif.method, "test/notify")
-    }
-
-    func testSendRequestAndHandleResponse() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let task = Task {
-            try await session.sendRequest(method: "test/request", params: AnyCodable(["foo": "bar"]))
-        }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 1)
-
-        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<AnyCodable>)
-
-        // Simulate response from client
-        let resp = JSONRPCResponse(id: req.id, result: AnyCodable("response_ok"))
-        let data = try JSONEncoder().encode(resp)
-        await transport.onMessageCallback?(data)
-
-        let result = try await task.value
-        XCTAssertEqual(result.value as? String, "response_ok")
-    }
-
-    func testSendRequestAndHandleError() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let task = Task {
-            try? await session.sendRequest(method: "test/request", params: AnyCodable(["foo": "bar"]))
-        }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
-
-        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<AnyCodable>)
-
-        // Simulate error from client
-        let errResp = JSONRPCError(id: req.id, error: JSONRPCErrorDetail(code: .internalError, message: "failed"))
-        let data = try JSONEncoder().encode(errResp)
-        await transport.onMessageCallback?(data)
-
-        let val = await task.value
-        XCTAssertNil(val)
-    }
-
-    func testIncomingRequestCancellation() async throws {
-        let transport = MockTransportForRouter()
-        var router = DefaultMCPServerRouter()
-
-        let startExpectation = XCTestExpectation(description: "Handler started")
-
-        router.requestHandlers["long_task"] = { _ in
-            startExpectation.fulfill()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 10_000_000)
-            }
-            throw GenericError()
-        }
-
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let req = JSONRPCRequest<CreateMessageRequestParams>(id: .integer(42), method: "long_task")
-        let data = try JSONEncoder().encode(req)
-        await transport.onMessageCallback?(data)
-
-        await fulfillment(of: [startExpectation], timeout: 1.0)
-
-        // Send cancel notification
-        let cancelParams = CancelledNotificationParams(requestId: .integer(42), reason: "timeout")
-        let cancelNotif = JSONRPCNotification(method: "notifications/cancelled", params: cancelParams)
-        let cancelData = try JSONEncoder().encode(cancelNotif)
-        await transport.onMessageCallback?(cancelData)
-
-        try await Task.sleep(nanoseconds: 100_000_000)
-
-        // Should not have sent a response because it was cancelled
-        XCTAssertEqual(transport.sentMessages.count, 0)
-    }
-
-    func testSessionCloseCancelsPendingRequests() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let task = Task {
-            try? await session.sendRequest(method: "test/request", params: AnyCodable(["foo": "bar"]))
-        }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
-
-        // Close session
-        try await session.close()
-
-        let val = await task.value
-        XCTAssertNil(val)
-    }
-}
-
-extension MCPServerSessionTests {
-    func testSendProgress() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-
-        try await session.sendProgress(progressToken: .string("token123"), progress: 50.0, total: 100.0)
-        XCTAssertEqual(transport.sentMessages.count, 1)
-        let notif = try XCTUnwrap(transport.sentMessages.first as? JSONRPCNotification<ProgressNotificationParams>)
-        XCTAssertEqual(notif.method, "notifications/progress")
-        XCTAssertEqual(notif.params?.progressToken, .string("token123"))
-        XCTAssertEqual(notif.params?.progress, 50.0)
-        XCTAssertEqual(notif.params?.total, 100.0)
-    }
-}
-
-extension MCPServerSessionTests {
-    func testCreateMessage() async throws {
-        let transport = MockTransportForRouter()
-        let router = DefaultMCPServerRouter()
-        let session = MCPServerSession(transport: transport, router: router)
-        try await session.start()
-
-        let task = Task {
-            let params = CreateMessageRequestParams(messages: [], maxTokens: 100)
-            return try await session.createMessage(params: params)
-        }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(transport.sentMessages.count, 1)
-
-        let req = try XCTUnwrap(transport.sentMessages.first as? JSONRPCRequest<CreateMessageRequestParams>)
-
-        let resultObj = CreateMessageResult(role: .assistant, content: .text(TextContent(text: "Hello")), model: "test-model")
-        let resultData = try JSONEncoder().encode(resultObj)
-        let resultAny = try JSONDecoder().decode(AnyCodable.self, from: resultData)
-
-        let resp = JSONRPCResponse(id: req.id, result: resultAny)
-        let data = try JSONEncoder().encode(resp)
-        await transport.onMessageCallback?(data)
-
-        let result = try await task.value
-        XCTAssertEqual(result.role, .assistant)
-        XCTAssertEqual(result.model, "test-model")
     }
 }

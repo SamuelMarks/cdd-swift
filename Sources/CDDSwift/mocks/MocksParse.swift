@@ -19,9 +19,10 @@ public class MockVisitor: SyntaxVisitor {
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         // Extract the function name.
         let name = node.name.text
-        if name.hasPrefix("mock") {
-            // Derive the API path from the mock function name.
-            let pathName = "/" + name.replacingOccurrences(of: "mock", with: "").lowercased()
+        if name.hasPrefix("mock"), name.count > 4 {
+            // Derive the API path by stripping only the leading 'mock' prefix.
+            let stripped = String(name.dropFirst(4))
+            let pathName = "/" + stripped.lowercased()
             // Create a stub operation for the mocked endpoint.
             let op = Operation(summary: "Mock generated operation for \(name)", operationId: name)
 

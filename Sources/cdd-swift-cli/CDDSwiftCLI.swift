@@ -43,7 +43,8 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     ///   - arguments: Full process arguments including executable path at index 0.
     ///   - environment: Process environment dictionary.
     static func main(arguments: [String], environment: [String: String]) async {
-        if environment["XCTestConfigurationFilePath"] != nil || environment["XCTestBundlePath"] != nil || arguments.first?.hasSuffix("xctest") == true {
+        if environment["XCTestConfigurationFilePath"] != nil || environment["XCTestBundlePath"] != nil || arguments.first?
+            .hasSuffix("xctest") == true {
             return
         }
         await _main(arguments: Array(arguments.dropFirst()), environment: environment)
@@ -85,7 +86,10 @@ struct CDDSwiftCLI: AsyncParsableCommand {
 /// CLI subcommand that merges generated Swift SDK code from an OpenAPI specification into an existing Swift source file.
 struct MergeSwift: AsyncParsableCommand {
     /// Command configuration for `merge_swift`.
-    static let configuration = CommandConfiguration(commandName: "merge_swift", abstract: "Merge generated Swift code from an OpenAPI document into an existing Swift file.")
+    static let configuration = CommandConfiguration(
+        commandName: "merge_swift",
+        abstract: "Merge generated Swift code from an OpenAPI document into an existing Swift file."
+    )
 
     /// Path to the input OpenAPI JSON file.
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input OpenAPI JSON file.")
@@ -122,7 +126,10 @@ struct MergeSwift: AsyncParsableCommand {
 /// CLI subcommand that parses a Swift source file or directory via `SwiftSyntax` and emits an OpenAPI JSON specification.
 struct ToOpenAPI: AsyncParsableCommand {
     /// Command configuration for `to_openapi`.
-    static let configuration = CommandConfiguration(commandName: "to_openapi", abstract: "Parse a Swift file to extract Codable models and generate OpenAPI JSON.")
+    static let configuration = CommandConfiguration(
+        commandName: "to_openapi",
+        abstract: "Parse a Swift file to extract Codable models and generate OpenAPI JSON."
+    )
 
     /// Path to the input Swift file or directory.
     @Option(name: [.customShort("i"), .customLong("input")], help: "Path to the input Swift file.")
@@ -147,9 +154,8 @@ struct ToOpenAPI: AsyncParsableCommand {
             if WASIFileHelpers.fileExists(at: parentDir) {
                 let files = try WASIFileHelpers.listDirectory(at: parentDir)
                 for file in files where file.hasSuffix(".swift") {
-                    if let content = try? WASIFileHelpers.readString(at: file) {
-                        sourceCode += String(UnicodeScalar(10)) + content
-                    }
+                    let content = try WASIFileHelpers.readString(at: file)
+                    sourceCode += String(UnicodeScalar(10)) + content
                 }
             } else {
                 throw CDDError.fileIOError(
@@ -180,7 +186,10 @@ struct ToOpenAPI: AsyncParsableCommand {
 /// CLI subcommand that emits a sample OpenAPI 3.2.0 JSON specification constructed with `OpenAPIDocumentBuilder`.
 struct GenerateOpenAPI: AsyncParsableCommand {
     /// Command configuration for `generate_openapi`.
-    static let configuration = CommandConfiguration(commandName: "generate_openapi", abstract: "Generate an example OpenAPI JSON document from Swift builder.")
+    static let configuration = CommandConfiguration(
+        commandName: "generate_openapi",
+        abstract: "Generate an example OpenAPI JSON document from Swift builder."
+    )
 
     /// Optional output file path for the generated OpenAPI JSON; prints to stdout when omitted.
     @Option(name: [.customShort("o"), .customLong("output")], help: "Path to the output JSON file. Prints to stdout if not provided.")
@@ -195,7 +204,13 @@ struct GenerateOpenAPI: AsyncParsableCommand {
                 get: Operation(
                     summary: "Get all users",
                     operationId: "getUsers",
-                    responses: ["200": Response(description: "A list of users", content: ["application/json": MediaType(schema: Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/User")))])]
+                    responses: ["200": Response(
+                        description: "A list of users",
+                        content: ["application/json": MediaType(schema: Schema(
+                            type: "array",
+                            items: SchemaItem(ref: "#/components/schemas/User")
+                        ))]
+                    )]
                 )
             ))
             .addSchema("User", schema: Schema(
@@ -339,7 +354,10 @@ struct SyncOpenAPI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "sync", abstract: "Synchronize an OpenAPI specification with source code.")
 
     /// Designates the single source of truth (`class`, `struct`, or `function`).
-    @Option(name: .customLong("truth"), help: "Designate the single source of truth ('class', 'struct', 'function'). Currently defaults to 'class'.")
+    @Option(
+        name: .customLong("truth"),
+        help: "Designate the single source of truth ('class', 'struct', 'function'). Currently defaults to 'class'."
+    )
     var truth: String?
 
     /// Path to the input Swift file containing the source of truth.
@@ -365,9 +383,8 @@ struct SyncOpenAPI: AsyncParsableCommand {
             if WASIFileHelpers.fileExists(at: parentDir) {
                 let files = try WASIFileHelpers.listDirectory(at: parentDir)
                 for file in files where file.hasSuffix(".swift") {
-                    if let content = try? WASIFileHelpers.readString(at: file) {
-                        sourceCode += String(UnicodeScalar(10)) + content
-                    }
+                    let content = try WASIFileHelpers.readString(at: file)
+                    sourceCode += String(UnicodeScalar(10)) + content
                 }
             } else {
                 throw CDDError.fileIOError(
@@ -385,78 +402,12 @@ struct SyncOpenAPI: AsyncParsableCommand {
         var existingDocument: OpenAPIDocument?
         if WASIFileHelpers.fileExists(at: outputPath) {
             let existingJSON = try WASIFileHelpers.readString(at: outputPath)
-            existingDocument = try? OpenAPIParser.parse(json: existingJSON)
+            existingDocument = try OpenAPIParser.parse(json: existingJSON)
         }
 
         var finalDocument = document
         if let existing = existingDocument {
-            // Basic merge keeping existing paths if code doesn't redefine them
-            var mergedPaths = existing.paths ?? [:]
-            if let parsedPaths = document.paths {
-                for (k, v) in parsedPaths {
-                    mergedPaths[k] = v
-                }
-            }
-
-            let mergedComponents = existing.components ?? Components()
-            if let parsedComponents = document.components {
-                var schemas = mergedComponents.schemas ?? [:]
-                if let parsedSchemas = parsedComponents.schemas {
-                    for (k, v) in parsedSchemas {
-                        schemas[k] = v
-                    }
-                }
-                let newComponents = Components(
-                    schemas: schemas,
-                    responses: mergedComponents.responses,
-                    parameters: mergedComponents.parameters,
-                    examples: mergedComponents.examples,
-                    requestBodies: mergedComponents.requestBodies,
-                    headers: mergedComponents.headers,
-                    securitySchemes: mergedComponents.securitySchemes,
-                    links: mergedComponents.links,
-                    callbacks: mergedComponents.callbacks,
-                    pathItems: mergedComponents.pathItems
-                )
-
-                finalDocument = OpenAPIDocument(
-                    openapi: existing.openapi,
-                    swagger: existing.swagger,
-                    selfRef: existing.selfRef,
-                    info: existing.info,
-                    jsonSchemaDialect: existing.jsonSchemaDialect,
-                    servers: existing.servers,
-                    paths: mergedPaths,
-                    webhooks: existing.webhooks,
-                    components: newComponents,
-                    security: existing.security,
-                    tags: existing.tags,
-                    externalDocs: existing.externalDocs,
-                    definitions: existing.definitions,
-                    parameters: existing.parameters,
-                    responses: existing.responses,
-                    securityDefinitions: existing.securityDefinitions
-                )
-            } else {
-                finalDocument = OpenAPIDocument(
-                    openapi: existing.openapi,
-                    swagger: existing.swagger,
-                    selfRef: existing.selfRef,
-                    info: existing.info,
-                    jsonSchemaDialect: existing.jsonSchemaDialect,
-                    servers: existing.servers,
-                    paths: mergedPaths,
-                    webhooks: existing.webhooks,
-                    components: mergedComponents,
-                    security: existing.security,
-                    tags: existing.tags,
-                    externalDocs: existing.externalDocs,
-                    definitions: existing.definitions,
-                    parameters: existing.parameters,
-                    responses: existing.responses,
-                    securityDefinitions: existing.securityDefinitions
-                )
-            }
+            finalDocument = Self.mergeDocuments(parsed: document, existing: existing)
         }
 
         let encoder = JSONEncoder()
@@ -466,5 +417,64 @@ struct SyncOpenAPI: AsyncParsableCommand {
 
         try WASIFileHelpers.writeString(jsonString, to: outputPath)
         print("✅ Successfully synchronized \(selectedTruth) truth to \(outputPath)")
+    }
+
+    /// Merges a parsed `OpenAPIDocument` into an existing `OpenAPIDocument`, preserving existing metadata.
+    ///
+    /// - Parameters:
+    ///   - parsed: The newly parsed `OpenAPIDocument` from Swift source code.
+    ///   - existing: The pre-existing `OpenAPIDocument` loaded from disk.
+    /// - Returns: The merged `OpenAPIDocument`.
+    private static func mergeDocuments(parsed: OpenAPIDocument, existing: OpenAPIDocument) -> OpenAPIDocument {
+        var mergedPaths = existing.paths ?? [:]
+        if let parsedPaths = parsed.paths {
+            for (k, v) in parsedPaths {
+                mergedPaths[k] = v
+            }
+        }
+
+        let baseComponents = existing.components ?? Components()
+        let finalComponents: Components
+        if let parsedComponents = parsed.components {
+            var schemas = baseComponents.schemas ?? [:]
+            if let parsedSchemas = parsedComponents.schemas {
+                for (k, v) in parsedSchemas {
+                    schemas[k] = v
+                }
+            }
+            finalComponents = Components(
+                schemas: schemas,
+                responses: baseComponents.responses,
+                parameters: baseComponents.parameters,
+                examples: baseComponents.examples,
+                requestBodies: baseComponents.requestBodies,
+                headers: baseComponents.headers,
+                securitySchemes: baseComponents.securitySchemes,
+                links: baseComponents.links,
+                callbacks: baseComponents.callbacks,
+                pathItems: baseComponents.pathItems
+            )
+        } else {
+            finalComponents = baseComponents
+        }
+
+        return OpenAPIDocument(
+            openapi: existing.openapi,
+            swagger: existing.swagger,
+            selfRef: existing.selfRef,
+            info: existing.info,
+            jsonSchemaDialect: existing.jsonSchemaDialect,
+            servers: existing.servers,
+            paths: mergedPaths,
+            webhooks: existing.webhooks,
+            components: finalComponents,
+            security: existing.security,
+            tags: existing.tags,
+            externalDocs: existing.externalDocs,
+            definitions: existing.definitions,
+            parameters: existing.parameters,
+            responses: existing.responses,
+            securityDefinitions: existing.securityDefinitions
+        )
     }
 }

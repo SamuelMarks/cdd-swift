@@ -24,6 +24,8 @@ struct ToArazzo: AsyncParsableCommand {
     var format: String = "json"
 
     /// Executes the `to_arazzo` command.
+    ///
+    /// - Throws: `CDDError` if reading the input file, parsing the AST, or writing the output file fails.
     mutating func run() async throws {
         let sourceCode = try WASIFileHelpers.readString(at: inputPath)
         let parser = SwiftASTArazzoParser()

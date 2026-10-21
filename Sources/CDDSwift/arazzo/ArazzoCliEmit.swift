@@ -8,21 +8,7 @@ public enum ArazzoCliEmitter {
     /// - Parameter name: Input schema property name.
     /// - Returns: Kebab-case CLI option name.
     public static func kebabCase(_ name: String) -> String {
-        guard !name.isEmpty else { return "arg" }
-        var result = ""
-        for (i, char) in name.enumerated() {
-            if char.isUppercase && i > 0 {
-                result.append("-")
-                result.append(char.lowercased())
-            } else if !char.isLetter && !char.isNumber {
-                if !result.hasSuffix("-") && !result.isEmpty {
-                    result.append("-")
-                }
-            } else {
-                result.append(char.lowercased())
-            }
-        }
-        return result.isEmpty ? "arg" : result
+        return SwiftIdentifierSanitizer.kebabCase(name, fallback: "arg")
     }
 
     /// Converts an identifier string into a PascalCase Swift command struct name.
@@ -30,9 +16,8 @@ public enum ArazzoCliEmitter {
     /// - Parameter name: Input workflow identifier.
     /// - Returns: Swift PascalCase type name.
     public static func pascalCase(_ name: String) -> String {
-        let parts = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
-        guard !parts.isEmpty else { return "WorkflowCommand" }
-        return parts.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined() + "Command"
+        let base = SwiftIdentifierSanitizer.sanitizePascalCase(name, fallback: "")
+        return base.isEmpty ? "WorkflowCommand" : base + "Command"
     }
 
     /// Emits a complete Swift source file containing ArgumentParser commands for each workflow in the specification.
@@ -92,6 +77,7 @@ public enum ArazzoCliEmitter {
         let cmdName = kebabCase(workflow.workflowId)
         let summary = workflow.summary ?? ("Executes workflow " + workflow.workflowId)
         let baseName = ArazzoSdkEmitter.pascalCase(workflow.workflowId)
+        let clientMethod = ArazzoSdkEmitter.sanitizeIdentifier(workflow.workflowId)
 
         var code = ""
         code += "/// CLI command executing workflow `" + workflow.workflowId + "`.\n"
@@ -101,14 +87,52 @@ public enum ArazzoCliEmitter {
         code += "        commandName: \"" + cmdName + "\",\n"
         code += "        abstract: \"" + summary + "\"\n"
         code += "    )\n\n"
+        code += emitWorkflowOptionProperties(workflow: workflow)
 
+        code += "    /// Initializes the workflow command.\n"
+        code += "    public init() {}\n\n"
+
+        code += "    /// Executes the workflow CLI command.\n"
+        code += "    public mutating func run() async throws {\n"
+        code += "        print(\"🚀 Executing workflow: " + workflow.workflowId + "...\")\n"
+        code += "        let startTime = Date()\n"
+        code += "        let client = WorkflowsClient()\n"
+
+        if let schema = workflow.inputs, let props = schema.properties, !props.isEmpty {
+            let initArgs = props.sorted(by: { $0.key < $1.key }).map { key, _ in
+                let propId = ArazzoSdkEmitter.sanitizeIdentifier(key)
+                return propId + ": " + propId
+            }.joined(separator: ", ")
+            code += "        let inputs = " + baseName + "Inputs(" + initArgs + ")\n"
+        } else {
+            code += "        let inputs = " + baseName + "Inputs()\n"
+        }
+
+        code += "        do {\n"
+        code += "            let result = try await client." + clientMethod + "(inputs: inputs)\n"
+        code += "            let duration = Date().timeIntervalSince(startTime)\n"
+        code += "            print(\"✅ Workflow " + workflow.workflowId + " completed in \" + String(format: \"%.2fs\", duration))\n"
+        code += "            WorkflowOutputFormatter.printOutputs(result.values, format: format)\n"
+        code += "        } catch {\n"
+        code += "            print(\"❌ Workflow failed: \" + error.localizedDescription)\n"
+        code += "            throw error\n"
+        code += "        }\n"
+        code += "    }\n"
+        code += "}\n"
+        return code
+    }
+
+    /// Emits `@Option` and `@Flag` properties for a workflow CLI subcommand.
+    ///
+    /// - Parameter workflow: The workflow whose input schema is inspected.
+    /// - Returns: Generated Swift property declarations.
+    private static func emitWorkflowOptionProperties(workflow: ArazzoWorkflow) -> String {
+        var code = ""
         if let schema = workflow.inputs, let props = schema.properties, !props.isEmpty {
             for (key, propSchema) in props.sorted(by: { $0.key < $1.key }) {
                 let propId = ArazzoSdkEmitter.sanitizeIdentifier(key)
                 let flagName = kebabCase(key)
-                let isFlag = propSchema.type == "boolean"
-
-                if isFlag {
+                if propSchema.type == "boolean" {
                     code += "    /// Option flag for `" + key + "` parameter.\n"
                     code += "    @Flag(name: .customLong(\"" + flagName + "\"), help: \"Enable " + key + "\")\n"
                     code += "    public var " + propId + ": Bool = false\n\n"
@@ -132,37 +156,6 @@ public enum ArazzoCliEmitter {
         code += "    /// Enable verbose progress and step output logs.\n"
         code += "    @Flag(name: .customLong(\"verbose\"), help: \"Enable verbose progress and step output logs\")\n"
         code += "    public var verbose: Bool = false\n\n"
-
-        code += "    /// Initializes the workflow command.\n"
-        code += "    public init() {}\n\n"
-
-        code += "    /// Executes the workflow CLI command.\n"
-        code += "    public mutating func run() async throws {\n"
-        code += "        print(\"🚀 Executing workflow: " + workflow.workflowId + "...\")\n"
-        code += "        let startTime = Date()\n"
-        code += "        let client = WorkflowsClient()\n"
-
-        if let schema = workflow.inputs, let props = schema.properties, !props.isEmpty {
-            let initArgs = props.sorted(by: { $0.key < $1.key }).map { key, _ in
-                let propId = ArazzoSdkEmitter.sanitizeIdentifier(key)
-                return propId + ": " + propId
-            }.joined(separator: ", ")
-            code += "        let inputs = " + baseName + "Inputs(" + initArgs + ")\n"
-        } else {
-            code += "        let inputs = " + baseName + "Inputs()\n"
-        }
-
-        code += "        do {\n"
-        code += "            let result = try await client." + ArazzoSdkEmitter.sanitizeIdentifier(workflow.workflowId) + "(inputs: inputs)\n"
-        code += "            let duration = Date().timeIntervalSince(startTime)\n"
-        code += "            print(\"✅ Workflow " + workflow.workflowId + " completed in \" + String(format: \"%.2fs\", duration))\n"
-        code += "            WorkflowOutputFormatter.printOutputs(result.values, format: format)\n"
-        code += "        } catch {\n"
-        code += "            print(\"❌ Workflow failed: \" + error.localizedDescription)\n"
-        code += "            throw error\n"
-        code += "        }\n"
-        code += "    }\n"
-        code += "}\n"
         return code
     }
 
@@ -193,12 +186,13 @@ public enum ArazzoCliEmitter {
         code += "                print(k + \": \" + String(describing: v.value))\n"
         code += "            }\n"
         code += "        default:\n"
-        code += "            let dict = outputs.mapValues { $0.value }\n"
-        code += "            if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys]),\n"
+        code += "            let encoder = JSONEncoder()\n"
+        code += "            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]\n"
+        code += "            if let data = try? encoder.encode(outputs),\n"
         code += "               let str = String(data: data, encoding: .utf8) {\n"
         code += "                print(str)\n"
         code += "            } else {\n"
-        code += "                print(String(describing: dict))\n"
+        code += "                print(String(describing: outputs))\n"
         code += "            }\n"
         code += "        }\n"
         code += "    }\n"

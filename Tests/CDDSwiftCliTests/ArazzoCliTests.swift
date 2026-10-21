@@ -1,21 +1,31 @@
+/// Unit tests for Arazzo 1.1.0 CLI commands (`GenerateArazzo`, `FromArazzo`, `ToArazzo`, `SyncArazzo`).
 @testable import cdd_swift_cli
 import CDDSwift
 import Foundation
+import SwiftParser
 import XCTest
 
+/// Test suite verifying Arazzo CLI commands and programmatic `CDDCLI` entrypoints.
 final class ArazzoCliTests: XCTestCase {
-    private let tempDir = "/tmp/cdd_arazzo_cli_tests"
+    /// Per-test unique temporary root directory path.
+    private var tempDir = ""
 
-    override func setUp() {
-        super.setUp()
-        try? WASIFileHelpers.createDirectoryRecursive(at: tempDir)
+    /// Creates a unique per-test temporary directory before each test.
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("cdd_arazzo_cli_" + UUID().uuidString).path
+        try WASIFileHelpers.createDirectoryRecursive(at: tempDir)
     }
 
-    override func tearDown() {
-        try? FileManager.default.removeItem(atPath: tempDir)
-        super.tearDown()
+    /// Removes the per-test temporary directory after each test.
+    override func tearDownWithError() throws {
+        if !tempDir.isEmpty {
+            try? FileManager.default.removeItem(atPath: tempDir)
+        }
+        try super.tearDownWithError()
     }
 
+    /// Verifies `GenerateArazzo`, `FromArazzo`, `ToArazzo`, `SyncArazzo`, and programmatic `CDDCLI` entrypoints.
     func testGenerateFromAndToArazzoCommands() async throws {
         let specPath = tempDir + "/sample_arazzo.json"
 
@@ -23,6 +33,9 @@ final class ArazzoCliTests: XCTestCase {
         var genFileCmd = try GenerateArazzo.parse(["-o", specPath])
         try await genFileCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: specPath))
+        let parsedSample = try ArazzoEmitter.parse(json: WASIFileHelpers.readString(at: specPath))
+        XCTAssertEqual(parsedSample.arazzo, "1.1.0")
+        XCTAssertEqual(parsedSample.workflows.first?.workflowId, "createAndFetchUser")
 
         var genStdoutCmd = try GenerateArazzo.parse([])
         try await genStdoutCmd.run()
@@ -32,12 +45,15 @@ final class ArazzoCliTests: XCTestCase {
         var toSdkCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkDir])
         try await toSdkCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/Package.swift"))
-        XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/Sources/GeneratedWorkflowsSDK/WorkflowsClient.swift"))
+        let sdkClientPath = sdkDir + "/Sources/GeneratedWorkflowsSDK/WorkflowsClient.swift"
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkClientPath))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: sdkClientPath)).hasError)
 
         let sdkNoPkgDir = tempDir + "/sdk_nopkg"
         var toSdkNoPkgCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkNoPkgDir, "--no-installable-package"])
         try await toSdkNoPkgCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkNoPkgDir + "/WorkflowsClient.swift"))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: sdkNoPkgDir + "/WorkflowsClient.swift")).hasError)
 
         let optsDefault = try BaseFromArazzoOptions.parse(["-i", specPath])
         XCTAssertEqual(optsDefault.resolveOutputDir(), ".")
@@ -47,24 +63,42 @@ final class ArazzoCliTests: XCTestCase {
         var toCliCmd = try ArazzoToSDKCLI.parse(["-i", specPath, "-o", cliDir])
         try await toCliCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliDir + "/Package.swift"))
-        XCTAssertTrue(WASIFileHelpers.fileExists(at: cliDir + "/Sources/GeneratedWorkflowsCLI/WorkflowCLI.swift"))
+        let cliPath = cliDir + "/Sources/GeneratedWorkflowsCLI/WorkflowCLI.swift"
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: cliPath))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: cliPath)).hasError)
 
         let cliNoPkgDir = tempDir + "/cli_nopkg"
         var toCliNoPkgCmd = try ArazzoToSDKCLI.parse(["-i", specPath, "-o", cliNoPkgDir, "--no-installable-package"])
         try await toCliNoPkgCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliNoPkgDir + "/WorkflowCLI.swift"))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: cliNoPkgDir + "/WorkflowCLI.swift")).hasError)
 
         // 4. FromArazzo -> to_test
         let testDir = tempDir + "/test_out"
         var toTestCmd = try ArazzoToTest.parse(["-i", specPath, "-o", testDir])
         try await toTestCmd.run()
-        XCTAssertTrue(WASIFileHelpers.fileExists(at: testDir + "/GeneratedArazzoWorkflowTests.swift"))
+        let testSuitePath = testDir + "/GeneratedArazzoWorkflowTests.swift"
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: testSuitePath))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: testSuitePath)).hasError)
 
         // 5. FromArazzo -> to_server
         let serverDir = tempDir + "/server_out"
         var toServerCmd = try ArazzoToServer.parse(["-i", specPath, "-o", serverDir])
         try await toServerCmd.run()
-        XCTAssertTrue(WASIFileHelpers.fileExists(at: serverDir + "/ServerWorkflowOrchestrator.swift"))
+        let serverOrchPath = serverDir + "/ServerWorkflowOrchestrator.swift"
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: serverOrchPath))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: serverOrchPath)).hasError)
+    }
+
+    /// Verifies `ToArazzo`, `SyncArazzo`, and programmatic `CDDCLI` entrypoints.
+    func testToArazzoSyncAndEntrypoints() async throws {
+        let specPath = tempDir + "/sample_arazzo.json"
+        var genFileCmd = try GenerateArazzo.parse(["-o", specPath])
+        try await genFileCmd.run()
+
+        let sdkNoPkgDir = tempDir + "/sdk_nopkg"
+        var toSdkNoPkgCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkNoPkgDir, "--no-installable-package"])
+        try await toSdkNoPkgCmd.run()
 
         // 6. ToArazzo (JSON and YAML, file and stdout)
         let swiftInput = sdkNoPkgDir + "/WorkflowsClient.swift"
@@ -72,11 +106,14 @@ final class ArazzoCliTests: XCTestCase {
         var toArazzoJsonCmd = try ToArazzo.parse(["-i", swiftInput, "-o", extractedJsonPath])
         try await toArazzoJsonCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: extractedJsonPath))
+        let extractedSpec = try ArazzoEmitter.parse(json: WASIFileHelpers.readString(at: extractedJsonPath))
+        XCTAssertEqual(extractedSpec.workflows.first?.workflowId, "createAndFetchUser")
 
         let extractedYamlPath = tempDir + "/extracted.yaml"
         var toArazzoYamlCmd = try ToArazzo.parse(["-i", swiftInput, "-o", extractedYamlPath, "--format", "yaml"])
         try await toArazzoYamlCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: extractedYamlPath))
+        XCTAssertTrue(try WASIFileHelpers.readString(at: extractedYamlPath).contains("arazzo: \"1.1.0\""))
 
         var toArazzoStdoutCmd = try ToArazzo.parse(["-i", swiftInput])
         try await toArazzoStdoutCmd.run()
@@ -85,7 +122,6 @@ final class ArazzoCliTests: XCTestCase {
         var syncSwiftTruthCmd = try SyncArazzo.parse(["-i", swiftInput, "-o", specPath, "--truth", "swift"])
         try await syncSwiftTruthCmd.run()
 
-        // SyncArazzo when swift has a new workflow not in existing spec
         let extraSwiftPath = tempDir + "/ExtraWorkflows.swift"
         let extraBlock = """
 
@@ -98,14 +134,14 @@ final class ArazzoCliTests: XCTestCase {
         try WASIFileHelpers.writeString(extraSwiftCode, to: extraSwiftPath)
         var syncSwiftNewWfCmd = try SyncArazzo.parse(["-i", extraSwiftPath, "-o", specPath, "--truth", "swift"])
         try await syncSwiftNewWfCmd.run()
+        let syncedSpec = try ArazzoEmitter.parse(json: WASIFileHelpers.readString(at: specPath))
+        XCTAssertTrue(syncedSpec.workflows.contains(where: { $0.workflowId == "brandNewFlow" }))
 
-        // SyncArazzo when output spec doesn't exist yet
         let newSpecOut = tempDir + "/brand_new_arazzo.json"
         var syncNewOutCmd = try SyncArazzo.parse(["-i", swiftInput, "-o", newSpecOut, "--truth", "swift"])
         try await syncNewOutCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: newSpecOut))
 
-        // SyncArazzo with truth=arazzo into existing and non-existing swift file
         var syncArazzoTruthExisting = try SyncArazzo.parse(["-i", swiftInput, "-o", specPath, "--truth", "arazzo"])
         try await syncArazzoTruthExisting.run()
 
@@ -113,6 +149,7 @@ final class ArazzoCliTests: XCTestCase {
         var syncArazzoTruthNew = try SyncArazzo.parse(["-i", nonExistingSwift, "-o", specPath, "--truth", "arazzo"])
         try await syncArazzoTruthNew.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: nonExistingSwift))
+        XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: nonExistingSwift)).hasError)
 
         // 8. Programmatic entrypoints on CDDCLI
         try await CDDCLI.generateArazzo(["-o", tempDir + "/ep_arazzo.json"])

@@ -11,7 +11,8 @@ public func emitWebhooks(webhooks: [String: PathItem]?) -> String {
     var output = "public protocol WebhooksDelegate {\n"
     for (name, item) in webhooks.sorted(by: { $0.key < $1.key }) {
         for (_, op) in item.operationsByMethod {
-            let funcName = op.operationId ?? "on\(name.prefix(1).uppercased())\(name.dropFirst())"
+            let funcName = op.operationId.map { SwiftIdentifierSanitizer.sanitizeCamelCase($0) }
+                ?? SwiftIdentifierSanitizer.sanitizeCamelCase("on-" + name)
             let payloadType: String
             if let schema = op.requestBody?.content?["application/json"]?.schema {
                 payloadType = mapType(schema: schema)

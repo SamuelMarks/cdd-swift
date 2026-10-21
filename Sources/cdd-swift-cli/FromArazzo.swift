@@ -99,6 +99,8 @@ struct ArazzoToSDK: AsyncParsableCommand {
     @OptionGroup var options: BaseFromArazzoOptions
 
     /// Executes the `to_sdk` generation command.
+    ///
+    /// - Throws: `CDDError` if loading the specification or writing output files fails.
     mutating func run() async throws {
         let spec = try options.loadSpecification()
         let outDir = options.resolveOutputDir()
@@ -125,6 +127,8 @@ struct ArazzoToSDKCLI: AsyncParsableCommand {
     @OptionGroup var options: BaseFromArazzoOptions
 
     /// Executes the `to_sdk_cli` generation command.
+    ///
+    /// - Throws: `CDDError` if loading the specification or writing output files fails.
     mutating func run() async throws {
         let spec = try options.loadSpecification()
         let outDir = options.resolveOutputDir()
@@ -151,6 +155,8 @@ struct ArazzoToTest: AsyncParsableCommand {
     @OptionGroup var options: BaseFromArazzoOptions
 
     /// Executes the `to_test` generation command.
+    ///
+    /// - Throws: `CDDError` if loading the specification or writing output files fails.
     mutating func run() async throws {
         let spec = try options.loadSpecification()
         let outDir = options.resolveOutputDir()
@@ -174,6 +180,8 @@ struct ArazzoToServer: AsyncParsableCommand {
     @OptionGroup var options: BaseFromArazzoOptions
 
     /// Executes the `to_server` generation command.
+    ///
+    /// - Throws: `CDDError` if loading the specification or writing output files fails.
     mutating func run() async throws {
         let spec = try options.loadSpecification()
         let outDir = options.resolveOutputDir()

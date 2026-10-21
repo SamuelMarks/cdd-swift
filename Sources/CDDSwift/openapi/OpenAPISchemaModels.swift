@@ -1,11 +1,10 @@
-/// OpenAPI 3.2.0 and JSON Schema Draft 2020-12 `Schema`, `Discriminator`, `XML`, `SchemaItem`, and `Reference` models.
+/// OpenAPI 3.2.0 and JSON Schema Draft 2020-12 `Schema` model.
 import Foundation
 
 // MARK: - Schema Object
 
 /// Defines the input and output data types in an OpenAPI 3.2.0 or Swagger 2.0 specification.
 public struct Schema: Codable, Equatable, Sendable {
-    // Basic types
     /// Primary JSON Schema data type (`"string"`, `"number"`, `"integer"`, `"boolean"`, `"array"`, `"object"`, `"null"`).
     public let type: String?
     /// Child property schemas keyed by property name for `"object"` schemas.
@@ -20,8 +19,6 @@ public struct Schema: Codable, Equatable, Sendable {
     public let required: [String]?
     /// `$ref` URI reference pointing to a reusable schema definition.
     public let ref: String?
-
-    // JSON Schema metadata and validation keywords
     /// Short human-readable title of the schema.
     public let title: String?
     /// CommonMark-compatible explanation of the purpose of the schema.
@@ -32,7 +29,6 @@ public struct Schema: Codable, Equatable, Sendable {
     public let default_value: AnyCodable?
     /// Exact constant value that an instance must equal.
     public let const_value: AnyCodable?
-
     /// Numeric division constraint requiring the value to be an exact multiple.
     public let multipleOf: Double?
     /// Inclusive upper numeric bound.
@@ -43,14 +39,12 @@ public struct Schema: Codable, Equatable, Sendable {
     public let minimum: Double?
     /// Exclusive lower numeric bound.
     public let exclusiveMinimum: Double?
-
     /// Maximum character length for a string instance.
     public let maxLength: Int?
     /// Minimum character length for a string instance.
     public let minLength: Int?
     /// ECMA-262 regular expression pattern that a string instance must match.
     public let pattern: String?
-
     /// Maximum number of elements allowed in an array instance.
     public let maxItems: Int?
     /// Minimum number of elements required in an array instance.
@@ -63,7 +57,6 @@ public struct Schema: Codable, Equatable, Sendable {
     public let minContains: Int?
     /// Maximum number of array elements that may match `contains`.
     public let maxContains: Int?
-
     /// Maximum number of properties allowed on an object instance.
     public let maxProperties: Int?
     /// Minimum number of properties required on an object instance.
@@ -80,19 +73,14 @@ public struct Schema: Codable, Equatable, Sendable {
     public let unevaluatedItems: SchemaItem?
     /// Schema applied to object properties not covered by `properties` or `patternProperties`.
     public let unevaluatedProperties: SchemaItem?
-
     /// Closed set of allowed values for an instance.
     public let enum_values: [AnyCodable]?
-
-    // Media type and content encoding
     /// Content transfer encoding for string-encoded binary data (e.g. `"base64"`, `"base64url"`).
     public let contentEncoding: String?
     /// MIME media type of string-encoded content (e.g. `"application/json"`).
     public let contentMediaType: String?
     /// Schema describing the structure of decoded `contentMediaType` data.
     public let contentSchema: SchemaItem?
-
-    // Polymorphism
     /// List of subschemas that an instance must validate against simultaneously (`allOf`).
     public let allOf: [Schema]?
     /// List of subschemas of which an instance must validate against exactly one (`oneOf`).
@@ -101,15 +89,12 @@ public struct Schema: Codable, Equatable, Sendable {
     public let anyOf: [Schema]?
     /// Subschema that an instance must NOT validate against (`not`).
     public let not: SchemaItem?
-
     /// Conditional `if` schema evaluation guard.
     public let if_schema: SchemaItem?
     /// Subschema applied when `if_schema` succeeds (`then`).
     public let then_schema: SchemaItem?
     /// Subschema applied when `if_schema` fails (`else`).
     public let else_schema: SchemaItem?
-
-    // Identifiers and Dialects
     /// Canonical `$id` URI for this schema resource.
     public let id: String?
     /// Plain-name fragment `$anchor` identifier.
@@ -122,8 +107,6 @@ public struct Schema: Codable, Equatable, Sendable {
     public let dynamicRef: String?
     /// Local reusable schema definitions (`$defs`).
     public let defs: [String: Schema]?
-
-    // OpenAPI specific
     /// Polymorphism discriminator object for `oneOf` / `anyOf` / `allOf` hierarchies.
     public let discriminator: Discriminator?
     /// XML serialization metadata for this schema.
@@ -145,6 +128,12 @@ public struct Schema: Codable, Equatable, Sendable {
         return SchemaType(rawValue: t)
     }
 
+    /// Strongly-typed `OpenAPIFormat` enum derived from `format`.
+    public var openAPIFormat: OpenAPIFormat? {
+        guard let f = format else { return nil }
+        return OpenAPIFormat(rawValue: f)
+    }
+
     /// Coding keys mapping JSON Schema and OpenAPI keywords to `Schema` fields.
     enum CodingKeys: String, CodingKey {
         /// Key for `type`.
@@ -161,7 +150,6 @@ public struct Schema: Codable, Equatable, Sendable {
         case required
         /// Key for `$ref`.
         case ref = "$ref"
-
         /// Key for `title`.
         case title
         /// Key for `description`.
@@ -172,7 +160,6 @@ public struct Schema: Codable, Equatable, Sendable {
         case default_value = "default"
         /// Key for `const`.
         case const_value = "const"
-
         /// Key for `multipleOf`.
         case multipleOf
         /// Key for `maximum`.
@@ -183,14 +170,12 @@ public struct Schema: Codable, Equatable, Sendable {
         case minimum
         /// Key for `exclusiveMinimum`.
         case exclusiveMinimum
-
         /// Key for `maxLength`.
         case maxLength
         /// Key for `minLength`.
         case minLength
         /// Key for `pattern`.
         case pattern
-
         /// Key for `maxItems`.
         case maxItems
         /// Key for `minItems`.
@@ -203,7 +188,6 @@ public struct Schema: Codable, Equatable, Sendable {
         case minContains
         /// Key for `maxContains`.
         case maxContains
-
         /// Key for `maxProperties`.
         case maxProperties
         /// Key for `minProperties`.
@@ -220,17 +204,14 @@ public struct Schema: Codable, Equatable, Sendable {
         case unevaluatedItems
         /// Key for `unevaluatedProperties`.
         case unevaluatedProperties
-
         /// Key for `enum`.
         case enum_values = "enum"
-
         /// Key for `contentEncoding`.
         case contentEncoding
         /// Key for `contentMediaType`.
         case contentMediaType
         /// Key for `contentSchema`.
         case contentSchema
-
         /// Key for `allOf`.
         case allOf
         /// Key for `oneOf`.
@@ -239,14 +220,12 @@ public struct Schema: Codable, Equatable, Sendable {
         case anyOf
         /// Key for `not`.
         case not
-
         /// Key for `if`.
         case if_schema = "if"
         /// Key for `then`.
         case then_schema = "then"
         /// Key for `else`.
         case else_schema = "else"
-
         /// Key for `$id`.
         case id = "$id"
         /// Key for `$anchor`.
@@ -259,7 +238,6 @@ public struct Schema: Codable, Equatable, Sendable {
         case dynamicRef = "$dynamicRef"
         /// Key for `$defs`.
         case defs = "$defs"
-
         /// Key for `discriminator`.
         case discriminator
         /// Key for `xml`.
@@ -338,18 +316,26 @@ public struct Schema: Codable, Equatable, Sendable {
     ///   - readOnly: Optional read-only flag.
     ///   - writeOnly: Optional write-only flag.
     public init(
-        type: String? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil, prefixItems: [Schema]? = nil, required: [String]? = nil, ref: String? = nil,
-        title: String? = nil, description: String? = nil, format: String? = nil, default_value: AnyCodable? = nil, const_value: AnyCodable? = nil,
-        multipleOf: Double? = nil, maximum: Double? = nil, exclusiveMaximum: Double? = nil, minimum: Double? = nil, exclusiveMinimum: Double? = nil,
+        type: String? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil,
+        prefixItems: [Schema]? = nil, required: [String]? = nil, ref: String? = nil,
+        title: String? = nil, description: String? = nil, format: String? = nil, default_value: AnyCodable? = nil,
+        const_value: AnyCodable? = nil,
+        multipleOf: Double? = nil, maximum: Double? = nil, exclusiveMaximum: Double? = nil, minimum: Double? = nil,
+        exclusiveMinimum: Double? = nil,
         maxLength: Int? = nil, minLength: Int? = nil, pattern: String? = nil,
-        maxItems: Int? = nil, minItems: Int? = nil, uniqueItems: Bool? = nil, contains: SchemaItem? = nil, minContains: Int? = nil, maxContains: Int? = nil,
-        maxProperties: Int? = nil, minProperties: Int? = nil, dependentRequired: [String: [String]]? = nil, dependentSchemas: [String: Schema]? = nil, propertyNames: SchemaItem? = nil, patternProperties: [String: Schema]? = nil, unevaluatedItems: SchemaItem? = nil, unevaluatedProperties: SchemaItem? = nil,
+        maxItems: Int? = nil, minItems: Int? = nil, uniqueItems: Bool? = nil, contains: SchemaItem? = nil, minContains: Int? = nil,
+        maxContains: Int? = nil,
+        maxProperties: Int? = nil, minProperties: Int? = nil, dependentRequired: [String: [String]]? = nil,
+        dependentSchemas: [String: Schema]? = nil, propertyNames: SchemaItem? = nil, patternProperties: [String: Schema]? = nil,
+        unevaluatedItems: SchemaItem? = nil, unevaluatedProperties: SchemaItem? = nil,
         enum_values: [AnyCodable]? = nil,
         contentEncoding: String? = nil, contentMediaType: String? = nil, contentSchema: SchemaItem? = nil,
         allOf: [Schema]? = nil, oneOf: [Schema]? = nil, anyOf: [Schema]? = nil, not: SchemaItem? = nil,
         if_schema: SchemaItem? = nil, then_schema: SchemaItem? = nil, else_schema: SchemaItem? = nil,
-        id: String? = nil, anchor: String? = nil, dynamicAnchor: String? = nil, vocabulary: [String: Bool]? = nil, dynamicRef: String? = nil, defs: [String: Schema]? = nil,
-        discriminator: Discriminator? = nil, xml: XML? = nil, externalDocs: ExternalDocumentation? = nil, example: AnyCodable? = nil, deprecated: Bool? = nil, readOnly: Bool? = nil, writeOnly: Bool? = nil
+        id: String? = nil, anchor: String? = nil, dynamicAnchor: String? = nil, vocabulary: [String: Bool]? = nil,
+        dynamicRef: String? = nil, defs: [String: Schema]? = nil,
+        discriminator: Discriminator? = nil, xml: XML? = nil, externalDocs: ExternalDocumentation? = nil, example: AnyCodable? = nil,
+        deprecated: Bool? = nil, readOnly: Bool? = nil, writeOnly: Bool? = nil
     ) {
         self.type = type
         self.properties = properties
@@ -358,30 +344,25 @@ public struct Schema: Codable, Equatable, Sendable {
         self.prefixItems = prefixItems
         self.required = required
         self.ref = ref
-
         self.title = title
         self.description = description
         self.format = format
         self.default_value = default_value
         self.const_value = const_value
-
         self.multipleOf = multipleOf
         self.maximum = maximum
         self.exclusiveMaximum = exclusiveMaximum
         self.minimum = minimum
         self.exclusiveMinimum = exclusiveMinimum
-
         self.maxLength = maxLength
         self.minLength = minLength
         self.pattern = pattern
-
         self.maxItems = maxItems
         self.minItems = minItems
         self.uniqueItems = uniqueItems
         self.contains = contains
         self.minContains = minContains
         self.maxContains = maxContains
-
         self.maxProperties = maxProperties
         self.minProperties = minProperties
         self.dependentRequired = dependentRequired
@@ -390,29 +371,23 @@ public struct Schema: Codable, Equatable, Sendable {
         self.patternProperties = patternProperties
         self.unevaluatedItems = unevaluatedItems
         self.unevaluatedProperties = unevaluatedProperties
-
         self.enum_values = enum_values
-
         self.contentEncoding = contentEncoding
         self.contentMediaType = contentMediaType
         self.contentSchema = contentSchema
-
         self.allOf = allOf
         self.oneOf = oneOf
         self.anyOf = anyOf
         self.not = not
-
         self.if_schema = if_schema
         self.then_schema = then_schema
         self.else_schema = else_schema
-
         self.id = id
         self.anchor = anchor
         self.dynamicAnchor = dynamicAnchor
         self.vocabulary = vocabulary
         self.dynamicRef = dynamicRef
         self.defs = defs
-
         self.discriminator = discriminator
         self.xml = xml
         self.externalDocs = externalDocs
@@ -421,7 +396,9 @@ public struct Schema: Codable, Equatable, Sendable {
         self.readOnly = readOnly
         self.writeOnly = writeOnly
     }
+}
 
+public extension Schema {
     /// Returns a copy of this `Schema` with updated description and/or validation constraints while preserving all other fields.
     ///
     /// - Parameters:
@@ -432,7 +409,7 @@ public struct Schema: Codable, Equatable, Sendable {
     ///   - maxLength: New maximum string length override, or `nil` to retain existing `self.maxLength`.
     ///   - pattern: New regex pattern override, or `nil` to retain existing `self.pattern`.
     /// - Returns: A new `Schema` instance with the specified overrides applied.
-    public func updating(
+    func updating(
         description: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
@@ -441,198 +418,23 @@ public struct Schema: Codable, Equatable, Sendable {
         pattern: String? = nil
     ) -> Schema {
         return Schema(
-            type: type,
-            properties: properties,
-            additionalProperties: additionalProperties,
-            items: items,
-            prefixItems: prefixItems,
-            required: required,
-            ref: ref,
-            title: title,
-            description: description ?? self.description,
-            format: format,
-            default_value: default_value,
-            const_value: const_value,
-            multipleOf: multipleOf,
-            maximum: maximum ?? self.maximum,
-            exclusiveMaximum: exclusiveMaximum,
-            minimum: minimum ?? self.minimum,
-            exclusiveMinimum: exclusiveMinimum,
-            maxLength: maxLength ?? self.maxLength,
-            minLength: minLength ?? self.minLength,
-            pattern: pattern ?? self.pattern,
-            maxItems: maxItems,
-            minItems: minItems,
-            uniqueItems: uniqueItems,
-            contains: contains,
-            minContains: minContains,
-            maxContains: maxContains,
-            maxProperties: maxProperties,
-            minProperties: minProperties,
-            dependentRequired: dependentRequired,
-            dependentSchemas: dependentSchemas,
-            propertyNames: propertyNames,
-            patternProperties: patternProperties,
-            unevaluatedItems: unevaluatedItems,
-            unevaluatedProperties: unevaluatedProperties,
-            enum_values: enum_values,
-            contentEncoding: contentEncoding,
-            contentMediaType: contentMediaType,
-            contentSchema: contentSchema,
-            allOf: allOf,
-            oneOf: oneOf,
-            anyOf: anyOf,
-            not: not,
-            if_schema: if_schema,
-            then_schema: then_schema,
-            else_schema: else_schema,
-            id: id,
-            anchor: anchor,
-            dynamicAnchor: dynamicAnchor,
-            vocabulary: vocabulary,
-            dynamicRef: dynamicRef,
-            defs: defs,
-            discriminator: discriminator,
-            xml: xml,
-            externalDocs: externalDocs,
-            example: example,
-            deprecated: deprecated,
-            readOnly: readOnly,
-            writeOnly: writeOnly
+            type: type, properties: properties, additionalProperties: additionalProperties, items: items,
+            prefixItems: prefixItems, required: required, ref: ref, title: title,
+            description: description ?? self.description, format: format, default_value: default_value, const_value: const_value,
+            multipleOf: multipleOf, maximum: maximum ?? self.maximum, exclusiveMaximum: exclusiveMaximum,
+            minimum: minimum ?? self.minimum, exclusiveMinimum: exclusiveMinimum,
+            maxLength: maxLength ?? self.maxLength, minLength: minLength ?? self.minLength, pattern: pattern ?? self.pattern,
+            maxItems: maxItems, minItems: minItems, uniqueItems: uniqueItems, contains: contains,
+            minContains: minContains, maxContains: maxContains,
+            maxProperties: maxProperties, minProperties: minProperties, dependentRequired: dependentRequired,
+            dependentSchemas: dependentSchemas, propertyNames: propertyNames, patternProperties: patternProperties,
+            unevaluatedItems: unevaluatedItems, unevaluatedProperties: unevaluatedProperties, enum_values: enum_values,
+            contentEncoding: contentEncoding, contentMediaType: contentMediaType, contentSchema: contentSchema,
+            allOf: allOf, oneOf: oneOf, anyOf: anyOf, not: not,
+            if_schema: if_schema, then_schema: then_schema, else_schema: else_schema,
+            id: id, anchor: anchor, dynamicAnchor: dynamicAnchor, vocabulary: vocabulary, dynamicRef: dynamicRef, defs: defs,
+            discriminator: discriminator, xml: xml, externalDocs: externalDocs, example: example,
+            deprecated: deprecated, readOnly: readOnly, writeOnly: writeOnly
         )
-    }
-}
-
-// MARK: - Discriminator Object
-
-/// Aids in serialization, deserialization, and validation of polymorphic `oneOf` / `anyOf` / `allOf` schemas.
-public struct Discriminator: Codable, Equatable, Sendable {
-    /// Name of the property in the payload that will hold the discriminating value.
-    public let propertyName: String
-    /// Map between payload property values and schema references or names.
-    public let mapping: [String: String]?
-    /// Default schema reference when the discriminating property is absent or unmapped (OpenAPI 3.2.0).
-    public let defaultMapping: String?
-
-    /// Initializes a `Discriminator`.
-    ///
-    /// - Parameters:
-    ///   - propertyName: The discriminating payload field name.
-    ///   - mapping: Optional map of discriminator values to schema references.
-    ///   - defaultMapping: Optional fallback schema reference.
-    public init(propertyName: String, mapping: [String: String]? = nil, defaultMapping: String? = nil) {
-        self.propertyName = propertyName
-        self.mapping = mapping
-        self.defaultMapping = defaultMapping
-    }
-}
-
-// MARK: - XML Object
-
-/// Metadata object that allows for more fine-tuned XML model definitions.
-public struct XML: Codable, Equatable, Sendable {
-    /// Replaces the name of the element/attribute used for the described schema property.
-    public let name: String?
-    /// URI of the namespace definition.
-    public let namespace: String?
-    /// Prefix to be used for the `name`.
-    public let prefix: String?
-    /// Declares whether the property definition translates to an XML attribute instead of an element.
-    public let attribute: Bool?
-    /// Signifies whether the array is wrapped (e.g. `<books><book/></books>`).
-    public let wrapped: Bool?
-    /// XML node type classification (`"element"`, `"attribute"`, `"text"`, `"cdata"`, `"none"`, OpenAPI 3.2.0).
-    public let nodeType: String?
-
-    /// Initializes an `XML` metadata descriptor.
-    ///
-    /// - Parameters:
-    ///   - name: Optional XML element or attribute name override.
-    ///   - namespace: Optional XML namespace URI.
-    ///   - prefix: Optional XML namespace prefix.
-    ///   - attribute: Optional flag indicating attribute serialization.
-    ///   - wrapped: Optional flag indicating wrapped array serialization.
-    ///   - nodeType: Optional OpenAPI 3.2.0 XML node type.
-    public init(name: String? = nil, namespace: String? = nil, prefix: String? = nil, attribute: Bool? = nil, wrapped: Bool? = nil, nodeType: String? = nil) {
-        self.name = name
-        self.namespace = namespace
-        self.prefix = prefix
-        self.attribute = attribute
-        self.wrapped = wrapped
-        self.nodeType = nodeType
-    }
-}
-
-// MARK: - Schema Item Object
-
-/// Lightweight schema reference or primitive type descriptor used in recursive `Schema` positions (`items`, `additionalProperties`, `not`, etc.).
-public struct SchemaItem: Codable, Equatable, Sendable {
-    /// Primitive JSON Schema type name (e.g. `"string"`, `"integer"`).
-    public let type: String?
-    /// `$ref` pointer to a reusable schema component.
-    public let ref: String?
-    /// Optional format modifier (e.g. `"int32"`, `"int64"`, `"date-time"`, `"uuid"`).
-    public let format: String?
-
-    /// Strongly-typed `SchemaType` enum derived from `type`.
-    public var schemaType: SchemaType? {
-        guard let t = type else { return nil }
-        return SchemaType(rawValue: t)
-    }
-
-    /// Coding keys mapping OpenAPI JSON properties to `SchemaItem` fields.
-    enum CodingKeys: String, CodingKey {
-        /// Key for `type`.
-        case type
-        /// Key for `$ref`.
-        case ref = "$ref"
-        /// Key for `format`.
-        case format
-    }
-
-    /// Initializes a `SchemaItem`.
-    ///
-    /// - Parameters:
-    ///   - type: Optional JSON Schema type string.
-    ///   - ref: Optional `$ref` pointer string.
-    ///   - format: Optional format string.
-    public init(type: String? = nil, ref: String? = nil, format: String? = nil) {
-        self.type = type
-        self.ref = ref
-        self.format = format
-    }
-}
-
-// MARK: - Reference Object
-
-/// Simple object to allow referencing other components in the OpenAPI specification, internally and externally.
-public struct Reference: Codable, Equatable, Sendable {
-    /// Required reference identifier string (`$ref`).
-    public let ref: String
-    /// Short summary which by default SHOULD override that of the referenced component.
-    public let summary: String?
-    /// Description which by default SHOULD override that of the referenced component.
-    public let description: String?
-
-    /// Coding keys mapping OpenAPI JSON properties to `Reference` fields.
-    enum CodingKeys: String, CodingKey {
-        /// Key for `$ref`.
-        case ref = "$ref"
-        /// Key for `summary`.
-        case summary
-        /// Key for `description`.
-        case description
-    }
-
-    /// Initializes a `Reference` object.
-    ///
-    /// - Parameters:
-    ///   - ref: The `$ref` URI string.
-    ///   - summary: Optional summary override.
-    ///   - description: Optional description override.
-    public init(ref: String, summary: String? = nil, description: String? = nil) {
-        self.ref = ref
-        self.summary = summary
-        self.description = description
     }
 }

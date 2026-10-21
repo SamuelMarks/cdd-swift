@@ -1,8 +1,11 @@
+/// Unit tests for `ArazzoCliEmitter` CLI code generation and identifier formatting.
 import CDDSwift
 import SwiftParser
 import XCTest
 
+/// Test suite verifying `ArazzoCliEmitter`.
 final class ArazzoCliEmitTests: XCTestCase {
+    /// Verifies `kebabCase` and `pascalCase` conversion helpers on `ArazzoCliEmitter`.
     func testKebabCaseAndPascalCase() {
         XCTAssertEqual(ArazzoCliEmitter.kebabCase("userPurchase"), "user-purchase")
         XCTAssertEqual(ArazzoCliEmitter.kebabCase("user-id"), "user-id")
@@ -14,6 +17,7 @@ final class ArazzoCliEmitTests: XCTestCase {
         XCTAssertEqual(ArazzoCliEmitter.pascalCase(""), "WorkflowCommand")
     }
 
+    /// Verifies `emitWorkflowCLI` output and syntax validity.
     func testEmitWorkflowCLI() {
         let step = ArazzoStep(
             stepId: "step1",

@@ -1,22 +1,28 @@
+/// Unit tests for Model Context Protocol (MCP) initialization, capability, and base message models.
 import XCTest
 @testable import CDDSwift
 
+/// Test suite verifying MCP message models in `MCPMessages.swift`.
 final class MCPMessagesTests: XCTestCase {
+    /// Verifies `CancelledNotificationParams` initialization.
     func testCancelledNotificationParams() {
         let p = CancelledNotificationParams(requestId: .integer(1), reason: "r")
         XCTAssertEqual(p.reason, "r")
     }
 
+    /// Verifies `ProgressNotificationParams` initialization.
     func testProgressNotificationParams() {
         let p = ProgressNotificationParams(progressToken: .integer(1), progress: 1.0)
         XCTAssertEqual(p.progress, 1.0)
     }
 
+    /// Verifies `SetLevelRequestParams` initialization.
     func testSetLevelRequestParams() {
         let p = SetLevelRequestParams(level: .info)
         XCTAssertEqual(p.level, .info)
     }
 
+    /// Verifies `ProgressToken` encoding and decoding for string and integer tokens.
     func testProgressToken() throws {
         let stringToken = ProgressToken.string("abc")
         let intToken = ProgressToken.integer(42)
@@ -34,12 +40,14 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(intToken, decodedIntToken)
     }
 
+    /// Verifies `ProgressToken` decoding failure on non-string/non-integer JSON.
     func testProgressTokenInvalid() {
         let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(ProgressToken.self, from: data))
     }
 
+    /// Verifies `Meta` encoding and decoding round-trip.
     func testMeta() throws {
         let meta = Meta(progressToken: .string("abc"))
         XCTAssertEqual(meta.progressToken, .string("abc"))
@@ -51,26 +59,31 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded, meta)
     }
 
+    /// Verifies `RequestParams` initialization.
     func testRequestParams() {
         let params = RequestParams(_meta: Meta(progressToken: .integer(1)))
         XCTAssertEqual(params._meta?.progressToken, .integer(1))
     }
 
+    /// Verifies `NotificationParams` initialization.
     func testNotificationParams() {
         let params = NotificationParams(_meta: Meta(progressToken: .integer(1)))
         XCTAssertEqual(params._meta?.progressToken, .integer(1))
     }
 
+    /// Verifies `Result` initialization.
     func testResult() {
         let result = Result(_meta: Meta(progressToken: .integer(1)))
         XCTAssertEqual(result._meta?.progressToken, .integer(1))
     }
 
+    /// Verifies `EmptyResult` initialization.
     func testEmptyResult() {
         let result = EmptyResult(_meta: Meta(progressToken: .integer(1)))
         XCTAssertEqual(result._meta?.progressToken, .integer(1))
     }
 
+    /// Verifies `Implementation` encoding and decoding round-trip.
     func testImplementation() throws {
         let impl = Implementation(name: "test-client", version: "1.0")
         XCTAssertEqual(impl.name, "test-client")
@@ -83,13 +96,14 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded, impl)
     }
 
+    /// Verifies `ClientCapabilities` encoding and decoding round-trip.
     func testClientCapabilities() throws {
         let cap = ClientCapabilities(
             experimental: ["foo": AnyCodable("bar")],
             roots: .init(listChanged: true),
             sampling: .init()
         )
-        XCTAssertEqual(cap.experimental?["foo"]?.value as? String, "bar")
+        XCTAssertEqual(cap.experimental?["foo"]?.stringValue, "bar")
         XCTAssertEqual(cap.roots?.listChanged, true)
 
         let encoder = JSONEncoder()
@@ -99,6 +113,7 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded.roots?.listChanged, true)
     }
 
+    /// Verifies `ServerCapabilities` encoding and decoding round-trip.
     func testServerCapabilities() throws {
         let cap = ServerCapabilities(
             experimental: ["foo": AnyCodable("bar")],
@@ -107,7 +122,7 @@ final class MCPMessagesTests: XCTestCase {
             resources: .init(listChanged: false, subscribe: true),
             tools: .init(listChanged: true)
         )
-        XCTAssertEqual(cap.experimental?["foo"]?.value as? String, "bar")
+        XCTAssertEqual(cap.experimental?["foo"]?.stringValue, "bar")
         XCTAssertEqual(cap.prompts?.listChanged, true)
         XCTAssertEqual(cap.resources?.listChanged, false)
         XCTAssertEqual(cap.resources?.subscribe, true)
@@ -120,6 +135,7 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded.prompts?.listChanged, true)
     }
 
+    /// Verifies `InitializeRequestParams` encoding and decoding round-trip.
     func testInitializeRequestParams() throws {
         let clientInfo = Implementation(name: "test", version: "1.0")
         let cap = ClientCapabilities()
@@ -135,10 +151,17 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded, req)
     }
 
+    /// Verifies `InitializeResult` encoding and decoding round-trip.
     func testInitializeResult() throws {
         let serverInfo = Implementation(name: "test-server", version: "1.0")
         let cap = ServerCapabilities()
-        let res = InitializeResult(_meta: Meta(progressToken: .string("p")), protocolVersion: "2024-11-05", capabilities: cap, serverInfo: serverInfo, instructions: "Hello")
+        let res = InitializeResult(
+            _meta: Meta(progressToken: .string("p")),
+            protocolVersion: "2024-11-05",
+            capabilities: cap,
+            serverInfo: serverInfo,
+            instructions: "Hello"
+        )
 
         XCTAssertEqual(res.protocolVersion, "2024-11-05")
         XCTAssertEqual(res.serverInfo.name, "test-server")
@@ -152,6 +175,7 @@ final class MCPMessagesTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `InitializedNotificationParams` initialization.
     func testInitializedNotificationParams() {
         let params = InitializedNotificationParams(_meta: Meta(progressToken: .integer(1)))
         XCTAssertEqual(params._meta?.progressToken, .integer(1))

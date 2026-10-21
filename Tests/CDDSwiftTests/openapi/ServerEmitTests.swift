@@ -7,7 +7,11 @@ import XCTest
 final class ServerEmitTests: XCTestCase {
     /// Verifies emitting basic Vapor routes from an `OpenAPIDocument`.
     func testServerEmit() {
-        let doc = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: ["/users": PathItem(get: Operation(operationId: "getUsers"), post: Operation(operationId: nil))])
+        let doc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: ["/users": PathItem(get: Operation(operationId: "getUsers"), post: Operation(operationId: nil))]
+        )
         let code = emitServer(document: doc)
         XCTAssertTrue(code.contains(#"app.get("users")"#))
     }
@@ -16,9 +20,15 @@ final class ServerEmitTests: XCTestCase {
     func testServerEmitWithSchemas() {
         let schema = Schema(type: "object", properties: ["id": Schema(type: "string")])
         let components = Components(schemas: ["User": schema])
-        let doc = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: nil, webhooks: nil, components: components)
+        let doc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: nil,
+            webhooks: nil,
+            components: components
+        )
         let code = emitServer(document: doc, testsMocks: true)
-        XCTAssertTrue(code.contains("extension User: Content, @unchecked Sendable {}"))
+        XCTAssertTrue(code.contains("extension User: Content {}"))
         XCTAssertTrue(code.contains("public protocol UserDAO"))
         XCTAssertTrue(code.contains("public struct StubUserDAO"))
         XCTAssertTrue(code.contains("public final class FluentUser: Model"))
@@ -32,8 +42,10 @@ final class ServerEmitTests: XCTestCase {
         XCTAssertEqual(mapFluentFieldType(schema: unknownSchema), "String")
     }
 
-    /// Verifies server emission with diverse property formats (`uuid`, `date-time`, `binary`, `int64`, `float`, arrays, refs) and CRUD routes.
-    func testServerEmitWithComplexSchemas() {
+    /// Builds a `Components` fixture with `User`, `Other`, and `Empty` schemas covering diverse formats.
+    ///
+    /// - Returns: The constructed `Components` value.
+    private func makeComplexComponents() -> Components {
         let schema = Schema(
             type: "object",
             properties: [
@@ -47,10 +59,11 @@ final class ServerEmitTests: XCTestCase {
                 "isActive": Schema(type: "boolean"),
                 "tags": Schema(type: "array", items: SchemaItem(type: "string")),
                 "meta": Schema(type: "object"),
+                "reqMeta": Schema(type: "object"),
                 "unknownVal": Schema(type: "unknown"),
                 "refVal": Schema(ref: "#/components/schemas/Other")
             ],
-            required: ["id", "date"]
+            required: ["id", "date", "reqMeta"]
         )
         let otherSchema = Schema(
             type: "object",
@@ -59,13 +72,24 @@ final class ServerEmitTests: XCTestCase {
                 "optProp": Schema(type: "string"),
                 "reqUuid": Schema(type: "string", format: "uuid"),
                 "reqData": Schema(type: "string", format: "binary"),
-                "reqRef": Schema(ref: "#/components/schemas/User")
+                "reqRef": Schema(ref: "#/components/schemas/User"),
+                "reqTags": Schema(type: "array", items: SchemaItem(type: "string")),
+                "refItems": Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/User"))
             ],
-            required: ["id", "reqUuid", "reqData", "reqRef"]
+            required: ["id", "reqUuid", "reqData", "reqRef", "reqTags"]
         )
-        let emptySchema = Schema(type: "object")
-        let components = Components(schemas: ["User": schema, "Other": otherSchema, "Empty": emptySchema])
+        let int64IdSchema = Schema(
+            type: "object",
+            properties: ["id": Schema(type: "integer", format: "int64")],
+            required: ["id"]
+        )
+        return Components(schemas: ["User": schema, "Other": otherSchema, "Empty": int64IdSchema])
+    }
 
+    /// Verifies server emission with diverse property formats (`uuid`, `date-time`, `binary`, `int64`, `float`, arrays, refs) and CRUD
+    /// routes.
+    func testServerEmitWithComplexSchemas() {
+        let components = makeComplexComponents()
         let paths: [String: PathItem] = [
             "/admin": PathItem(get: Operation(operationId: "getAdmin")),
             "/users": PathItem(
@@ -74,7 +98,10 @@ final class ServerEmitTests: XCTestCase {
                     responses: [
                         "200": Response(
                             description: "OK",
-                            content: ["application/json": MediaType(schema: Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/User")))]
+                            content: ["application/json": MediaType(schema: Schema(
+                                type: "array",
+                                items: SchemaItem(ref: "#/components/schemas/User")
+                            ))]
                         )
                     ]
                 ),
@@ -96,7 +123,28 @@ final class ServerEmitTests: XCTestCase {
                         )
                     ]
                 ),
-                delete: Operation(operationId: "deleteUser")
+                delete: Operation(
+                    operationId: "deleteUser",
+                    responses: [
+                        "200": Response(
+                            description: "Deleted",
+                            content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/MissingSchema"))]
+                        )
+                    ]
+                ),
+                patch: Operation(
+                    operationId: "patchUsers",
+                    responses: [
+                        "200": Response(
+                            description: "Patched",
+                            content: [
+                                "application/json": MediaType(
+                                    schema: Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/MissingSchema"))
+                                )
+                            ]
+                        )
+                    ]
+                )
             )
         ]
 
@@ -111,13 +159,15 @@ final class ServerEmitTests: XCTestCase {
         XCTAssertTrue(code.contains("faker.name.name()"))
     }
 
-    /// Verifies `ServerVisitor` parsing of Vapor route registrations (`app.get`, `app.post`, etc.) and filtering of internal mock/auth routes.
+    /// Verifies `ServerVisitor` parsing of Vapor route registrations (`app.get`, `app.post`, etc.) and filtering of internal mock/auth
+    /// routes.
     func testServerParse() {
         let code = """
         let x = 1 + 2
         otherFunc()
         app.unknownMethod("x")
         otherObj.get("x")
+        app.get(123)
         app.get("")
         app.get("hello") { req in return "world" }
         app.post("users", ":id") { req in return "ok" }

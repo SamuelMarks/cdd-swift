@@ -25,7 +25,14 @@ public struct Resource: Codable, Equatable, Sendable {
     ///   - mimeType: Optional MIME type string.
     ///   - size: Optional byte size of the resource.
     ///   - annotations: Optional `Annotations` metadata.
-    public init(uri: String, name: String, description: String? = nil, mimeType: String? = nil, size: Int? = nil, annotations: Annotations? = nil) {
+    public init(
+        uri: String,
+        name: String,
+        description: String? = nil,
+        mimeType: String? = nil,
+        size: Int? = nil,
+        annotations: Annotations? = nil
+    ) {
         self.uri = uri
         self.name = name
         self.description = description

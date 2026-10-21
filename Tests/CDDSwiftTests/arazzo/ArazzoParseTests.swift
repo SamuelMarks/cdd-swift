@@ -1,7 +1,10 @@
+/// Unit tests for `ArazzoDocumentBuilder` and `SwiftASTArazzoParser`.
 @testable import CDDSwift
 import XCTest
 
+/// Test suite verifying Arazzo document construction and Swift AST workflow extraction.
 final class ArazzoParseTests: XCTestCase {
+    /// Verifies building and serializing an `ArazzoSpecification` with `ArazzoDocumentBuilder`.
     func testArazzoDocumentBuilder() throws {
         let comp = ArazzoComponents(
             parameters: ["auth": ArazzoParameter(name: "Authorization", in: .header, value: AnyCodable("Bearer token"))]
@@ -39,6 +42,7 @@ final class ArazzoParseTests: XCTestCase {
         XCTAssertEqual(fallbackSpec.sourceDescriptions.first?.name, "defaultApi")
     }
 
+    /// Verifies `SwiftASTArazzoParser` round-tripping on code emitted by `ArazzoSdkEmitter`.
     func testSwiftASTArazzoParserOnGeneratedSDK() throws {
         let originalSpec = ArazzoSpecification(
             info: ArazzoInfo(title: "Petstore Workflows", version: "1.1.0"),
@@ -88,6 +92,7 @@ final class ArazzoParseTests: XCTestCase {
         XCTAssertEqual(wf.steps.first?.outputs?["petId"], AnyCodable("$response.body#/id"))
     }
 
+    /// Verifies `SwiftASTArazzoParser` extraction of `@Workflow`, `@Step`, and XCTest methods.
     func testSwiftASTArazzoParserAnnotationsAndTestSuites() throws {
         let customSwift = """
         import Foundation
@@ -143,19 +148,24 @@ final class ArazzoParseTests: XCTestCase {
 
         let emptyWf = try XCTUnwrap(parsedSpec.workflows.first { $0.workflowId == "emptyBodyFlow" })
         XCTAssertEqual(emptyWf.steps.first?.stepId, "step1")
+    }
 
-        // Also test visitor with pre-populated sourceDescriptions via direct walk
+    /// Verifies `SwiftASTArazzoParser` extraction of orchestrator docstrings and direct output assignments.
+    func testSwiftASTArazzoParserOrchestratorOutputs() throws {
+        let parser = SwiftASTArazzoParser()
         let customSourceCode = """
         /// Suite for `ArazzoSpecification`
         /// Workflows for `RealTitle`
         public class MyOrchestrator {
             public func customAction(inputs: UnknownInputs) {
                 XCTAssertEqual(resp.statusCode, 200)
+                currentOutputs["direct"] = AnyCodable("val")
             }
         }
         """
         let spec2 = try parser.parseSpecification(from: customSourceCode)
         XCTAssertEqual(spec2.info.title, "RealTitle")
         XCTAssertEqual(spec2.workflows.first?.workflowId, "customAction")
+        XCTAssertEqual(spec2.workflows.first?.steps.first?.outputs?["direct"], AnyCodable("val"))
     }
 }

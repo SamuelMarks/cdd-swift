@@ -13,9 +13,18 @@ final class TestsTests: XCTestCase {
 
     /// Verifies emitting test methods for form-urlencoded, multipart/form-data, and octet-stream bodies.
     func testEmitTestsWithBodies() {
-        let opForm = Operation(operationId: "postForm", requestBody: RequestBody(content: ["application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object"))]))
-        let opMultipart = Operation(operationId: "postMultipart", requestBody: RequestBody(content: ["multipart/form-data": MediaType(schema: Schema(type: "object"))]))
-        let opOctet = Operation(operationId: "postOctet", requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))]))
+        let opForm = Operation(
+            operationId: "postForm",
+            requestBody: RequestBody(content: ["application/x-www-form-urlencoded": MediaType(schema: Schema(type: "object"))])
+        )
+        let opMultipart = Operation(
+            operationId: "postMultipart",
+            requestBody: RequestBody(content: ["multipart/form-data": MediaType(schema: Schema(type: "object"))])
+        )
+        let opOctet = Operation(
+            operationId: "postOctet",
+            requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))])
+        )
 
         let paths: [String: PathItem] = [
             "/form": PathItem(post: opForm),
@@ -63,8 +72,15 @@ final class TestsTests: XCTestCase {
     }
 
     /// Verifies `emitTests` with binary data bodies, `HEAD` / `TRACE` methods, and array/object/cyclic schemas.
-    func testEmitTestsDummyValueDataAndCombinations() throws {
-        let operation = Operation(operationId: "uploadData", requestBody: RequestBody(description: nil, content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))], required: true))
+    func testEmitTestsDummyValueDataAndCombinations() {
+        let operation = Operation(
+            operationId: "uploadData",
+            requestBody: RequestBody(
+                description: nil,
+                content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))],
+                required: true
+            )
+        )
         let pathItem = PathItem(post: operation, head: operation)
         let doc = OpenAPIDocument(openapi: "3.1", info: Info(title: "T", version: "1"), paths: ["/data": pathItem])
 
@@ -73,9 +89,26 @@ final class TestsTests: XCTestCase {
         XCTAssertTrue(swiftCode.contains(#"fileData: Data("test_data".utf8)"#))
 
         let opDataOpt = Operation(
-            requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))], required: false)
+            requestBody: RequestBody(
+                content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))],
+                required: false
+            )
         )
         XCTAssertTrue(emitTests(paths: ["/data": PathItem(post: opDataOpt)]).contains("test01_POST_Post_data"))
+
+        let opJsonOpt = Operation(
+            requestBody: RequestBody(
+                content: ["application/json": MediaType(schema: Schema(type: "string"))],
+                required: false
+            )
+        )
+        XCTAssertTrue(emitTests(paths: ["/opt": PathItem(post: opJsonOpt)]).contains("test01_POST_Post_opt"))
+
+        let opFallthroughBody = Operation(
+            parameters: [Parameter(name: "emptyBody", in: .body, schema: nil)],
+            requestBody: RequestBody(content: [:])
+        )
+        XCTAssertTrue(emitTests(paths: ["/empty": PathItem(post: opFallthroughBody)]).contains("test01_POST_Post_empty"))
 
         let opCombinations = Operation(
             parameters: [
@@ -101,14 +134,25 @@ final class TestsTests: XCTestCase {
         let emittedCombo = emitTests(paths: comboDoc.paths, document: comboDoc)
         XCTAssertTrue(emittedCombo.contains("pInt: 1"))
         XCTAssertTrue(emittedCombo.contains(#"status: ["available"]"#))
+    }
 
+    /// Verifies `emitTests` with cyclic schema references and Swagger 2.0 body parameters.
+    func testEmitTestsCyclesAndBodyParams() throws {
         let cycleDoc = OpenAPIDocument(
             openapi: "3",
             info: Info(title: "test", version: "1"),
             paths: [
                 "/cycle": PathItem(
-                    get: Operation(responses: ["200": Response(content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/A"))])]),
-                    post: Operation(requestBody: RequestBody(content: ["application/json": MediaType(schema: Schema(type: "object", properties: ["id": Schema(type: "string"), "username": Schema(type: "string")], required: ["missing"]))]))
+                    get: Operation(
+                        responses: ["200": Response(
+                            content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/A"))]
+                        )]
+                    ),
+                    post: Operation(requestBody: RequestBody(content: ["application/json": MediaType(schema: Schema(
+                        type: "object",
+                        properties: ["id": Schema(type: "string"), "username": Schema(type: "string")],
+                        required: ["missing"]
+                    ))]))
                 )
             ],
             components: Components(schemas: [
@@ -149,7 +193,10 @@ final class TestsTests: XCTestCase {
         XCTAssertEqual(synthesizeDummyParameterLiteral(param: pSimple, swiftType: "Data"), #"Data("test_data".utf8)"#)
         XCTAssertEqual(synthesizeDummyParameterLiteral(param: pSimple, swiftType: "[Int]"), "[]")
 
-        XCTAssertEqual(generateDummyJSON(context: DummyJSONContext(type: "string", format: "uuid")), #""00000000-0000-0000-0000-000000000000""#)
+        XCTAssertEqual(
+            generateDummyJSON(context: DummyJSONContext(type: "string", format: "uuid")),
+            #""00000000-0000-0000-0000-000000000000""#
+        )
         XCTAssertEqual(generateDummyJSON(context: DummyJSONContext(type: "string", format: "date-time")), #""2026-01-01T00:00:00Z""#)
         XCTAssertEqual(generateDummyJSON(context: DummyJSONContext(type: "string", enumValues: [AnyCodable("active")])), #""active""#)
     }

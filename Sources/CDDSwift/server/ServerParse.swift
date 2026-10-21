@@ -22,58 +22,80 @@ public class ServerVisitor: SyntaxVisitor {
         }
         let method = memberAccess.declName.baseName.text.lowercased()
         let supportedMethods: Set = ["get", "post", "put", "delete", "patch", "options", "head"]
-        guard supportedMethods.contains(method) else {
+        guard supportedMethods.contains(method),
+              let baseExpr = memberAccess.base?.description.trimmingCharacters(in: .whitespacesAndNewlines),
+              isVaporRouterExpression(baseExpr)
+        else {
             return .visitChildren
         }
 
-        if let baseExpr = memberAccess.base?.description.trimmingCharacters(in: .whitespacesAndNewlines),
-           baseExpr == "app" || baseExpr == "routes" || baseExpr.hasSuffix("Routes")
-        {
-            var segments: [String] = []
-            for arg in node.arguments {
-                let raw = arg.expression.description
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .filter { $0 != "\"" }
-                if raw.isEmpty {
-                    continue
-                }
-                if raw.hasPrefix(":") {
-                    let paramName = String(raw.dropFirst())
-                    segments.append("{\(paramName)}")
-                } else {
-                    segments.append(raw)
-                }
-            }
-
-            let fullPath = "/" + segments.joined(separator: "/")
-            if fullPath == "/_mock/trigger-webhook/{name}" || fullPath.hasPrefix("/auth/") {
-                return .visitChildren
-            }
-
-            let opId = "\(method)_\(segments.joined(separator: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
-            let operation = Operation(
-                operationId: opId,
-                responses: ["200": Response(description: "OK")]
-            )
-
-            var item = paths[fullPath] ?? PathItem()
-            if method == "get" {
-                item.get = operation
-            } else if method == "post" {
-                item.post = operation
-            } else if method == "put" {
-                item.put = operation
-            } else if method == "delete" {
-                item.delete = operation
-            } else if method == "patch" {
-                item.patch = operation
-            } else if method == "options" {
-                item.options = operation
-            } else {
-                item.head = operation
-            }
-            paths[fullPath] = item
+        let segments = extractPathSegments(from: node.arguments)
+        let fullPath = "/" + segments.joined(separator: "/")
+        if fullPath == "/_mock/trigger-webhook/{name}" || fullPath.hasPrefix("/auth/") {
+            return .visitChildren
         }
+
+        let cleanJoined = segments.joined(separator: "_")
+            .replacingOccurrences(of: "{", with: "")
+            .replacingOccurrences(of: "}", with: "")
+        let operation = Operation(
+            operationId: "\(method)_\(cleanJoined)",
+            responses: ["200": Response(description: "OK")]
+        )
+        recordOperation(operation, method: method, fullPath: fullPath)
         return .visitChildren
+    }
+
+    /// Checks whether a base expression refers to a Vapor application or routes builder.
+    ///
+    /// - Parameter baseExpr: Trimmed Swift base expression string.
+    /// - Returns: `true` if `baseExpr` is `"app"`, `"routes"`, or ends with `"Routes"`.
+    private func isVaporRouterExpression(_ baseExpr: String) -> Bool {
+        return baseExpr == "app" || baseExpr == "routes" || baseExpr.hasSuffix("Routes")
+    }
+
+    /// Extracts URL path segments from Vapor route registration string literal arguments.
+    ///
+    /// - Parameter arguments: The `LabeledExprListSyntax` of the route call.
+    /// - Returns: Array of normalized OpenAPI path segment strings (converting `:param` to `{param}`).
+    private func extractPathSegments(from arguments: LabeledExprListSyntax) -> [String] {
+        var segments: [String] = []
+        for arg in arguments {
+            guard let strLit = arg.expression.as(StringLiteralExprSyntax.self),
+                  let seg = strLit.segments.first?.as(StringSegmentSyntax.self)
+            else {
+                continue
+            }
+            let raw = seg.content.text
+            if raw.isEmpty {
+                continue
+            }
+            if raw.hasPrefix(":") {
+                segments.append("{\(String(raw.dropFirst()))}")
+            } else {
+                segments.append(raw)
+            }
+        }
+        return segments
+    }
+
+    /// Assigns an `Operation` to the appropriate HTTP method slot on `paths[fullPath]`.
+    ///
+    /// - Parameters:
+    ///   - operation: The inferred OpenAPI `Operation`.
+    ///   - method: Lowercase HTTP method string.
+    ///   - fullPath: Normalized OpenAPI URL path template.
+    private func recordOperation(_ operation: Operation, method: String, fullPath: String) {
+        var item = paths[fullPath] ?? PathItem()
+        switch method {
+        case "get": item.get = operation
+        case "post": item.post = operation
+        case "put": item.put = operation
+        case "delete": item.delete = operation
+        case "patch": item.patch = operation
+        case "options": item.options = operation
+        default: item.head = operation
+        }
+        paths[fullPath] = item
     }
 }

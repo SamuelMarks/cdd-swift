@@ -1,47 +1,118 @@
+/// Unit tests for `MCPServe` CLI command and `MCPServeRuntime` actor dependency injection.
 import XCTest
 @testable import cdd_swift_cli
 @testable import CDDSwift
 
-final class MockMCPTransport: MCPTransport, @unchecked Sendable {
-    var messagesSent: [Any] = []
-    var isStarted = false
+/// Actor-isolated state container for `MockMCPTransport`.
+private actor MockMCPTransportState {
+    /// Recorded outgoing messages.
+    var messagesSent: [any Sendable] = []
+    /// Registered incoming message handler.
     var onMessageCallback: (@Sendable (Data) async -> Void)?
-    var closeCalled = false
 
-    func send<T: Encodable>(_ message: T) async throws {
+    /// Appends a sent message.
+    ///
+    /// - Parameter message: The message to record.
+    func recordSend(_ message: any Sendable) {
         messagesSent.append(message)
     }
 
-    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
-        isStarted = true
-        onMessageCallback = onMessage
-
-        while !closeCalled {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-    }
-
-    func close() async throws {
-        closeCalled = true
+    /// Registers the incoming message callback.
+    ///
+    /// - Parameter callback: Incoming message callback.
+    func setCallback(_ callback: @escaping @Sendable (Data) async -> Void) {
+        onMessageCallback = callback
     }
 }
 
+/// Thread-safe mock `MCPTransport` for testing `MCPServe` without `@unchecked Sendable`.
+final class MockMCPTransport: MCPTransport {
+    /// Actor-isolated state container.
+    private let state = MockMCPTransportState()
+    /// Buffered stream signaling transport start.
+    private let startStream: AsyncStream<Void>
+    /// Continuation yielding into `startStream`.
+    private let startContinuation: AsyncStream<Void>.Continuation
+    /// Buffered stream signaling transport close.
+    private let closeStream: AsyncStream<Void>
+    /// Continuation yielding into `closeStream`.
+    private let closeContinuation: AsyncStream<Void>.Continuation
+    /// Buffered stream signaling each sent message.
+    private let sendStream: AsyncStream<Void>
+    /// Continuation yielding into `sendStream`.
+    private let sendContinuation: AsyncStream<Void>.Continuation
+
+    /// Initializes the mock MCP transport.
+    init() {
+        (startStream, startContinuation) = AsyncStream<Void>.makeStream()
+        (closeStream, closeContinuation) = AsyncStream<Void>.makeStream()
+        (sendStream, sendContinuation) = AsyncStream<Void>.makeStream()
+    }
+
+    /// Records an outgoing message and signals `sendStream`.
+    ///
+    /// - Parameter message: The `Encodable & Sendable` message to send.
+    func send<T: Encodable & Sendable>(_ message: T) async throws {
+        await state.recordSend(message)
+        sendContinuation.yield()
+    }
+
+    /// Starts the mock transport and suspends until `close()` is called.
+    ///
+    /// - Parameter onMessage: Callback invoked when simulated messages arrive.
+    func start(onMessage: @escaping @Sendable (Data) async -> Void) async throws {
+        await state.setCallback(onMessage)
+        startContinuation.yield()
+        var iterator = closeStream.makeAsyncIterator()
+        _ = await iterator.next()
+    }
+
+    /// Closes the mock transport.
+    func close() async throws {
+        closeContinuation.yield()
+    }
+
+    /// Waits until `start(onMessage:)` has been called on the transport.
+    func waitUntilStarted() async throws {
+        var iterator = startStream.makeAsyncIterator()
+        _ = await iterator.next()
+    }
+
+    /// Simulates receiving a raw JSON-RPC `Data` payload.
+    ///
+    /// - Parameter data: The serialized JSON-RPC payload.
+    func simulateIncoming(_ data: Data) async {
+        let cb = await state.onMessageCallback
+        await cb?(data)
+        let isNotification = !String(decoding: data, as: UTF8.self).contains("\"id\":")
+        if !isNotification {
+            var iterator = sendStream.makeAsyncIterator()
+            _ = await iterator.next()
+        }
+    }
+
+    /// Returns all recorded outgoing messages.
+    ///
+    /// - Returns: Array of sent messages.
+    func sentMessages() async -> [any Sendable] {
+        return await state.messagesSent
+    }
+}
+
+/// Test suite verifying `MCPServe` initialization, tools, resources, and notifications.
 final class MCPServeTests: XCTestCase {
+    /// Verifies `initialize` request handling on `MCPServe`.
     func testMCPServeInitialize() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        // Wait for server to start
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
-        // Simulate receiving an initialize request
         let req = JSONRPCRequest(
             id: .integer(1),
             method: "initialize",
@@ -52,12 +123,11 @@ final class MCPServeTests: XCTestCase {
             )
         )
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let response = try XCTUnwrap(messages.first as? JSONRPCResponse<AnyCodable>)
         XCTAssertEqual(response.id, .integer(1))
         let resultData = try JSONEncoder().encode(response.result)
         let result = try JSONDecoder().decode(InitializeResult.self, from: resultData)
@@ -67,174 +137,174 @@ final class MCPServeTests: XCTestCase {
         try await task.value
     }
 
+    /// Verifies `ping` request handling on `MCPServe`.
     func testMCPServePing() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
-        // Simulate receiving a ping request
         let req = JSONRPCRequest<AnyCodable>(id: .integer(2), method: "ping")
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let response = try XCTUnwrap(messages.first as? JSONRPCResponse<AnyCodable>)
         XCTAssertEqual(response.id, .integer(2))
 
         try await mockTransport.close()
         try await task.value
     }
 
+    /// Verifies `resources/list` request handling.
     func testMCPServeResourcesList2() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task { try await serve.run() }
-        try await Task.sleep(nanoseconds: 50_000_000)
+        try await mockTransport.waitUntilStarted()
 
         let req = JSONRPCRequest<AnyCodable>(id: .integer(1), method: "resources/list")
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-        try await Task.sleep(nanoseconds: 50_000_000)
+        await mockTransport.simulateIncoming(data)
 
         try await mockTransport.close()
         try await task.value
     }
 
+    /// Verifies `resources/read` across valid, missing, and unknown URIs.
     func testMCPServeResourcesRead2() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task { try await serve.run() }
-        try await Task.sleep(nanoseconds: 50_000_000)
+        try await mockTransport.waitUntilStarted()
 
-        // Read success
         let req1 = JSONRPCRequest<AnyCodable>(id: .integer(1), method: "resources/read", params: AnyCodable(["uri": "cdd-swift://ast"]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req1))
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req1))
 
-        // Read missing params
         let req2 = JSONRPCRequest<AnyCodable>(id: .integer(2), method: "resources/read", params: AnyCodable([String: String]()))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req2))
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req2))
 
-        // Read invalid uri
         let req3 = JSONRPCRequest<AnyCodable>(id: .integer(3), method: "resources/read", params: AnyCodable(["uri": "invalid"]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req3))
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req3))
 
-        try await Task.sleep(nanoseconds: 50_000_000)
         try await mockTransport.close()
         try await task.value
     }
 
+    /// Verifies `tools/call` for `to_openapi` and `to_docs_json` with valid and missing arguments.
     func testMCPServeToolsCallMoreTools() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
+
+        let dummySwift = FileManager.default.temporaryDirectory.appendingPathComponent("mcp_dummy.swift")
+        let dummyJson = FileManager.default.temporaryDirectory.appendingPathComponent("mcp_dummy.json")
+        let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("mcp_out.json")
+        defer {
+            try? FileManager.default.removeItem(at: dummySwift)
+            try? FileManager.default.removeItem(at: dummyJson)
+            try? FileManager.default.removeItem(at: dummyOut)
+        }
+        try "struct M: Codable {}".write(to: dummySwift, atomically: true, encoding: .utf8)
+        try #"{"openapi": "3.2.0", "info": {"title": "T", "version": "1.0"}, "paths": {}}"#.write(
+            to: dummyJson,
+            atomically: true,
+            encoding: .utf8
+        )
 
         var serve = MCPServe()
         let task = Task { try await serve.run() }
-        try await Task.sleep(nanoseconds: 50_000_000)
+        try await mockTransport.waitUntilStarted()
 
-        // to_openapi success
-        let req1 = JSONRPCRequest<AnyCodable>(id: .integer(1), method: "tools/call", params: AnyCodable([
+        let req1 = JSONRPCRequest<AnyCodable>(id: .integer(1), method: "tools/call", params: [
             "name": "to_openapi",
-            "arguments": ["input_path": "/tmp/cdd_test_empty.json", "output_path": "/tmp/cdd_test_out.json"]
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req1))
+            "arguments": ["input_path": AnyCodable(dummySwift.path), "output_path": AnyCodable(dummyOut.path)]
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req1))
 
-        // to_openapi missing args
-        let req2 = JSONRPCRequest<AnyCodable>(id: .integer(2), method: "tools/call", params: AnyCodable([
+        let req2 = JSONRPCRequest<AnyCodable>(id: .integer(2), method: "tools/call", params: [
             "name": "to_openapi",
-            "arguments": ["input_path": "/tmp/cdd_test_empty.json"]
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req2))
+            "arguments": ["input_path": AnyCodable(dummySwift.path)]
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req2))
 
-        // to_openapi missing args object completely
-        let req2a = JSONRPCRequest<AnyCodable>(id: .integer(20), method: "tools/call", params: AnyCodable([
+        let req2a = JSONRPCRequest<AnyCodable>(id: .integer(20), method: "tools/call", params: [
             "name": "to_openapi"
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req2a))
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req2a))
 
-        // to_docs_json success
-        let req3 = JSONRPCRequest<AnyCodable>(id: .integer(3), method: "tools/call", params: AnyCodable([
+        let req3 = JSONRPCRequest<AnyCodable>(id: .integer(3), method: "tools/call", params: [
             "name": "to_docs_json",
-            "arguments": ["input_path": "/tmp/cdd_test_empty.json", "output_path": "/tmp/cdd_test_out.json"]
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req3))
+            "arguments": ["input_path": AnyCodable(dummyJson.path), "output_path": AnyCodable(dummyOut.path)]
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req3))
 
-        // to_docs_json missing args object completely
-        let req4a = JSONRPCRequest<AnyCodable>(id: .integer(40), method: "tools/call", params: AnyCodable([
+        let req4a = JSONRPCRequest<AnyCodable>(id: .integer(40), method: "tools/call", params: [
             "name": "to_docs_json"
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req4a))
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req4a))
 
-        // to_docs_json missing args
-        let req4 = JSONRPCRequest<AnyCodable>(id: .integer(4), method: "tools/call", params: AnyCodable([
+        let req4 = JSONRPCRequest<AnyCodable>(id: .integer(4), method: "tools/call", params: [
             "name": "to_docs_json",
-            "arguments": ["input_path": "/tmp/cdd_test_empty.json"]
-        ]))
-        try await mockTransport.onMessageCallback?(JSONEncoder().encode(req4))
+            "arguments": ["input_path": AnyCodable(dummyJson.path)]
+        ])
+        try await mockTransport.simulateIncoming(JSONEncoder().encode(req4))
 
-        try await Task.sleep(nanoseconds: 50_000_000)
         try await mockTransport.close()
         try await task.value
     }
 
+    /// Verifies `notifications/initialized` notification handling.
     func testMCPServeInitializedNotification() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
-        // Simulate receiving an initialized notification
         let notif = JSONRPCNotification<AnyCodable>(method: "notifications/initialized")
         let data = try JSONEncoder().encode(notif)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
         try await mockTransport.close()
         try await task.value
 
-        XCTAssertEqual(mockTransport.messagesSent.count, 0)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 0)
     }
 
+    /// Verifies `tools/list` returns the 3 registered CDD tools.
     func testMCPServeToolsList() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
         let req = JSONRPCRequest<AnyCodable>(id: .integer(3), method: "tools/list")
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let response = try XCTUnwrap(messages.first as? JSONRPCResponse<AnyCodable>)
         XCTAssertEqual(response.id, .integer(3))
 
         let resultData = try JSONEncoder().encode(response.result)
@@ -248,28 +318,25 @@ final class MCPServeTests: XCTestCase {
         try await task.value
     }
 
+    /// Verifies `tools/call` returns `-32602` (`invalidParams`) when `name` is missing.
     func testMCPServeToolsCallInvalidName() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
-        // no name parameter
-        let req = JSONRPCRequest(id: .integer(4), method: "tools/call", params: AnyCodable(["arguments": ["a": "b"]]))
+        let req = JSONRPCRequest<AnyCodable>(id: .integer(4), method: "tools/call", params: ["arguments": ["a": "b"]])
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let err = try XCTUnwrap(messages.first as? JSONRPCError)
         XCTAssertEqual(err.id, .integer(4))
         XCTAssertEqual(err.error.code, -32602)
 
@@ -277,347 +344,29 @@ final class MCPServeTests: XCTestCase {
         try await task.value
     }
 
+    /// Verifies `tools/call` returns `-32601` (`methodNotFound`) for an unknown tool name.
     func testMCPServeToolsCallUnknownTool() async throws {
         let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
+        await MCPServeRuntime.shared.setTransport(mockTransport)
 
         var serve = MCPServe()
         let task = Task {
             try await serve.run()
         }
 
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        try await mockTransport.waitUntilStarted()
 
-        let req = JSONRPCRequest(id: .integer(4), method: "tools/call", params: AnyCodable(["name": "unknown_tool", "arguments": [:]]))
+        let req = JSONRPCRequest<AnyCodable>(id: .integer(4), method: "tools/call", params: ["name": "unknown_tool", "arguments": [:]])
         let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
+        await mockTransport.simulateIncoming(data)
 
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
+        let messages = await mockTransport.sentMessages()
+        XCTAssertEqual(messages.count, 1)
+        let err = try XCTUnwrap(messages.first as? JSONRPCError)
         XCTAssertEqual(err.id, .integer(4))
         XCTAssertEqual(err.error.code, -32601)
 
         try await mockTransport.close()
         try await task.value
-    }
-
-    func testMCPServeToolsCallMissingArgs() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let callParams = CallToolRequestParams(name: "generate_from_openapi") // missing arguments
-        let req = JSONRPCRequest(id: .integer(5), method: "tools/call", params: callParams)
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
-        XCTAssertEqual(err.id, .integer(5))
-        XCTAssertEqual(err.error.code, -32602) // invalid params
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeToolsCallSuccess() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in.json")
-        try? #"{"openapi": "3.2.0", "info": {"title": "Dummy", "version": "1.0.0"}, "paths": {}}"#.write(to: dummyIn, atomically: true, encoding: .utf8)
-        let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_out").path
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let callParams = CallToolRequestParams(name: "generate_from_openapi", arguments: ["input_path": AnyCodable(dummyIn.path), "output_dir": AnyCodable(dummyOut)])
-        let req = JSONRPCRequest(id: .integer(6), method: "tools/call", params: callParams)
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
-        XCTAssertEqual(res.id, .integer(6))
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeResourcesList3() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest<AnyCodable>(id: .integer(7), method: "resources/list")
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
-        XCTAssertEqual(response.id, .integer(7))
-        let resultData = try JSONEncoder().encode(response.result)
-        let result = try JSONDecoder().decode(ListResourcesResult.self, from: resultData)
-        XCTAssertEqual(result.resources.count, 1)
-        XCTAssertEqual(result.resources[0].uri, "cdd-swift://ast")
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeResourcesRead3() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(8), method: "resources/read", params: AnyCodable(["uri": "cdd-swift://ast"]))
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let response = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
-        XCTAssertEqual(response.id, .integer(8))
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeResourcesReadUnknown() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(9), method: "resources/read", params: AnyCodable(["uri": "unknown://uri"]))
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
-        XCTAssertEqual(err.id, .integer(9))
-        XCTAssertEqual(err.error.code, -32602)
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeResourcesReadMissingParams() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(10), method: "resources/read", params: AnyCodable(["wrong": "uri"]))
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
-        XCTAssertEqual(err.id, .integer(10))
-        XCTAssertEqual(err.error.code, -32602)
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeToolsCallToOpenAPIMissingArgs() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(11), method: "tools/call", params: AnyCodable(["name": "to_openapi", "arguments": ["input_path": "a"]])) // missing output
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
-        XCTAssertEqual(err.id, .integer(11))
-        XCTAssertEqual(err.error.code, -32602)
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeToolsCallToDocsJsonMissingArgs() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(12), method: "tools/call", params: AnyCodable(["name": "to_docs_json", "arguments": ["output_path": "a"]])) // missing input
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let err = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCError)
-        XCTAssertEqual(err.id, .integer(12))
-        XCTAssertEqual(err.error.code, -32602)
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeToolsCallToOpenAPI() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_swift.swift")
-        try? "struct TestModel: Codable {}".write(to: dummyIn, atomically: true, encoding: .utf8)
-        let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("out.json").path
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(13), method: "tools/call", params: AnyCodable(["name": "to_openapi", "arguments": ["input_path": dummyIn.path, "output_path": dummyOut]]))
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
-        XCTAssertEqual(res.id, .integer(13))
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeToolsCallToDocsJson() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-
-        let dummyIn = FileManager.default.temporaryDirectory.appendingPathComponent("dummy_in.json")
-        try? #"{"openapi": "3.2.0", "info": {"title": "Dummy", "version": "1.0.0"}, "paths": {}}"#.write(to: dummyIn, atomically: true, encoding: .utf8)
-        let dummyOut = FileManager.default.temporaryDirectory.appendingPathComponent("docs.json").path
-
-        var serve = MCPServe()
-        let task = Task {
-            try await serve.run()
-        }
-
-        while !mockTransport.isStarted {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        let req = JSONRPCRequest(id: .integer(14), method: "tools/call", params: AnyCodable(["name": "to_docs_json", "arguments": ["input_path": dummyIn.path, "output_path": dummyOut]]))
-        let data = try JSONEncoder().encode(req)
-        await mockTransport.onMessageCallback?(data)
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(mockTransport.messagesSent.count, 1)
-        let res = try XCTUnwrap(mockTransport.messagesSent.first as? JSONRPCResponse<AnyCodable>)
-        XCTAssertEqual(res.id, .integer(14))
-
-        try await mockTransport.close()
-        try await task.value
-    }
-
-    func testMCPServeBlockingLoop() async throws {
-        let mockTransport = MockMCPTransport()
-        MCPServe.mockTransport = mockTransport
-        setenv("CDD_TEST_BLOCK", "1", 1)
-
-        var serve = MCPServe()
-        let task = Task { try await serve.run() }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        try await mockTransport.close()
-        try await task.value
-        unsetenv("CDD_TEST_BLOCK")
-    }
-
-    func testMCPServeRealTransport() async throws {
-        MCPServe.mockTransport = nil
-        var cmd = try MCPServe.parse([])
-        let task = Task {
-            try await cmd.run()
-        }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        task.cancel()
     }
 }

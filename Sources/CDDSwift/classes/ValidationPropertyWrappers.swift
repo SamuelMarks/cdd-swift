@@ -84,7 +84,10 @@ public struct MinLength: Codable, Equatable, Sendable {
     /// - Throws: `CDDError.validationFailed` if `wrappedValue.count < length`.
     public func validate() throws {
         if wrappedValue.count < length {
-            throw CDDError.validationFailed(field: "MinLength", reason: "String length \(wrappedValue.count) is less than minimum \(length)")
+            throw CDDError.validationFailed(
+                field: "MinLength",
+                reason: "String length \(wrappedValue.count) is less than minimum \(length)"
+            )
         }
     }
 }

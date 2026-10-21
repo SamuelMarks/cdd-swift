@@ -1,7 +1,10 @@
+/// Unit tests for `SwiftASTParser` model, webhook, callback, security scheme, and link extraction.
 @testable import CDDSwift
 import XCTest
 
+/// Test suite verifying `SwiftASTParser`.
 final class SwiftASTParserTests: XCTestCase {
+    /// Verifies parsing `Codable` structs into OpenAPI schemas and ignoring non-`Codable` structs.
     func testParseModels() throws {
         let swiftCode = """
         import Foundation
@@ -39,6 +42,7 @@ final class SwiftASTParserTests: XCTestCase {
         XCTAssertEqual(userSchema.properties?["tags"]?.items?.type, "string")
     }
 
+    /// Verifies parsing `WebhooksDelegate` and `*Callbacks` protocols into OpenAPI webhooks and callbacks.
     func testParseWebhooksAndCallbacks() throws {
         let swiftCode = """
         import Foundation
@@ -65,6 +69,7 @@ final class SwiftASTParserTests: XCTestCase {
         XCTAssertNotNil(components?.callbacks?["order"])
     }
 
+    /// Verifies parsing `APIClient` security token properties, `@Route` docstrings, `@link` annotations, and XCTest tags.
     func testParseSecurityAndLinks() throws {
         let swiftCode = """
         import Foundation

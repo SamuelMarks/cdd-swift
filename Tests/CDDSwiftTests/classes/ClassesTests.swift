@@ -34,7 +34,7 @@ final class ClassesTests: XCTestCase {
         )
         let emitted = emitModel(name: "TestSchema", schema: schema)
         XCTAssertTrue(emitted.contains("/// Test schema"))
-        XCTAssertTrue(emitted.contains("public struct TestSchema: Codable, Equatable {"))
+        XCTAssertTrue(emitted.contains("public struct TestSchema: Codable, Equatable, Sendable {"))
         XCTAssertTrue(emitted.contains("/// A string prop"))
         XCTAssertTrue(emitted.contains("public var aString: String"))
     }
@@ -50,11 +50,20 @@ final class ClassesTests: XCTestCase {
         XCTAssertEqual(mapType(schema: Schema(type: nil)), "AnyCodable")
         XCTAssertEqual(mapType(schema: Schema(ref: "JustString")), "JustString")
         XCTAssertEqual(mapType(schema: Schema(type: "array", items: SchemaItem())), "[AnyCodable]")
-        XCTAssertEqual(mapType(schema: Schema(type: "array", items: SchemaItem(type: nil, ref: "#/components/schemas/ArrayRef"))), "[ArrayRef]")
+        XCTAssertEqual(
+            mapType(schema: Schema(type: "array", items: SchemaItem(type: nil, ref: "#/components/schemas/ArrayRef"))),
+            "[ArrayRef]"
+        )
         XCTAssertEqual(mapType(schema: Schema(type: "array", items: SchemaItem(type: nil, ref: "NoSlashesHere"))), "[NoSlashesHere]")
         XCTAssertEqual(mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(ref: nil))), "[String: AnyCodable]")
-        XCTAssertEqual(mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(type: nil, ref: "#/components/schemas/DictRef"))), "[String: DictRef]")
-        XCTAssertEqual(mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(type: nil, ref: "NoSlashesHereEither"))), "[String: NoSlashesHereEither]")
+        XCTAssertEqual(
+            mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(type: nil, ref: "#/components/schemas/DictRef"))),
+            "[String: DictRef]"
+        )
+        XCTAssertEqual(
+            mapType(schema: Schema(type: "object", additionalProperties: SchemaItem(type: nil, ref: "NoSlashesHereEither"))),
+            "[String: NoSlashesHereEither]"
+        )
     }
 
     /// Verifies emitting polymorphic `oneOf` enums with discriminator mappings and fallback keys.
@@ -70,7 +79,7 @@ final class ClassesTests: XCTestCase {
             ])
         )
         let emitted = emitModel(name: "Pet", schema: schema)
-        XCTAssertTrue(emitted.contains("public enum Pet: Codable, Equatable {"))
+        XCTAssertTrue(emitted.contains("public enum Pet: Codable, Equatable, Sendable {"))
         XCTAssertTrue(emitted.contains("case dog(Dog)"))
         XCTAssertTrue(emitted.contains("case cat(Cat)"))
         XCTAssertTrue(emitted.contains("let type = try container.decode(String.self, forKey: .petType)"))
@@ -116,7 +125,7 @@ final class ClassesTests: XCTestCase {
         XCTAssertTrue(emitModel(name: "ObjValModel", schema: schemaObj).contains("@Pattern"))
 
         let anySchema = Schema()
-        XCTAssertTrue(emitModel(name: "AnyModel", schema: anySchema).contains("public struct AnyModel: Codable, Equatable"))
+        XCTAssertTrue(emitModel(name: "AnyModel", schema: anySchema).contains("public struct AnyModel: Codable, Equatable, Sendable"))
 
         let schemaDiscriminator = Schema(
             type: "object",
@@ -184,7 +193,8 @@ final class ClassesTests: XCTestCase {
         }
 
         struct TupleAndUnknown: Codable {
-            var tuple: ()
+            var (untypedA, untypedB) = (1, 2)
+            @Sendable @UnknownAttr("custom") var tuple: ()
             var intProp: Integer
             var unknown: SomeUnknownClass
             var floatVal: Float

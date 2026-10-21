@@ -15,7 +15,8 @@ public struct DefaultMCPServerRouter: MCPServerRouter {
     ///
     /// - Parameter request: The incoming `JSONRPCRequest` envelope.
     /// - Returns: The `AnyCodable` result produced by the registered handler.
-    /// - Throws: `JSONRPCErrorDetail` with `.methodNotFound` if no handler is registered for `request.method`, or any error thrown by the handler.
+    /// - Throws: `JSONRPCErrorDetail` with `.methodNotFound` if no handler is registered for `request.method`, or any error thrown by the
+    /// handler.
     public func handleRequest(request: JSONRPCRequest<AnyCodable>) async throws -> AnyCodable {
         if let handler = requestHandlers[request.method] {
             return try await handler(request)

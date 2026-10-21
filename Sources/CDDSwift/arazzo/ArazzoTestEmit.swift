@@ -9,7 +9,8 @@ public enum ArazzoTestEmitter {
     ///   - specification: The parsed Arazzo 1.1.0 specification.
     ///   - suiteName: Base name for the generated test suite. Defaults to `"GeneratedArazzoWorkflowTests"`.
     /// - Returns: Generated Swift test source code string.
-    public static func emitTestSuite(from specification: ArazzoSpecification, suiteName: String = "GeneratedArazzoWorkflowTests") -> String {
+    public static func emitTestSuite(from specification: ArazzoSpecification,
+                                     suiteName: String = "GeneratedArazzoWorkflowTests") -> String {
         let nl = String(UnicodeScalar(10))
         let q = String(UnicodeScalar(34))
         var lines: [String] = []
@@ -34,7 +35,7 @@ public enum ArazzoTestEmitter {
         if let params = specification.components?.parameters {
             for paramKey in params.keys.sorted() {
                 if let paramVal = params[paramKey] {
-                    let valStr = String(describing: paramVal.value.value)
+                    let valStr = paramVal.value.description
                     lines.append("        sharedParameters[" + q + paramKey + q + "] = AnyCodable(" + q + valStr + q + ")")
                 }
             }
@@ -85,7 +86,9 @@ public enum ArazzoTestEmitter {
                         let expectedCode = String(crit.condition.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                         lines.append("        XCTAssertEqual(context_" + safeStep + ".statusCode, " + expectedCode + ")")
                     } else {
-                        lines.append("        XCTAssertTrue(try ArazzoExpressionEvaluator.evaluateCriterion(ArazzoCriterion(context: " + q + crit.context + q + ", condition: " + q + crit.condition + q + "), in: context_" + safeStep + "))")
+                        lines
+                            .append("        XCTAssertTrue(try ArazzoExpressionEvaluator.evaluateCriterion(ArazzoCriterion(context: " + q +
+                                crit.context + q + ", condition: " + q + crit.condition + q + "), in: context_" + safeStep + "))")
                     }
                 }
             }

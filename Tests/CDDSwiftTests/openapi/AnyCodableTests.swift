@@ -1,82 +1,86 @@
-/// Unit tests for `AnyCodable` encoding, decoding, and equality semantics.
+/// Unit tests for `AnyCodable` and `JSONValue` encoding, decoding, literals, typed accessors, and equality semantics.
 @testable import CDDSwift
+import SwiftParser
 import XCTest
 
-/// Test suite verifying `AnyCodable` serialization, deserialization, and error handling.
+/// Test suite verifying `AnyCodable` and `JSONValue` serialization, deserialization, literal conformances, and error handling.
 final class AnyCodableTests: XCTestCase {
-    /// Verifies encoding, decoding, and equality comparisons for `AnyCodable` values.
+    /// Verifies encoding, decoding, and typed accessors for `AnyCodable` and `JSONValue`.
     func testAnyCodable() throws {
         let stringValue = AnyCodable("test")
         let intValue = AnyCodable(123)
         let boolValue = AnyCodable(true)
         let doubleValue = AnyCodable(12.34)
         let arrayValue = AnyCodable([1, 2, 3])
+        let strArrayValue = AnyCodable(["a", "b"])
         let dictValue = AnyCodable(["key": "value"])
+        let intDictValue = AnyCodable(["count": 5])
+
+        XCTAssertEqual(stringValue.stringValue, "test")
+        XCTAssertNil(stringValue.intValue)
+        XCTAssertNil(stringValue.doubleValue)
+        XCTAssertNil(stringValue.boolValue)
+        XCTAssertNil(stringValue.arrayValue)
+        XCTAssertNil(stringValue.objectValue)
+        XCTAssertFalse(stringValue.isNull)
+        XCTAssertEqual(stringValue.description, "test")
+
+        XCTAssertEqual(intValue.intValue, 123)
+        XCTAssertEqual(intValue.doubleValue, 123.0)
+        XCTAssertNil(intValue.stringValue)
+        XCTAssertEqual(intValue.description, "123")
+        XCTAssertEqual(boolValue.boolValue, true)
+        XCTAssertEqual(boolValue.description, "true")
+        XCTAssertEqual(doubleValue.doubleValue, 12.34)
+        XCTAssertEqual(doubleValue.description, "12.34")
+        XCTAssertEqual(arrayValue.arrayValue, [.int(1), .int(2), .int(3)])
+        XCTAssertEqual(arrayValue.description, "[1, 2, 3]")
+        XCTAssertEqual(strArrayValue.arrayValue, [.string("a"), .string("b")])
+        XCTAssertEqual(dictValue.objectValue, ["key": .string("value")])
+        XCTAssertEqual(dictValue.description, "{key: value}")
+        XCTAssertEqual(intDictValue.objectValue, ["count": .int(5)])
 
         let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
 
         let stringData = try encoder.encode(stringValue)
-        XCTAssertEqual(String(data: stringData, encoding: .utf8), "\"test\"")
-
+        XCTAssertEqual(String(data: stringData, encoding: .utf8), #""test""#)
         let intData = try encoder.encode(intValue)
         XCTAssertEqual(String(data: intData, encoding: .utf8), "123")
-
         let boolData = try encoder.encode(boolValue)
         XCTAssertEqual(String(data: boolData, encoding: .utf8), "true")
-
         let doubleData = try encoder.encode(doubleValue)
         XCTAssertEqual(String(data: doubleData, encoding: .utf8), "12.34")
-
         let arrayData = try encoder.encode(arrayValue)
         XCTAssertEqual(String(data: arrayData, encoding: .utf8), "[1,2,3]")
 
+        XCTAssertEqual(try decoder.decode(AnyCodable.self, from: stringData), stringValue)
+        XCTAssertEqual(try decoder.decode(AnyCodable.self, from: intData), intValue)
+        XCTAssertEqual(try decoder.decode(AnyCodable.self, from: boolData), boolValue)
+        XCTAssertEqual(try decoder.decode(AnyCodable.self, from: doubleData), doubleValue)
+        XCTAssertEqual(try decoder.decode(AnyCodable.self, from: arrayData), arrayValue)
+        XCTAssertNotNil(try decoder.decode(AnyCodable.self, from: encoder.encode(dictValue)).objectValue)
+    }
+
+    /// Verifies literal conformances, null values, nested initializers, and embedded Swift source validity.
+    func testAnyCodableLiteralsAndCollections() throws {
+        let encoder = JSONEncoder()
         let decoder = JSONDecoder()
 
-        let decodedString = try decoder.decode(AnyCodable.self, from: stringData)
-        XCTAssertEqual(decodedString.value as? String, "test")
-        XCTAssertEqual(decodedString, stringValue)
-
-        let decodedInt = try decoder.decode(AnyCodable.self, from: intData)
-        XCTAssertEqual(decodedInt.value as? Int, 123)
-        XCTAssertEqual(decodedInt, intValue)
-
-        let decodedBool = try decoder.decode(AnyCodable.self, from: boolData)
-        XCTAssertEqual(decodedBool.value as? Bool, true)
-        XCTAssertEqual(decodedBool, boolValue)
-
-        let decodedDouble = try decoder.decode(AnyCodable.self, from: doubleData)
-        XCTAssertEqual(decodedDouble.value as? Double, 12.34)
-        XCTAssertEqual(decodedDouble, doubleValue)
-
-        let decodedArray = try decoder.decode(AnyCodable.self, from: arrayData)
-        XCTAssertNotNil(decodedArray.value as? [Int])
-        XCTAssertEqual(decodedArray, arrayValue)
-
-        let decodedDict = try decoder.decode(AnyCodable.self, from: encoder.encode(dictValue))
-        XCTAssertNotNil(decodedDict.value as? [String: String])
-
         let nullJV = AnyCodable(jsonValue: .null)
-        XCTAssertTrue(nullJV.value is NSNull)
+        XCTAssertTrue(nullJV.isNull)
+        XCTAssertEqual(nullJV.value, .null)
+        XCTAssertEqual(nullJV.description, "null")
+        let encodedNull = try encoder.encode(nullJV)
+        XCTAssertEqual(String(decoding: encodedNull, as: UTF8.self), "null")
+        XCTAssertTrue(try decoder.decode(AnyCodable.self, from: encodedNull).isNull)
 
-        let jv = AnyCodable(jsonValue: .string("direct"))
-        XCTAssertEqual(jv.value as? String, "direct")
-        let fromJV = AnyCodable(JSONValue.int(42))
-        XCTAssertEqual(fromJV.value as? Int, 42)
+        XCTAssertEqual(AnyCodable(jsonValue: .string("direct")).stringValue, "direct")
+        XCTAssertEqual(AnyCodable(JSONValue.int(42)).intValue, 42)
+        XCTAssertEqual(AnyCodable([JSONValue.string("x")]).arrayValue, [.string("x")])
+        XCTAssertEqual(AnyCodable(["k": JSONValue.bool(false)]).objectValue, ["k": .bool(false)])
 
-        struct Unencodable {}
-        let bad = AnyCodable(Unencodable())
-        XCTAssertTrue(bad.value is NSNull)
-        XCTAssertNotEqual(bad, AnyCodable("test"))
-        XCTAssertNotEqual(bad, bad)
-
-        let badArr = AnyCodable([Unencodable()])
-        XCTAssertNil(badArr.jsonValue)
-        let badDict = AnyCodable(["k": Unencodable()])
-        XCTAssertNil(badDict.jsonValue)
-
-        XCTAssertThrowsError(try JSONEncoder().encode(bad))
-        let nested = AnyCodable(AnyCodable(1))
-        let encodedNested = try JSONEncoder().encode(nested)
+        let encodedNested = try encoder.encode(AnyCodable(AnyCodable(1)))
         XCTAssertEqual(String(decoding: encodedNested, as: UTF8.self), "1")
 
         let arr1 = AnyCodable([AnyCodable(1), AnyCodable("two")])
@@ -92,11 +96,38 @@ final class AnyCodableTests: XCTestCase {
         XCTAssertNotEqual(dict1, dict3)
         XCTAssertNotEqual(arr1, dict1)
 
-        let void1 = AnyCodable(())
-        let void2 = AnyCodable(())
-        XCTAssertEqual(void1, void2)
-        let encodedVoid = try JSONEncoder().encode(void1)
-        XCTAssertEqual(String(decoding: encodedVoid, as: UTF8.self), "null")
+        let jvStr: JSONValue = "hello"
+        let jvInt: JSONValue = 10
+        let jvFloat: JSONValue = 3.5
+        let jvBool: JSONValue = false
+        let jvArr: JSONValue = ["a", 1]
+        let jvObj: JSONValue = ["k": "v"]
+        let jvNil: JSONValue = nil
+        XCTAssertEqual(jvStr.stringValue, "hello")
+        XCTAssertEqual(jvInt.intValue, 10)
+        XCTAssertEqual(jvFloat.doubleValue, 3.5)
+        XCTAssertEqual(jvBool.boolValue, false)
+        XCTAssertEqual(jvArr.arrayValue?.count, 2)
+        XCTAssertEqual(jvObj.objectValue?["k"], "v")
+        XCTAssertTrue(jvNil.isNull)
+
+        let acStr: AnyCodable = "hello"
+        let acInt: AnyCodable = 10
+        let acFloat: AnyCodable = 3.5
+        let acBool: AnyCodable = false
+        let acArr: AnyCodable = ["a", 1]
+        let acObj: AnyCodable = ["k": "v"]
+        let acNil: AnyCodable = nil
+        XCTAssertEqual(acStr.stringValue, "hello")
+        XCTAssertEqual(acInt.intValue, 10)
+        XCTAssertEqual(acFloat.doubleValue, 3.5)
+        XCTAssertEqual(acBool.boolValue, false)
+        XCTAssertEqual(acArr.arrayValue?.count, 2)
+        XCTAssertEqual(acObj.objectValue?["k"], "v")
+        XCTAssertTrue(acNil.isNull)
+
+        let embeddedSyntax = Parser.parse(source: AnyCodable.embeddedSwiftSource)
+        XCTAssertFalse(embeddedSyntax.hasError)
     }
 
     /// Mock single-value decoding container that throws `DecodingError.dataCorruptedError` on every decode operation.
@@ -218,5 +249,16 @@ final class AnyCodableTests: XCTestCase {
         XCTAssertThrowsError(try AnyCodable(from: decoder)) { error in
             XCTAssertNotNil(error as? DecodingError)
         }
+
+        let explicitDouble = AnyCodable(Double(3.14))
+        XCTAssertEqual(explicitDouble.doubleValue, 3.14)
+        let explicitBool = AnyCodable(Bool(true))
+        XCTAssertEqual(explicitBool.boolValue, true)
+        let typedArr: [AnyCodable] = [AnyCodable("a")]
+        let explicitArr = AnyCodable(typedArr)
+        XCTAssertEqual(explicitArr.arrayValue?.first?.stringValue, "a")
+        let typedObj: [String: AnyCodable] = ["k": AnyCodable("v")]
+        let explicitObj = AnyCodable(typedObj)
+        XCTAssertEqual(explicitObj.objectValue?["k"]?.stringValue, "v")
     }
 }

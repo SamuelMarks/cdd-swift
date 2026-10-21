@@ -152,35 +152,49 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         let name = node.name.text
         if name.hasSuffix("Inputs") {
-            var properties: [String: Schema] = [:]
-            for member in node.memberBlock.members {
-                if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                    for binding in varDecl.bindings {
-                        if let ident = binding.pattern.as(IdentifierPatternSyntax.self),
-                           let typeAnn = binding.typeAnnotation
-                        {
-                            let propName = ident.identifier.text
-                            if propName == "parameters" {
-                                continue
-                            }
-                            let rawType = typeAnn.type.description.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "?", with: "")
-                            let schemaType: String
-                            switch rawType {
-                            case "Int": schemaType = "integer"
-                            case "Double", "Float": schemaType = "number"
-                            case "Bool": schemaType = "boolean"
-                            default: schemaType = "string"
-                            }
-                            properties[propName] = Schema(type: schemaType)
-                        }
-                    }
-                }
-            }
+            let properties = Self.extractInputProperties(from: node.memberBlock)
             if !properties.isEmpty {
                 inputSchemas[name] = Schema(type: "object", properties: properties)
             }
         }
         return .visitChildren
+    }
+
+    /// Extracts property schemas from an `*Inputs` struct's `MemberBlockSyntax`.
+    ///
+    /// - Parameter memberBlock: The `MemberBlockSyntax` of the struct.
+    /// - Returns: Dictionary mapping property names to their `Schema` definitions.
+    private static func extractInputProperties(from memberBlock: MemberBlockSyntax) -> [String: Schema] {
+        var properties: [String: Schema] = [:]
+        for member in memberBlock.members {
+            guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
+            for binding in varDecl.bindings {
+                guard let ident = binding.pattern.as(IdentifierPatternSyntax.self),
+                      let typeAnn = binding.typeAnnotation,
+                      ident.identifier.text != "parameters"
+                else {
+                    continue
+                }
+                let rawType = typeAnn.type.description
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .replacingOccurrences(of: "?", with: "")
+                properties[ident.identifier.text] = Schema(type: mapSwiftInputType(rawType).rawValue)
+            }
+        }
+        return properties
+    }
+
+    /// Maps a Swift primitive type name on an `*Inputs` struct to a JSON Schema type.
+    ///
+    /// - Parameter rawType: The non-optional Swift type string.
+    /// - Returns: The corresponding JSON Schema type.
+    private static func mapSwiftInputType(_ rawType: String) -> SchemaType {
+        switch rawType {
+        case "Int": return .integer
+        case "Double", "Float": return .number
+        case "Bool": return .boolean
+        default: return .string
+        }
     }
 
     /// Visits class declarations to identify `WorkflowsClient`, `WorkflowOrchestrator`, or `*Tests` classes.
@@ -199,7 +213,16 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     /// - Returns: `.skipChildren` once function body is analyzed.
     override public func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         let funcName = node.name.text
-        let ignoredFuncs: Set = ["setUp", "tearDown", "run", "runAllProbes", "printOutputs", "sanitizeIdentifier", "pascalCase", "kebabCase"]
+        let ignoredFuncs: Set = [
+            "setUp",
+            "tearDown",
+            "run",
+            "runAllProbes",
+            "printOutputs",
+            "sanitizeIdentifier",
+            "pascalCase",
+            "kebabCase"
+        ]
         if ignoredFuncs.contains(funcName) || funcName.hasPrefix("probe") {
             return .skipChildren
         }
@@ -245,8 +268,7 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
             if trimmed.hasPrefix("///") {
                 let text = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                 if let backtickRange = text.range(of: "`"),
-                   let endRange = text.range(of: "`", range: backtickRange.upperBound ..< text.endIndex)
-                {
+                   let endRange = text.range(of: "`", range: backtickRange.upperBound ..< text.endIndex) {
                     let candidate = String(text[backtickRange.upperBound ..< endRange.lowerBound])
                     if candidate != "ArazzoSpecification", extractedTitle == nil {
                         extractedTitle = candidate
@@ -296,13 +318,11 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     private func extractWorkflowId(from funcName: String, doc: String) -> String {
         let q = String(UnicodeScalar(34))
         if let idRange = doc.range(of: "@Workflow(id: " + q),
-           let endQuote = doc.range(of: q, range: idRange.upperBound ..< doc.endIndex)
-        {
+           let endQuote = doc.range(of: q, range: idRange.upperBound ..< doc.endIndex) {
             return String(doc[idRange.upperBound ..< endQuote.lowerBound])
         }
         if let execRange = doc.range(of: "Executes workflow `"),
-           let endTick = doc.range(of: "`", range: execRange.upperBound ..< doc.endIndex)
-        {
+           let endTick = doc.range(of: "`", range: execRange.upperBound ..< doc.endIndex) {
             return String(doc[execRange.upperBound ..< endTick.lowerBound])
         }
         if funcName.hasPrefix("test") && funcName.count > 4 {
@@ -327,194 +347,5 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
             }
         }
         return nil
-    }
-}
-
-/// AST `SyntaxVisitor` that traverses a workflow function's `CodeBlockSyntax` to reconstruct `ArazzoStep` definitions, criteria, retry loops, and outputs.
-public final class WorkflowStepBodyVisitor: SyntaxVisitor {
-    /// Default prefix used when synthesizing step identifiers from bare assertions.
-    public let defaultStepIdPrefix: String
-    /// Ordered list of reconstructed `ArazzoStep` definitions.
-    public var steps: [ArazzoStep] = []
-
-    /// Active step identifier being accumulated.
-    private var currentStepId: String?
-    /// Active operation identifier being accumulated.
-    private var currentOpId: String?
-    /// Active success criteria list for the current step.
-    private var currentCriteria: [ArazzoCriterion] = []
-    /// Active retry limit for the current step.
-    private var currentRetries: Int?
-    /// Active output expression mappings for the current step.
-    private var currentOutputs: [String: AnyCodable] = [:]
-
-    /// Initializes a `WorkflowStepBodyVisitor`.
-    ///
-    /// - Parameter defaultStepIdPrefix: Fallback prefix for unnamed steps.
-    public init(defaultStepIdPrefix: String) {
-        self.defaultStepIdPrefix = defaultStepIdPrefix
-        super.init(viewMode: .sourceAccurate)
-    }
-
-    /// Inspects leading trivia on every token for `// Step: <id>`, `/// @Step(...)`, and `// Operation dispatch: <opId>` directives.
-    ///
-    /// - Parameter token: The `TokenSyntax` node being visited.
-    /// - Returns: `.visitChildren` to continue traversal.
-    override public func visit(_ token: TokenSyntax) -> SyntaxVisitorContinueKind {
-        let q = String(UnicodeScalar(34))
-        for piece in token.leadingTrivia {
-            switch piece {
-            case let .lineComment(text):
-                let line = text.trimmingCharacters(in: .whitespaces)
-                if line.hasPrefix("// Step: ") {
-                    flushCurrentStep()
-                    currentStepId = String(line.dropFirst("// Step: ".count)).trimmingCharacters(in: .whitespaces)
-                } else if line.hasPrefix("// Operation dispatch: ") {
-                    currentOpId = String(line.dropFirst("// Operation dispatch: ".count)).trimmingCharacters(in: .whitespaces)
-                }
-            case let .docLineComment(text):
-                let line = text.trimmingCharacters(in: .whitespaces)
-                if line.hasPrefix("/// @Step(id: " + q) {
-                    flushCurrentStep()
-                    if let idRange = line.range(of: "id: " + q),
-                       let endId = line.range(of: q, range: idRange.upperBound ..< line.endIndex)
-                    {
-                        currentStepId = String(line[idRange.upperBound ..< endId.lowerBound])
-                    }
-                    if let opRange = line.range(of: "operationId: " + q),
-                       let endOp = line.range(of: q, range: opRange.upperBound ..< line.endIndex)
-                    {
-                        currentOpId = String(line[opRange.upperBound ..< endOp.lowerBound])
-                    }
-                }
-            default:
-                break
-            }
-        }
-        return .visitChildren
-    }
-
-    /// Visits `WhileStmtSyntax` nodes (e.g. `while attempt <= 2`) to extract retry limits.
-    ///
-    /// - Parameter node: The `WhileStmtSyntax` node being visited.
-    /// - Returns: `.visitChildren` to inspect statements inside the retry loop.
-    override public func visit(_ node: WhileStmtSyntax) -> SyntaxVisitorContinueKind {
-        let condText = node.conditions.description.trimmingCharacters(in: .whitespacesAndNewlines)
-        if condText.hasPrefix("attempt <= ") {
-            let numStr = String(condText.dropFirst("attempt <= ".count)).trimmingCharacters(in: .whitespaces)
-            if let limit = Int(numStr), limit > 0 {
-                currentRetries = limit
-            }
-        }
-        return .visitChildren
-    }
-
-    /// Visits `FunctionCallExprSyntax` nodes to detect `client.<op>()`, `operationRunner("<op>", ...)`, `ArazzoCriterion(...)`, and `XCTAssertEqual(...)`.
-    ///
-    /// - Parameter node: The `FunctionCallExprSyntax` node being visited.
-    /// - Returns: `.visitChildren` to inspect nested call expressions.
-    override public func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        let callee = node.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if callee.hasPrefix("client.") {
-            let callName = String(callee.dropFirst("client.".count))
-            if currentStepId == nil {
-                currentStepId = callName + "Step"
-            }
-            if currentOpId == nil {
-                currentOpId = callName
-            }
-        } else if callee == "ArazzoCriterion" {
-            var ctxVal: String?
-            var condVal: String?
-            for arg in node.arguments {
-                let label = arg.label?.text
-                if let strLit = arg.expression.as(StringLiteralExprSyntax.self),
-                   let seg = strLit.segments.first?.as(StringSegmentSyntax.self)
-                {
-                    if label == "context" {
-                        ctxVal = seg.content.text
-                    } else if label == "condition" {
-                        condVal = seg.content.text
-                    }
-                }
-            }
-            if let ctx = ctxVal, let cond = condVal {
-                currentCriteria.append(ArazzoCriterion(context: ctx, condition: cond))
-            }
-        } else if callee == "XCTAssertEqual", node.arguments.count >= 2, let firstArg = node.arguments.first {
-            let firstExpr = firstArg.expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
-            if firstExpr.hasSuffix(".statusCode") {
-                let secondIndex = node.arguments.index(after: node.arguments.startIndex)
-                let codeVal = node.arguments[secondIndex].expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
-                if currentStepId == nil {
-                    currentStepId = defaultStepIdPrefix + "Step"
-                }
-                currentCriteria.append(ArazzoCriterion(context: "$statusCode", condition: "== " + codeVal))
-            }
-        }
-
-        return .visitChildren
-    }
-
-    /// Visits `SequenceExprSyntax` nodes to capture `currentOutputs["key"] = ...` step output assignments.
-    ///
-    /// - Parameter node: The `SequenceExprSyntax` node being visited.
-    /// - Returns: `.visitChildren` to continue traversal.
-    override public func visit(_ node: SequenceExprSyntax) -> SyntaxVisitorContinueKind {
-        guard let firstElem = node.elements.first,
-              let subExpr = firstElem.as(SubscriptCallExprSyntax.self),
-              subExpr.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines) == "currentOutputs",
-              let keyArg = subExpr.arguments.first,
-              let keyLit = keyArg.expression.as(StringLiteralExprSyntax.self),
-              let keySeg = keyLit.segments.first?.as(StringSegmentSyntax.self)
-        else {
-            return .visitChildren
-        }
-        let q = String(UnicodeScalar(34))
-        let fullText = node.description
-        if let valStart = fullText.range(of: "AnyCodable(" + q),
-           let valEnd = fullText.range(of: q + ")", range: valStart.upperBound ..< fullText.endIndex)
-        {
-            let k = keySeg.content.text
-            let v = String(fullText[valStart.upperBound ..< valEnd.lowerBound])
-            currentOutputs[k] = AnyCodable(v)
-        }
-        return .visitChildren
-    }
-
-    /// Finalizes any accumulated step at the end of the function body traversal.
-    public func finalizePendingStep() {
-        flushCurrentStep()
-    }
-
-    /// Appends the currently accumulated step to `steps` and resets active step state.
-    private func flushCurrentStep() {
-        guard let stepId = currentStepId else { return }
-        var onFailure: [ArazzoFailureAction]?
-        if let retries = currentRetries, retries > 0 {
-            onFailure = [
-                ArazzoFailureAction(
-                    name: "retryOnFailure",
-                    type: .retry,
-                    retryAfter: 1.0,
-                    retryLimit: retries
-                )
-            ]
-        }
-        steps.append(
-            ArazzoStep(
-                stepId: stepId,
-                operationId: currentOpId ?? stepId,
-                successCriteria: currentCriteria.isEmpty ? nil : currentCriteria,
-                onFailure: onFailure,
-                outputs: currentOutputs.isEmpty ? nil : currentOutputs
-            )
-        )
-        currentStepId = nil
-        currentOpId = nil
-        currentCriteria = []
-        currentRetries = nil
-        currentOutputs = [:]
     }
 }

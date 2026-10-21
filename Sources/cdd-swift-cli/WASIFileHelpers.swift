@@ -105,12 +105,12 @@ enum WASIFileHelpers {
         return access(path, F_OK) == 0
     }
 
-    /// Creates a single directory at the specified path using POSIX `mkdir`.
+    /// Creates a single directory at the specified path using POSIX `mkdir` with `0o755` permissions.
     ///
     /// - Parameter path: The directory path to create.
     /// - Throws: `CDDError.fileIOError` if directory creation fails with an error other than `EEXIST`.
     static func createDirectory(at path: String) throws {
-        let result = mkdir(path, 0o777)
+        let result = mkdir(path, 0o755)
         if result != 0, errno != EEXIST {
             throw CDDError.fileIOError(
                 path: path,
@@ -140,20 +140,47 @@ enum WASIFileHelpers {
         }
     }
 
-    /// Recursively lists all file paths within a directory.
+    /// Recursively lists all file and directory paths within a directory using POSIX `opendir` and `readdir`.
     ///
     /// - Parameter path: The root directory path to enumerate.
-    /// - Returns: An array of full file paths discovered under `path`.
+    /// - Returns: An array of full paths discovered under `path`.
     /// - Throws: An error if enumeration fails.
     static func listDirectory(at path: String) throws -> [String] {
+        guard let dir = opendir(path) else {
+            return []
+        }
+        defer { closedir(dir) }
+
         var files: [String] = []
-        let fm = FileManager.default
-        let dirURL = URL(fileURLWithPath: path)
-        if let enumerator = fm.enumerator(at: dirURL, includingPropertiesForKeys: nil) {
-            while let fileURL = enumerator.nextObject() as? URL {
-                files.append(fileURL.path)
+        var cleanBase = path
+        if cleanBase.hasSuffix("/") {
+            cleanBase = String(cleanBase.dropLast())
+        }
+
+        while let entry = readdir(dir) {
+            #if os(WASI)
+                let namePtr = UnsafeRawPointer(entry)
+                    .advanced(by: MemoryLayout<ino_t>.size + MemoryLayout<UInt8>.size)
+                    .assumingMemoryBound(to: CChar.self)
+                let name = String(cString: namePtr)
+            #else
+                let name = withUnsafePointer(to: entry.pointee.d_name) { ptr in
+                    ptr.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: entry.pointee.d_name)) { cStr in
+                        String(cString: cStr)
+                    }
+                }
+            #endif
+            if name == "." || name == ".." {
+                continue
+            }
+            let fullPath = cleanBase + "/" + name
+            files.append(fullPath)
+            var st = stat()
+            if stat(fullPath, &st) == 0, (st.st_mode & S_IFMT) == S_IFDIR {
+                let nested = try listDirectory(at: fullPath)
+                files.append(contentsOf: nested)
             }
         }
-        return files
+        return files.sorted()
     }
 }

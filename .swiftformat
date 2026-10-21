@@ -1,1 +1,2 @@
---disable docComments,docCommentsBeforeModifiers,wrapFunctionBodies,sortImports,trailingCommas
+--disable docComments,docCommentsBeforeModifiers,wrapFunctionBodies,sortImports,trailingCommas,wrapMultilineStatementBraces
+--max-width 140

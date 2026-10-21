@@ -50,7 +50,11 @@ public enum DocsJsonGenerator {
                 let method = httpMethod.rawValue
 
                 // Determine the operation identifier.
-                let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
+                let opName = op.operationId ?? method + path.replacingOccurrences(of: "/", with: "_")
+                    .replacingOccurrences(of: "{", with: "").replacingOccurrences(
+                        of: "}",
+                        with: ""
+                    )
 
                 // Collect necessary framework imports.
                 var imports: String?

@@ -39,7 +39,8 @@ final class MocksTests: XCTestCase {
         ]
 
         let emitted = emitMockClient(paths: paths)
-        XCTAssertTrue(emitted.contains("public func getUsers(id: String, MyParam: String? = nil, unknown: String? = nil) async throws -> String {"))
+        XCTAssertTrue(emitted
+            .contains("public func getUsers(id: String, MyParam: String? = nil, unknown: String? = nil) async throws -> String {"))
         XCTAssertTrue(emitted.contains("public func postUser(body: String) async throws -> Void {"))
         XCTAssertTrue(emitted.contains("public func postForm(formData: String? = nil) async throws -> Void {"))
         XCTAssertTrue(emitted.contains("public func postMulti(multipartData: String) async throws -> Void {"))

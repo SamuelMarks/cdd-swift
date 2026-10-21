@@ -33,6 +33,7 @@ public struct DefaultMCPClientRouter: MCPClientRouter {
     /// Ignores incoming server notifications.
     ///
     /// - Parameter notification: The incoming `JSONRPCNotification` envelope.
+    /// - Throws: Never throws by default.
     public func handleNotification(notification _: JSONRPCNotification<AnyCodable>) async throws {}
 }
 
@@ -78,9 +79,7 @@ public actor MCPClientSession {
     public func start() async throws {
         try await transport.start { [weak self] data in
             guard let self = self else { return }
-            Task {
-                await self.processIncomingData(data)
-            }
+            await self.processIncomingData(data)
         }
     }
 

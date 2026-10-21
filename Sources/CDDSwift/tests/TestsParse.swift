@@ -20,8 +20,7 @@ public class TestVisitor: SyntaxVisitor {
         if node.name.text.hasSuffix("Tests") {
             for member in node.memberBlock.members {
                 if let funcDecl = member.decl.as(FunctionDeclSyntax.self),
-                   funcDecl.name.text.hasPrefix("test")
-                {
+                   funcDecl.name.text.hasPrefix("test") {
                     discoveredTestMethods.append(funcDecl.name.text)
                 }
             }

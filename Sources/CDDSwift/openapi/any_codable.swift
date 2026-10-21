@@ -2,7 +2,10 @@
 import Foundation
 
 /// Strongly-typed recursive JSON value enum with full `Sendable`, `Equatable`, `Hashable`, and `Codable` support.
-public enum JSONValue: Codable, Equatable, Hashable, Sendable {
+public enum JSONValue: Codable, Equatable, Hashable, Sendable, CustomStringConvertible,
+    ExpressibleByStringLiteral, ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral,
+    ExpressibleByBooleanLiteral, ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral,
+    ExpressibleByNilLiteral {
     /// JSON `null` literal.
     case null
     /// JSON boolean literal (`true` or `false`).
@@ -17,6 +20,125 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
     case array([JSONValue])
     /// JSON key-value object mapping string keys to `JSONValue` values.
     case object([String: JSONValue])
+
+    /// Returns the wrapped `String` if this value is `.string`, otherwise `nil`.
+    public var stringValue: String? {
+        guard case let .string(val) = self else { return nil }
+        return val
+    }
+
+    /// Returns the wrapped `Int` if this value is `.int`, otherwise `nil`.
+    public var intValue: Int? {
+        guard case let .int(val) = self else { return nil }
+        return val
+    }
+
+    /// Returns the wrapped `Double` if this value is `.double`, or converts `.int` to `Double`, otherwise `nil`.
+    public var doubleValue: Double? {
+        switch self {
+        case let .double(val): return val
+        case let .int(val): return Double(val)
+        default: return nil
+        }
+    }
+
+    /// Returns the wrapped `Bool` if this value is `.bool`, otherwise `nil`.
+    public var boolValue: Bool? {
+        guard case let .bool(val) = self else { return nil }
+        return val
+    }
+
+    /// Returns the wrapped `[JSONValue]` array if this value is `.array`, otherwise `nil`.
+    public var arrayValue: [JSONValue]? {
+        guard case let .array(val) = self else { return nil }
+        return val
+    }
+
+    /// Returns the wrapped `[String: JSONValue]` dictionary if this value is `.object`, otherwise `nil`.
+    public var objectValue: [String: JSONValue]? {
+        guard case let .object(val) = self else { return nil }
+        return val
+    }
+
+    /// Returns `true` if this value is `.null`, otherwise `false`.
+    public var isNull: Bool {
+        guard case .null = self else { return false }
+        return true
+    }
+
+    /// Human-readable string representation of the JSON value.
+    public var description: String {
+        switch self {
+        case .null:
+            return "null"
+        case let .bool(b):
+            return String(b)
+        case let .int(i):
+            return String(i)
+        case let .double(d):
+            return String(d)
+        case let .string(s):
+            return s
+        case let .array(arr):
+            return "[" + arr.map { $0.description }.joined(separator: ", ") + "]"
+        case let .object(dict):
+            let pairs = dict.sorted(by: { $0.key < $1.key }).map { "\($0.key): \($0.value.description)" }
+            return "{" + pairs.joined(separator: ", ") + "}"
+        }
+    }
+
+    /// Initializes a `.string` `JSONValue` from a string literal.
+    ///
+    /// - Parameter value: The string literal value.
+    public init(stringLiteral value: String) {
+        self = .string(value)
+    }
+
+    /// Initializes an `.int` `JSONValue` from an integer literal.
+    ///
+    /// - Parameter value: The integer literal value.
+    public init(integerLiteral value: Int) {
+        self = .int(value)
+    }
+
+    /// Initializes a `.double` `JSONValue` from a floating-point literal.
+    ///
+    /// - Parameter value: The floating-point literal value.
+    public init(floatLiteral value: Double) {
+        self = .double(value)
+    }
+
+    /// Initializes a `.bool` `JSONValue` from a boolean literal.
+    ///
+    /// - Parameter value: The boolean literal value.
+    public init(booleanLiteral value: Bool) {
+        self = .bool(value)
+    }
+
+    /// Initializes an `.array` `JSONValue` from an array literal.
+    ///
+    /// - Parameter elements: The `JSONValue` array elements.
+    public init(arrayLiteral elements: JSONValue...) {
+        self = .array(elements)
+    }
+
+    /// Initializes an `.object` `JSONValue` from a dictionary literal.
+    ///
+    /// - Parameter elements: The key-value pairs for the JSON object.
+    public init(dictionaryLiteral elements: (String, JSONValue)...) {
+        var dict: [String: JSONValue] = [:]
+        for (k, v) in elements {
+            dict[k] = v
+        }
+        self = .object(dict)
+    }
+
+    /// Initializes a `.null` `JSONValue` from `nil`.
+    ///
+    /// - Parameter nilLiteral: The `nil` literal tuple.
+    public init(nilLiteral _: ()) {
+        self = .null
+    }
 
     /// Decodes a `JSONValue` from a single-value JSON container.
     ///
@@ -66,112 +188,59 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
             try container.encode(dict)
         }
     }
-
-    /// Converts this `JSONValue` into its native Swift value (`Bool`, `Int`, `Double`, `String`, `[Any]`, `[String: Any]`, or `NSNull`).
-    public var untypedValue: Any {
-        switch self {
-        case .null:
-            return NSNull()
-        case let .bool(b):
-            return b
-        case let .int(i):
-            return i
-        case let .double(d):
-            return d
-        case let .string(s):
-            return s
-        case let .array(arr):
-            return arr.map { $0.untypedValue }
-        case let .object(dict):
-            return dict.mapValues { $0.untypedValue }
-        }
-    }
 }
 
 /// A `Sendable`, `Equatable`, `Hashable`, `Codable` wrapper around `JSONValue` providing ergonomic dynamic JSON handling.
-public struct AnyCodable: Codable, Equatable, Hashable, Sendable {
-    /// Canonical Swift source code template for embedding `AnyCodable` inside generated client SDK packages.
-    public static let embeddedSwiftSource: String = """
-    /// A type-erased `Codable` value.
-    public struct AnyCodable: Codable, Equatable, @unchecked Sendable {
-        /// The type-erased value.
-        public let value: Any
+public struct AnyCodable: Codable, Equatable, Hashable, Sendable, CustomStringConvertible,
+    ExpressibleByStringLiteral, ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral,
+    ExpressibleByBooleanLiteral, ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral,
+    ExpressibleByNilLiteral {
+    /// The strongly-typed `JSONValue` backing store.
+    public let jsonValue: JSONValue
 
-        /// Initializes an `AnyCodable` wrapping the given value.
-        public init(_ value: Any) {
-            self.value = value
-        }
-
-        /// Decodes an `AnyCodable` from a single-value container.
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.singleValueContainer()
-            if let bool = try? container.decode(Bool.self) {
-                value = bool
-            } else if let int = try? container.decode(Int.self) {
-                value = int
-            } else if let double = try? container.decode(Double.self) {
-                value = double
-            } else if let string = try? container.decode(String.self) {
-                value = string
-            } else if let array = try? container.decode([AnyCodable].self) {
-                value = array.map { $0.value }
-            } else if let dict = try? container.decode([String: AnyCodable].self) {
-                value = dict.mapValues { $0.value }
-            } else if container.decodeNil() {
-                value = NSNull()
-            } else {
-                throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded")
-            }
-        }
-
-        /// Encodes this value into the given encoder.
-        public func encode(to encoder: Encoder) throws {
-            var container = encoder.singleValueContainer()
-            switch value {
-            case let anyCodable as AnyCodable:
-                try anyCodable.encode(to: encoder)
-            case let bool as Bool:
-                try container.encode(bool)
-            case let int as Int:
-                try container.encode(int)
-            case let double as Double:
-                try container.encode(double)
-            case let string as String:
-                try container.encode(string)
-            case let array as [Any]:
-                try container.encode(array.map { AnyCodable($0) })
-            case let dict as [String: Any]:
-                try container.encode(dict.mapValues { AnyCodable($0) })
-            case is NSNull:
-                try container.encodeNil()
-            default:
-                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded"))
-            }
-        }
-
-        /// Compares two `AnyCodable` instances for equality.
-        public static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
-            switch (lhs.value, rhs.value) {
-            case is (Void, Void), is (NSNull, NSNull): return true
-            case let (l as AnyCodable, r as AnyCodable): return l == r
-            case let (l as Bool, r as Bool): return l == r
-            case let (l as Int, r as Int): return l == r
-            case let (l as Double, r as Double): return l == r
-            case let (l as String, r as String): return l == r
-            case let (l as [Any], r as [Any]): return l.map { AnyCodable($0) } == r.map { AnyCodable($0) }
-            case let (l as [String: Any], r as [String: Any]): return l.mapValues { AnyCodable($0) } == r.mapValues { AnyCodable($0) }
-            default: return false
-            }
-        }
+    /// Strongly-typed `JSONValue` representation of this `AnyCodable`.
+    public var value: JSONValue {
+        return jsonValue
     }
-    """
 
-    /// The strongly-typed `JSONValue` backing store, or `nil` when constructed with an unencodable value.
-    public let jsonValue: JSONValue?
+    /// Returns the wrapped `String` if this value is `.string`, otherwise `nil`.
+    public var stringValue: String? {
+        return jsonValue.stringValue
+    }
 
-    /// Returns the underlying value as a native Swift type (`String`, `Int`, `Double`, `Bool`, `[Any]`, `[String: Any]`, or `NSNull`).
-    public var value: Any {
-        return jsonValue?.untypedValue ?? NSNull()
+    /// Returns the wrapped `Int` if this value is `.int`, otherwise `nil`.
+    public var intValue: Int? {
+        return jsonValue.intValue
+    }
+
+    /// Returns the wrapped `Double` if this value is `.double` or `.int`, otherwise `nil`.
+    public var doubleValue: Double? {
+        return jsonValue.doubleValue
+    }
+
+    /// Returns the wrapped `Bool` if this value is `.bool`, otherwise `nil`.
+    public var boolValue: Bool? {
+        return jsonValue.boolValue
+    }
+
+    /// Returns the wrapped `[JSONValue]` array if this value is `.array`, otherwise `nil`.
+    public var arrayValue: [JSONValue]? {
+        return jsonValue.arrayValue
+    }
+
+    /// Returns the wrapped `[String: JSONValue]` dictionary if this value is `.object`, otherwise `nil`.
+    public var objectValue: [String: JSONValue]? {
+        return jsonValue.objectValue
+    }
+
+    /// Returns `true` if this value is `.null`, otherwise `false`.
+    public var isNull: Bool {
+        return jsonValue.isNull
+    }
+
+    /// Human-readable string representation of the wrapped `JSONValue`.
+    public var description: String {
+        return jsonValue.description
     }
 
     /// Initializes an `AnyCodable` directly from a strongly-typed `JSONValue`.
@@ -181,50 +250,157 @@ public struct AnyCodable: Codable, Equatable, Hashable, Sendable {
         self.jsonValue = jsonValue
     }
 
-    /// Initializes an `AnyCodable` instance wrapping the provided Swift value.
+    /// Initializes an `AnyCodable` directly from a `JSONValue`.
     ///
-    /// - Parameter value: The underlying value to convert into a `JSONValue`.
-    public init(_ value: Any) {
-        jsonValue = Self.convertToJSONValue(value)
+    /// - Parameter value: The `JSONValue` to wrap.
+    public init(_ value: JSONValue = .null) {
+        jsonValue = value
     }
 
-    /// Recursively converts an arbitrary Swift value into a `JSONValue`, or `nil` if unsupported.
+    /// Initializes an `AnyCodable` wrapping another `AnyCodable`.
     ///
-    /// - Parameter raw: The raw Swift value to convert.
-    /// - Returns: The corresponding `JSONValue`, or `nil` if the type is not JSON-compatible.
-    private static func convertToJSONValue(_ raw: Any) -> JSONValue? {
-        switch raw {
-        case let anyCodable as AnyCodable:
-            return anyCodable.jsonValue
-        case let jv as JSONValue:
-            return jv
-        case is NSNull, is Void:
-            return .null
-        case let bool as Bool:
-            return .bool(bool)
-        case let int as Int:
-            return .int(int)
-        case let double as Double:
-            return .double(double)
-        case let string as String:
-            return .string(string)
-        case let array as [Any]:
-            var converted: [JSONValue] = []
-            for element in array {
-                guard let item = convertToJSONValue(element) else { return nil }
-                converted.append(item)
-            }
-            return .array(converted)
-        case let dict as [String: Any]:
-            var converted: [String: JSONValue] = [:]
-            for (k, v) in dict {
-                guard let item = convertToJSONValue(v) else { return nil }
-                converted[k] = item
-            }
-            return .object(converted)
-        default:
-            return nil
+    /// - Parameter other: The `AnyCodable` to copy.
+    public init(_ other: AnyCodable) {
+        jsonValue = other.jsonValue
+    }
+
+    /// Initializes an `AnyCodable` from a `String`.
+    ///
+    /// - Parameter value: The `String` value.
+    public init(_ value: String) {
+        jsonValue = .string(value)
+    }
+
+    /// Initializes an `AnyCodable` from an `Int`.
+    ///
+    /// - Parameter value: The `Int` value.
+    public init(_ value: Int) {
+        jsonValue = .int(value)
+    }
+
+    /// Initializes an `AnyCodable` from a `Double`.
+    ///
+    /// - Parameter value: The `Double` value.
+    public init(_ value: Double) {
+        jsonValue = .double(value)
+    }
+
+    /// Initializes an `AnyCodable` from a `Bool`.
+    ///
+    /// - Parameter value: The `Bool` value.
+    public init(_ value: Bool) {
+        jsonValue = .bool(value)
+    }
+
+    /// Initializes an `AnyCodable` from an array of `JSONValue` elements.
+    ///
+    /// - Parameter value: The `[JSONValue]` array.
+    public init(_ value: [JSONValue]) {
+        jsonValue = .array(value)
+    }
+
+    /// Initializes an `AnyCodable` from an array of `AnyCodable` elements.
+    ///
+    /// - Parameter value: The `[AnyCodable]` array.
+    @_disfavoredOverload
+    public init(_ value: [AnyCodable]) {
+        jsonValue = .array(value.map { $0.jsonValue })
+    }
+
+    /// Initializes an `AnyCodable` from an array of `String` elements.
+    ///
+    /// - Parameter value: The `[String]` array.
+    public init(_ value: [String]) {
+        jsonValue = .array(value.map { .string($0) })
+    }
+
+    /// Initializes an `AnyCodable` from an array of `Int` elements.
+    ///
+    /// - Parameter value: The `[Int]` array.
+    public init(_ value: [Int]) {
+        jsonValue = .array(value.map { .int($0) })
+    }
+
+    /// Initializes an `AnyCodable` from a dictionary of `JSONValue` values.
+    ///
+    /// - Parameter value: The `[String: JSONValue]` dictionary.
+    public init(_ value: [String: JSONValue]) {
+        jsonValue = .object(value)
+    }
+
+    /// Initializes an `AnyCodable` from a dictionary of `AnyCodable` values.
+    ///
+    /// - Parameter value: The `[String: AnyCodable]` dictionary.
+    @_disfavoredOverload
+    public init(_ value: [String: AnyCodable]) {
+        jsonValue = .object(value.mapValues { $0.jsonValue })
+    }
+
+    /// Initializes an `AnyCodable` from a dictionary of `String` values.
+    ///
+    /// - Parameter value: The `[String: String]` dictionary.
+    public init(_ value: [String: String]) {
+        jsonValue = .object(value.mapValues { .string($0) })
+    }
+
+    /// Initializes an `AnyCodable` from a dictionary of `Int` values.
+    ///
+    /// - Parameter value: The `[String: Int]` dictionary.
+    public init(_ value: [String: Int]) {
+        jsonValue = .object(value.mapValues { .int($0) })
+    }
+
+    /// Initializes a `.string` `AnyCodable` from a string literal.
+    ///
+    /// - Parameter value: The string literal value.
+    public init(stringLiteral value: String) {
+        jsonValue = .string(value)
+    }
+
+    /// Initializes an `.int` `AnyCodable` from an integer literal.
+    ///
+    /// - Parameter value: The integer literal value.
+    public init(integerLiteral value: Int) {
+        jsonValue = .int(value)
+    }
+
+    /// Initializes a `.double` `AnyCodable` from a floating-point literal.
+    ///
+    /// - Parameter value: The floating-point literal value.
+    public init(floatLiteral value: Double) {
+        jsonValue = .double(value)
+    }
+
+    /// Initializes a `.bool` `AnyCodable` from a boolean literal.
+    ///
+    /// - Parameter value: The boolean literal value.
+    public init(booleanLiteral value: Bool) {
+        jsonValue = .bool(value)
+    }
+
+    /// Initializes an `.array` `AnyCodable` from an array literal.
+    ///
+    /// - Parameter elements: The `AnyCodable` array elements.
+    public init(arrayLiteral elements: AnyCodable...) {
+        jsonValue = .array(elements.map { $0.jsonValue })
+    }
+
+    /// Initializes an `.object` `AnyCodable` from a dictionary literal.
+    ///
+    /// - Parameter elements: The key-value pairs for the JSON object.
+    public init(dictionaryLiteral elements: (String, AnyCodable)...) {
+        var dict: [String: JSONValue] = [:]
+        for (k, v) in elements {
+            dict[k] = v.jsonValue
         }
+        jsonValue = .object(dict)
+    }
+
+    /// Initializes a `.null` `AnyCodable` from `nil`.
+    ///
+    /// - Parameter nilLiteral: The `nil` literal tuple.
+    public init(nilLiteral _: ()) {
+        jsonValue = .null
     }
 
     /// Decodes an `AnyCodable` instance from a single-value container.
@@ -238,28 +414,8 @@ public struct AnyCodable: Codable, Equatable, Hashable, Sendable {
     /// Encodes this value into the given encoder.
     ///
     /// - Parameter encoder: The encoder to write data to.
-    /// - Throws: `EncodingError.invalidValue` if the wrapped value is not JSON-encodable.
+    /// - Throws: An error if the wrapped value cannot be encoded.
     public func encode(to encoder: Encoder) throws {
-        let container = encoder.singleValueContainer()
-        guard let jv = jsonValue else {
-            throw EncodingError.invalidValue(
-                "unencodable",
-                EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded")
-            )
-        }
-        try jv.encode(to: encoder)
-    }
-
-    /// Compares two `AnyCodable` instances for structural equality.
-    ///
-    /// - Parameters:
-    ///   - lhs: The left-hand side `AnyCodable` value.
-    ///   - rhs: The right-hand side `AnyCodable` value.
-    /// - Returns: `true` if both wrapped values are valid `JSONValue` instances and equal, `false` otherwise.
-    public static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
-        guard let l = lhs.jsonValue, let r = rhs.jsonValue else {
-            return false
-        }
-        return l == r
+        try jsonValue.encode(to: encoder)
     }
 }

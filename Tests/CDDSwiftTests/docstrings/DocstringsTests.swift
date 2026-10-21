@@ -53,7 +53,10 @@ final class DocstringsTests: XCTestCase {
         let parser = SwiftASTParser()
         let schemas = try parser.parseModels(from: swiftCode)
         let nl = String(UnicodeScalar(10))
-        XCTAssertEqual(schemas["MyStruct"]?.description, ["/**", " This is a block comment.", " It spans multiple lines.", " */"].joined(separator: nl))
+        XCTAssertEqual(
+            schemas["MyStruct"]?.description,
+            ["/**", " This is a block comment.", " It spans multiple lines.", " */"].joined(separator: nl)
+        )
 
         let emptyDocsCode = """
         /**  */

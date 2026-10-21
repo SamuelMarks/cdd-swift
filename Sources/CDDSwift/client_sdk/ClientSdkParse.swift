@@ -17,7 +17,8 @@ public enum OpenAPIParser {
     }
 }
 
-/// Parses Swift source code using `SwiftSyntax` to extract models, routes, CLI commands, server routes, mocks, and webhooks into an `OpenAPIDocument`.
+/// Parses Swift source code using `SwiftSyntax` to extract models, routes, CLI commands, server routes, mocks, and webhooks into an
+/// `OpenAPIDocument`.
 public class SwiftASTParser {
     /// Initializes a `SwiftASTParser`.
     public init() {}
@@ -34,7 +35,8 @@ public class SwiftASTParser {
         return visitor.schemas
     }
 
-    /// Parses Swift source code to construct a complete `OpenAPIDocument` across models, routes, server handlers, CLI commands, mocks, and webhooks.
+    /// Parses Swift source code to construct a complete `OpenAPIDocument` across models, routes, server handlers, CLI commands, mocks, and
+    /// webhooks.
     ///
     /// - Parameter source: The Swift source code string.
     /// - Returns: The reconstructed `OpenAPIDocument`.
@@ -43,100 +45,157 @@ public class SwiftASTParser {
         let sourceFile = Parser.parse(source: source)
 
         let modelVisitor = ModelVisitor(viewMode: .sourceAccurate)
-        modelVisitor.walk(sourceFile)
-
         let routeVisitor = RouteVisitor(viewMode: .sourceAccurate)
-        routeVisitor.walk(sourceFile)
-
         let mockVisitor = MockVisitor(viewMode: .sourceAccurate)
-        mockVisitor.walk(sourceFile)
-
         let testVisitor = TestVisitor(viewMode: .sourceAccurate)
-        testVisitor.walk(sourceFile)
-
         let functionVisitor = FunctionVisitor(viewMode: .sourceAccurate)
-        functionVisitor.walk(sourceFile)
-
         let cliVisitor = CliVisitor(viewMode: .sourceAccurate)
-        cliVisitor.walk(sourceFile)
-
         let serverVisitor = ServerVisitor(viewMode: .sourceAccurate)
-        serverVisitor.walk(sourceFile)
 
-        var finalPaths = routeVisitor.paths
-        for (path, cliItem) in cliVisitor.paths {
-            finalPaths[path] = cliItem
-        }
-        for (path, serverItem) in serverVisitor.paths where finalPaths[path] == nil {
-            finalPaths[path] = serverItem
-        }
-        for (path, mockItem) in mockVisitor.inferredPaths {
-            if let existing = finalPaths[path] {
-                let merged = PathItem(
-                    ref: existing.ref ?? mockItem.ref,
-                    summary: existing.summary ?? mockItem.summary,
-                    description: existing.description ?? mockItem.description,
-                    get: existing.get ?? mockItem.get,
-                    put: existing.put ?? mockItem.put,
-                    post: existing.post ?? mockItem.post,
-                    delete: existing.delete ?? mockItem.delete,
-                    options: existing.options ?? mockItem.options,
-                    head: existing.head ?? mockItem.head,
-                    patch: existing.patch ?? mockItem.patch,
-                    trace: existing.trace ?? mockItem.trace,
-                    query: existing.query ?? mockItem.query,
-                    additionalOperations: existing.additionalOperations ?? mockItem.additionalOperations,
-                    servers: existing.servers ?? mockItem.servers,
-                    parameters: existing.parameters ?? mockItem.parameters
-                )
-                finalPaths[path] = merged
-            } else {
-                finalPaths[path] = mockItem
-            }
+        for visitor in [
+            modelVisitor, routeVisitor, mockVisitor, testVisitor,
+            functionVisitor, cliVisitor, serverVisitor
+        ] as [SyntaxVisitor] {
+            visitor.walk(sourceFile)
         }
 
-        for (pathName, pathItem) in finalPaths {
-            var updatedItem = pathItem
-            if let getOp = updatedItem.get, let opId = getOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.get = Self.withCallbacks(getOp, callbacks: ["onEvent": cb])
-            }
-            if let postOp = updatedItem.post, let opId = postOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.post = Self.withCallbacks(postOp, callbacks: ["onEvent": cb])
-            }
-            if let putOp = updatedItem.put, let opId = putOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.put = Self.withCallbacks(putOp, callbacks: ["onEvent": cb])
-            }
-            if let deleteOp = updatedItem.delete, let opId = deleteOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.delete = Self.withCallbacks(deleteOp, callbacks: ["onEvent": cb])
-            }
-            if let patchOp = updatedItem.patch, let opId = patchOp.operationId, let cb = functionVisitor.callbacks[opId] {
-                updatedItem.patch = Self.withCallbacks(patchOp, callbacks: ["onEvent": cb])
-            }
-            finalPaths[pathName] = updatedItem
-        }
+        var finalPaths = Self.mergeExtractedPaths(
+            routePaths: routeVisitor.paths,
+            cliPaths: cliVisitor.paths,
+            serverPaths: serverVisitor.paths,
+            mockPaths: mockVisitor.inferredPaths
+        )
+        finalPaths = Self.attachOperationCallbacks(to: finalPaths, callbacks: functionVisitor.callbacks)
 
-        let schemas = modelVisitor.schemas.isEmpty ? nil : modelVisitor.schemas
-        let securitySchemes = routeVisitor.securitySchemes.isEmpty ? nil : routeVisitor.securitySchemes
-        let callbacks = functionVisitor.callbacks.isEmpty ? nil : functionVisitor.callbacks
-
-        var components: Components?
-        if schemas != nil || securitySchemes != nil || callbacks != nil {
-            components = Components(schemas: schemas, securitySchemes: securitySchemes, callbacks: callbacks)
-        }
-
+        let components = Self.buildComponents(
+            schemas: modelVisitor.schemas,
+            securitySchemes: routeVisitor.securitySchemes,
+            callbacks: functionVisitor.callbacks
+        )
         let testTags: [Tag]? = testVisitor.discoveredTestMethods.isEmpty
             ? nil
             : testVisitor.discoveredTestMethods.map { Tag(name: $0, description: "Discovered XCTest method") }
 
         return OpenAPIDocument(
             openapi: "3.2.0",
-            info: Info(title: "Parsed API", version: "1.0.0"),
+            info: Info(title: cliVisitor.infoTitle ?? "Parsed API", version: cliVisitor.infoVersion ?? "1.0.0"),
             paths: finalPaths.isEmpty ? nil : finalPaths,
             webhooks: functionVisitor.webhooks.isEmpty ? nil : functionVisitor.webhooks,
             components: components,
             security: routeVisitor.globalSecurity.isEmpty ? nil : routeVisitor.globalSecurity,
             tags: testTags
         )
+    }
+
+    /// Merges path items discovered from `RouteVisitor`, `CliVisitor`, `ServerVisitor`, and `MockVisitor`.
+    ///
+    /// - Parameters:
+    ///   - routePaths: Paths extracted from `APIClient`.
+    ///   - cliPaths: Paths extracted from `ArgumentParser` commands.
+    ///   - serverPaths: Paths extracted from Vapor server route registrations.
+    ///   - mockPaths: Fallback paths inferred from `MockAPIClient`.
+    /// - Returns: The combined dictionary of `PathItem` definitions.
+    private static func mergeExtractedPaths(
+        routePaths: [String: PathItem],
+        cliPaths: [String: PathItem],
+        serverPaths: [String: PathItem],
+        mockPaths: [String: PathItem]
+    ) -> [String: PathItem] {
+        var finalPaths = routePaths
+        for (path, cliItem) in cliPaths {
+            finalPaths[path] = cliItem
+        }
+        for (path, serverItem) in serverPaths where finalPaths[path] == nil {
+            finalPaths[path] = serverItem
+        }
+        for (path, mockItem) in mockPaths {
+            if let existing = finalPaths[path] {
+                finalPaths[path] = mergePathItem(existing: existing, fallback: mockItem)
+            } else {
+                finalPaths[path] = mockItem
+            }
+        }
+        return finalPaths
+    }
+
+    /// Merges two `PathItem` values, preferring non-nil properties on `existing` and falling back to `fallback`.
+    ///
+    /// - Parameters:
+    ///   - existing: The primary `PathItem`.
+    ///   - fallback: The fallback `PathItem`.
+    /// - Returns: A merged `PathItem`.
+    private static func mergePathItem(existing: PathItem, fallback: PathItem) -> PathItem {
+        return PathItem(
+            ref: existing.ref ?? fallback.ref,
+            summary: existing.summary ?? fallback.summary,
+            description: existing.description ?? fallback.description,
+            get: existing.get ?? fallback.get,
+            put: existing.put ?? fallback.put,
+            post: existing.post ?? fallback.post,
+            delete: existing.delete ?? fallback.delete,
+            options: existing.options ?? fallback.options,
+            head: existing.head ?? fallback.head,
+            patch: existing.patch ?? fallback.patch,
+            trace: existing.trace ?? fallback.trace,
+            query: existing.query ?? fallback.query,
+            additionalOperations: existing.additionalOperations ?? fallback.additionalOperations,
+            servers: existing.servers ?? fallback.servers,
+            parameters: existing.parameters ?? fallback.parameters
+        )
+    }
+
+    /// Attaches discovered callback protocols to matching operations by `operationId`.
+    ///
+    /// - Parameters:
+    ///   - paths: Dictionary of `PathItem` definitions.
+    ///   - callbacks: Map of operation IDs to `Callback` definitions.
+    /// - Returns: Updated `PathItem` dictionary with callbacks attached.
+    private static func attachOperationCallbacks(
+        to paths: [String: PathItem],
+        callbacks: [String: Callback]
+    ) -> [String: PathItem] {
+        var finalPaths = paths
+        for (pathName, pathItem) in finalPaths {
+            var updatedItem = pathItem
+            if let getOp = updatedItem.get, let opId = getOp.operationId, let cb = callbacks[opId] {
+                updatedItem.get = withCallbacks(getOp, callbacks: ["onEvent": cb])
+            }
+            if let postOp = updatedItem.post, let opId = postOp.operationId, let cb = callbacks[opId] {
+                updatedItem.post = withCallbacks(postOp, callbacks: ["onEvent": cb])
+            }
+            if let putOp = updatedItem.put, let opId = putOp.operationId, let cb = callbacks[opId] {
+                updatedItem.put = withCallbacks(putOp, callbacks: ["onEvent": cb])
+            }
+            if let deleteOp = updatedItem.delete, let opId = deleteOp.operationId, let cb = callbacks[opId] {
+                updatedItem.delete = withCallbacks(deleteOp, callbacks: ["onEvent": cb])
+            }
+            if let patchOp = updatedItem.patch, let opId = patchOp.operationId, let cb = callbacks[opId] {
+                updatedItem.patch = withCallbacks(patchOp, callbacks: ["onEvent": cb])
+            }
+            finalPaths[pathName] = updatedItem
+        }
+        return finalPaths
+    }
+
+    /// Builds an optional `Components` object when at least one of `schemas`, `securitySchemes`, or `callbacks` is non-empty.
+    ///
+    /// - Parameters:
+    ///   - schemas: Extracted schema dictionary.
+    ///   - securitySchemes: Extracted security schemes dictionary.
+    ///   - callbacks: Extracted callbacks dictionary.
+    /// - Returns: A `Components` value, or `nil` if all dictionaries are empty.
+    private static func buildComponents(
+        schemas: [String: Schema],
+        securitySchemes: [String: SecurityScheme],
+        callbacks: [String: Callback]
+    ) -> Components? {
+        let nonEmptySchemas = schemas.isEmpty ? nil : schemas
+        let nonEmptySecurity = securitySchemes.isEmpty ? nil : securitySchemes
+        let nonEmptyCallbacks = callbacks.isEmpty ? nil : callbacks
+        guard nonEmptySchemas != nil || nonEmptySecurity != nil || nonEmptyCallbacks != nil else {
+            return nil
+        }
+        return Components(schemas: nonEmptySchemas, securitySchemes: nonEmptySecurity, callbacks: nonEmptyCallbacks)
     }
 
     /// Returns a copy of `operation` with the provided `callbacks` attached.

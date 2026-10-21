@@ -291,7 +291,13 @@ public struct InitializeResult: Codable, Equatable, Sendable {
     ///   - capabilities: Server capability configuration.
     ///   - serverInfo: Server implementation name and version.
     ///   - instructions: Optional server usage instructions.
-    public init(_meta: Meta? = nil, protocolVersion: String, capabilities: ServerCapabilities, serverInfo: Implementation, instructions: String? = nil) {
+    public init(
+        _meta: Meta? = nil,
+        protocolVersion: String,
+        capabilities: ServerCapabilities,
+        serverInfo: Implementation,
+        instructions: String? = nil
+    ) {
         self._meta = _meta
         self.protocolVersion = protocolVersion
         self.capabilities = capabilities

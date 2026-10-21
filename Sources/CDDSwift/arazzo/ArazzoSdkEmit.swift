@@ -8,16 +8,7 @@ public enum ArazzoSdkEmitter {
     /// - Parameter name: Input raw identifier.
     /// - Returns: Valid Swift identifier.
     public static func sanitizeIdentifier(_ name: String) -> String {
-        let parts = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
-        guard let first = parts.first else { return "identifier" }
-        let tail = parts.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() }
-        let combined = first.prefix(1).lowercased() + first.dropFirst() + tail.joined()
-        let keywords: Set = [
-            "default", "case", "for", "while", "repeat", "do", "class", "struct", "enum", "protocol",
-            "import", "var", "let", "func", "return", "throw", "throws", "try", "catch", "where",
-            "typealias", "continue", "break", "fallthrough", "switch", "if", "else", "guard", "self"
-        ]
-        return keywords.contains(combined) ? "`" + combined + "`" : combined
+        return SwiftIdentifierSanitizer.sanitizeCamelCase(name, fallback: "identifier")
     }
 
     /// Converts an identifier string into a PascalCase Swift struct or class type name.
@@ -25,9 +16,7 @@ public enum ArazzoSdkEmitter {
     /// - Parameter name: Input raw identifier.
     /// - Returns: Swift PascalCase type name.
     public static func pascalCase(_ name: String) -> String {
-        let parts = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
-        guard !parts.isEmpty else { return "WorkflowType" }
-        return parts.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined()
+        return SwiftIdentifierSanitizer.sanitizePascalCase(name, fallback: "WorkflowType")
     }
 
     /// Emits a complete Swift source file containing workflow orchestrator classes, DTOs, and runtime support.
@@ -122,7 +111,8 @@ public enum ArazzoSdkEmitter {
         code += "    /// Map of source description names to their base URLs.\n"
         code += "    public let sourceDescriptions: [String: String]\n"
         code += "    /// Asynchronous operation dispatcher returning a populated `ArazzoExecutionContext` for each step.\n"
-        code += "    public let operationRunner: @Sendable (String, [String: [String: AnyCodable]]) async throws -> ArazzoExecutionContext\n\n"
+        code += "    public let operationRunner: @Sendable (String, [String: [String: AnyCodable]])"
+            + " async throws -> ArazzoExecutionContext\n\n"
         code += "    /// Initializes the workflow orchestrator client.\n"
         code += "    ///\n"
         code += "    /// - Parameters:\n"
@@ -132,7 +122,8 @@ public enum ArazzoSdkEmitter {
         code += "    public init(\n"
         code += "        client: " + clientClassName + " = " + clientClassName + "(),\n"
         code += "        sourceDescriptions: [String: String] = [:],\n"
-        code += "        operationRunner: @escaping @Sendable (String, [String: [String: AnyCodable]]) async throws -> ArazzoExecutionContext = { _, steps in ArazzoExecutionContext(statusCode: 200, steps: steps) }\n"
+        code += "        operationRunner: @escaping @Sendable (String, [String: [String: AnyCodable]])"
+            + " async throws -> ArazzoExecutionContext = { _, steps in ArazzoExecutionContext(statusCode: 200, steps: steps) }\n"
         code += "    ) {\n"
         code += "        self.client = client\n"
         code += "        self.sourceDescriptions = sourceDescriptions\n"
@@ -173,10 +164,9 @@ public enum ArazzoSdkEmitter {
 
         if let outputs = workflow.outputs {
             for (outKey, outExpr) in outputs.sorted(by: { $0.key < $1.key }) {
-                let exprStr = outExpr.value as? String ?? ""
-                code += "        if let val = try? ArazzoExpressionEvaluator.evaluate(expression: \"" + exprStr + "\", in: ArazzoExecutionContext(steps: stepOutputs)) {\n"
-                code += "            finalOutputs[\"" + outKey + "\"] = val\n"
-                code += "        }\n"
+                let exprStr = outExpr.stringValue ?? ""
+                code += "        finalOutputs[\"" + outKey + "\"] = try ArazzoExpressionEvaluator.evaluate(expression: \""
+                    + exprStr + "\", in: ArazzoExecutionContext(steps: stepOutputs))\n"
             }
         }
 
@@ -207,9 +197,12 @@ public enum ArazzoSdkEmitter {
             code += "                    // Evaluate success criteria\n"
             for crit in criteria {
                 let condEscaped = crit.condition.replacingOccurrences(of: "\"", with: "\\\"")
-                code += "                    let crit_" + sanitizeIdentifier(crit.context) + " = ArazzoCriterion(context: \"" + crit.context + "\", condition: \"" + condEscaped + "\")\n"
-                code += "                    guard try ArazzoExpressionEvaluator.evaluateCriterion(crit_" + sanitizeIdentifier(crit.context) + ", in: context) else {\n"
-                code += "                        throw CDDError.arazzoStepExecutionFailed(stepId: \"" + step.stepId + "\", reason: \"Criterion failed\")\n"
+                code += "                    let crit_" + sanitizeIdentifier(crit.context) + " = ArazzoCriterion(context: \"" + crit
+                    .context + "\", condition: \"" + condEscaped + "\")\n"
+                code += "                    guard try ArazzoExpressionEvaluator.evaluateCriterion(crit_" +
+                    sanitizeIdentifier(crit.context) + ", in: context) else {\n"
+                code += "                        throw CDDError.arazzoStepExecutionFailed(stepId: \""
+                    + step.stepId + "\", reason: \"Criterion failed\")\n"
                 code += "                    }\n"
             }
         }
@@ -217,8 +210,9 @@ public enum ArazzoSdkEmitter {
         if let outputs = step.outputs, !outputs.isEmpty {
             code += "                    var currentOutputs: [String: AnyCodable] = [:]\n"
             for (k, v) in outputs.sorted(by: { $0.key < $1.key }) {
-                let expr = v.value as? String ?? ""
-                code += "                    currentOutputs[\"" + k + "\"] = (try? ArazzoExpressionEvaluator.evaluate(expression: \"" + expr + "\", in: context)) ?? AnyCodable(\"" + expr + "\")\n"
+                let expr = v.stringValue ?? ""
+                code += "                    currentOutputs[\"" + k + "\"] = try ArazzoExpressionEvaluator.evaluate(expression: \"" + expr +
+                    "\", in: context)\n"
             }
             code += "                    stepOutputs[\"" + step.stepId + "\"] = currentOutputs\n"
         } else {

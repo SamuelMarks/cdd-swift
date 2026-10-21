@@ -16,6 +16,8 @@ struct GenerateArazzo: AsyncParsableCommand {
     var outputPath: String?
 
     /// Executes the `generate_arazzo` command.
+    ///
+    /// - Throws: `CDDError` if serializing or writing the output file fails.
     mutating func run() async throws {
         let builder = ArazzoDocumentBuilder(
             title: "Sample CDD Arazzo Workflows",

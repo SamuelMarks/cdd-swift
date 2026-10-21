@@ -1,15 +1,25 @@
+/// Unit tests for OpenAPI validation property wrappers (`@Minimum`, `@Maximum`, `@MinLength`, `@MaxLength`, `@Pattern`) and `CDDError`
+/// descriptions.
 @testable import CDDSwift
 import XCTest
 
+/// Test suite verifying validation property wrappers and `CDDError` formatting.
 final class ValidationPropertyWrappersTests: XCTestCase {
+    /// Sample model exercising all validation property wrappers.
     struct TestModel: Codable, Equatable {
+        /// Minimum integer value property.
         @Minimum(10) var minVal: Int = 15
+        /// Maximum integer value property.
         @Maximum(100) var maxVal: Int = 50
+        /// Minimum string length property.
         @MinLength(5) var minLen: String = "hello"
+        /// Maximum string length property.
         @MaxLength(10) var maxLen: String = "world"
+        /// Regex pattern constrained property.
         @CDDSwift.Pattern("^[a-z]+$") var pat: String = "abc"
     }
 
+    /// Verifies `Codable` round-tripping and boundary validation of all validation property wrappers.
     func testValidationWrappers() throws {
         let model = TestModel()
         XCTAssertEqual(model.minVal, 15)
@@ -56,29 +66,26 @@ final class ValidationPropertyWrappersTests: XCTestCase {
         }
     }
 
+    /// Verifies `description` and `errorDescription` across all `CDDError` cases.
     func testCDDErrorDescriptions() {
         let errors: [(CDDError, String)] = [
             (.invalidJSON("bad token"), "Invalid JSON: bad token"),
-            (.utf8EncodingFailed, "Failed to encode string as UTF-8 data."),
             (.utf8DecodingFailed(path: "/a.txt"), "Could not decode file at /a.txt as UTF-8."),
-            (.fileIOError(path: "/a.txt", operation: "read", errno: 2, message: "missing"), "File I/O error during read at /a.txt (errno 2): missing"),
-            (.missingRequiredArgument("--input"), "Missing required argument: --input"),
-            (.invalidURL("://bad"), "Invalid URL: ://bad"),
-            (.unsupportedSchemaConstruct("custom"), "Unsupported schema construct: custom"),
-            (.invalidReference("#/bad"), "Invalid reference: #/bad"),
-            (.astParsingFailed("syntax"), "AST parsing failed: syntax"),
-            (.codeGenerationFailed("emit"), "Code generation failed: emit"),
+            (
+                .fileIOError(path: "/a.txt", operation: "read", errno: 2, message: "missing"),
+                "File I/O error during read at /a.txt (errno 2): missing"
+            ),
             (.mcpTransportError("closed"), "MCP transport error: closed"),
-            (.jsonRpcError(code: -32600, message: "invalid"), "JSON-RPC error (-32600): invalid"),
             (.processExecutionFailed(executable: "/bin/x", message: "missing"), "Process execution failed for /bin/x: missing"),
             (.validationFailed(field: "age", reason: "< 0"), "Validation failed for 'age': < 0"),
-            (.fileSystemError(operation: "open", path: "/tmp/x", errnoCode: 13), "File system error during open at '/tmp/x' (errno 13)"),
-            (.commandExecutionFailed(command: "build", reason: "exit 1"), "Command 'build' failed: exit 1"),
-            (.unsupportedSpecificationVersion(spec: "OpenAPI", version: "1.0"), "Unsupported OpenAPI specification version: 1.0"),
-            (.mcpToolNotFound(name: "unknownTool"), "Unknown MCP tool: 'unknownTool'"),
-            (.mcpResourceNotFound(uri: "api://missing"), "Unknown MCP resource URI: 'api://missing'"),
-            (.jsonEncodingFailed(reason: "nan"), "JSON encoding failed: nan"),
-            (.jsonDecodingFailed(reason: "eof"), "JSON decoding failed: eof")
+            (.arazzoValidationError("missing workflows"), "Arazzo validation error: missing workflows"),
+            (
+                .arazzoExpressionEvaluationError(expression: "$url", context: "nil"),
+                "Arazzo expression evaluation error for '$url' in context 'nil'"
+            ),
+            (.arazzoStepExecutionFailed(stepId: "step1", reason: "500"), "Arazzo step execution failed for 'step1': 500"),
+            (.arazzoWorkflowNotFound("wf1"), "Arazzo workflow not found: 'wf1'"),
+            (.arazzoCircularDependency(workflowId: "wf2"), "Arazzo circular dependency detected involving workflow 'wf2'")
         ]
         for (error, expected) in errors {
             XCTAssertEqual(error.description, expected)

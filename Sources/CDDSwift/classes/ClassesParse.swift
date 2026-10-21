@@ -3,8 +3,32 @@ import Foundation
 import SwiftParser
 import SwiftSyntax
 
+/// Holds extracted enum cases and associated-value schemas for an enum declaration.
+private struct ExtractedEnumElements {
+    /// Raw string values for standard enum cases.
+    let stringCases: [String]
+    /// Associated-value schemas for `oneOf` union enum cases.
+    let oneOfSchemas: [Schema]
+    /// Indicates whether any case in the enum had associated values.
+    let hasAssociatedValues: Bool
+}
+
 /// Model visitor to extract Codable structs into OpenAPI Schemas.
 public class ModelVisitor: SyntaxVisitor {
+    /// Lookup table mapping Swift primitive type names to OpenAPI `Schema` values.
+    private static let primitiveSchemaMap: [String: Schema] = [
+        "String": Schema(type: "string"),
+        "Int": Schema(type: "integer", format: "int32"),
+        "Int64": Schema(type: "integer", format: "int64"),
+        "Double": Schema(type: "number", format: "double"),
+        "Float": Schema(type: "number", format: "float"),
+        "Bool": Schema(type: "boolean"),
+        "Date": Schema(type: "string", format: "date-time"),
+        "UUID": Schema(type: "string", format: "uuid"),
+        "Data": Schema(type: "string", format: "binary"),
+        "AnyCodable": Schema(type: "object")
+    ]
+
     /// Dictionary of extracted schemas mapped by name.
     public var schemas: [String: Schema] = [:]
 
@@ -18,69 +42,70 @@ public class ModelVisitor: SyntaxVisitor {
     /// - Parameter node: The `EnumDeclSyntax` node being visited.
     /// - Returns: `.skipChildren` after extracting the enum cases.
     override public func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        // Extract the name of the Enum.
         let enumName = node.name.text
-        // Check if the enum conforms to Codable, Encodable, Decodable, or String.
-        var isCodable = false
-        if let inheritanceClause = node.inheritanceClause {
-            for type in inheritanceClause.inheritedTypes {
-                // Extract the name of the inherited type.
-                let typeName = type.type.trimmedDescription
-                if typeName == "Codable" || typeName == "Encodable" || typeName == "Decodable" || typeName == "String" {
-                    isCodable = true
-                    break
-                }
-            }
+        guard hasInheritedType(node.inheritanceClause, matching: ["Codable", "Encodable", "Decodable", "String"]) else {
+            return .skipChildren
         }
 
-        if isCodable {
-            // Collect the raw string values for string-backed enums.
-            var stringCases: [String] = []
-            // Collect the associated type schemas for polymorphic enums.
-            var oneOfSchemas: [Schema] = []
-            // Flag to determine if the enum is polymorphic.
-            var hasAssociatedValues = false
+        let extracted = extractEnumElements(from: node.memberBlock.members)
+        let enumDescription = parseDocstring(from: Syntax(node))
 
-            for member in node.memberBlock.members {
-                if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                    for element in caseDecl.elements {
-                        if let assocValue = element.parameterClause {
-                            hasAssociatedValues = true
-                            if let firstParam = assocValue.parameters.first {
-                                let (schema, _) = parseType(firstParam.type)
-                                oneOfSchemas.append(schema)
-                            }
-                        } else {
-                            if let rawValue = element.rawValue {
-                                if let stringLiteral = rawValue.value.as(StringLiteralExprSyntax.self), let seg = stringLiteral.segments.first?.as(StringSegmentSyntax.self) {
-                                    stringCases.append(seg.content.text)
-                                } else {
-                                    stringCases.append(element.name.text)
-                                }
-                            } else {
-                                stringCases.append(element.name.text)
-                            }
-                        }
-                    }
-                }
-            }
-
-            let enumDescription = parseDocstring(from: Syntax(node))
-
-            if hasAssociatedValues {
-                schemas[enumName] = Schema(
-                    description: enumDescription,
-                    oneOf: oneOfSchemas.isEmpty ? nil : oneOfSchemas
-                )
-            } else {
-                schemas[enumName] = Schema(
-                    type: "string",
-                    description: enumDescription,
-                    enum_values: stringCases.map { AnyCodable($0) }
-                )
-            }
+        if extracted.hasAssociatedValues {
+            schemas[enumName] = Schema(
+                description: enumDescription,
+                oneOf: extracted.oneOfSchemas.isEmpty ? nil : extracted.oneOfSchemas
+            )
+        } else {
+            schemas[enumName] = Schema(
+                type: "string",
+                description: enumDescription,
+                enum_values: extracted.stringCases.map { AnyCodable($0) }
+            )
         }
         return .skipChildren
+    }
+
+    /// Extracts string case raw values and associated-value `oneOf` schemas from an enum's member block.
+    ///
+    /// - Parameter members: The `MemberBlockItemListSyntax` of the enum declaration.
+    /// - Returns: An `ExtractedEnumElements` instance.
+    private func extractEnumElements(from members: MemberBlockItemListSyntax) -> ExtractedEnumElements {
+        var stringCases: [String] = []
+        var oneOfSchemas: [Schema] = []
+        var hasAssociatedValues = false
+
+        for member in members {
+            guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else { continue }
+            for element in caseDecl.elements {
+                if let assocValue = element.parameterClause {
+                    hasAssociatedValues = true
+                    if let firstParam = assocValue.parameters.first {
+                        let (schema, _) = parseType(firstParam.type)
+                        oneOfSchemas.append(schema)
+                    }
+                } else {
+                    stringCases.append(extractEnumCaseStringValue(from: element))
+                }
+            }
+        }
+        return ExtractedEnumElements(
+            stringCases: stringCases,
+            oneOfSchemas: oneOfSchemas,
+            hasAssociatedValues: hasAssociatedValues
+        )
+    }
+
+    /// Extracts the raw string value (or case identifier fallback) from an `EnumCaseElementSyntax`.
+    ///
+    /// - Parameter element: The enum case element syntax node.
+    /// - Returns: The resolved string literal or case identifier name.
+    private func extractEnumCaseStringValue(from element: EnumCaseElementSyntax) -> String {
+        if let rawValue = element.rawValue,
+           let stringLiteral = rawValue.value.as(StringLiteralExprSyntax.self),
+           let seg = stringLiteral.segments.first?.as(StringSegmentSyntax.self) {
+            return seg.content.text
+        }
+        return element.name.text
     }
 
     /// Visits and parses `struct` declarations into object OpenAPI schemas.
@@ -88,103 +113,114 @@ public class ModelVisitor: SyntaxVisitor {
     /// - Parameter node: The `StructDeclSyntax` node being visited.
     /// - Returns: `.skipChildren` after extracting the struct properties.
     override public func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        // Extract the name of the Struct.
         let structName = node.name.text
+        guard hasInheritedType(node.inheritanceClause, matching: ["Codable", "Encodable", "Decodable"]) else {
+            return .skipChildren
+        }
 
-        // Check if the struct conforms to Codable, Encodable, or Decodable.
-        var isCodable = false
-        if let inheritanceClause = node.inheritanceClause {
-            for type in inheritanceClause.inheritedTypes {
-                // Extract the name of the inherited type.
-                let typeName = type.type.trimmedDescription
-                if typeName == "Codable" || typeName == "Encodable" || typeName == "Decodable" {
-                    isCodable = true
-                    break
+        var properties: [String: Schema] = [:]
+        var required: [String] = []
+        let structDescription = parseDocstring(from: Syntax(node))
+
+        for member in node.memberBlock.members {
+            guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
+            let propDescription = parseDocstring(from: Syntax(varDecl))
+            for binding in varDecl.bindings {
+                guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self),
+                      let typeAnnotation = binding.typeAnnotation
+                else {
+                    continue
+                }
+                let propName = pattern.identifier.text
+                let (baseSchema, isOptional) = parseType(typeAnnotation.type)
+                let propSchema = applyPropertyAttributes(
+                    to: baseSchema,
+                    description: propDescription,
+                    attributes: varDecl.attributes
+                )
+                properties[propName] = propSchema
+                if !isOptional {
+                    required.append(propName)
                 }
             }
         }
 
-        if isCodable {
-            // Map property names to their corresponding schemas.
-            var properties: [String: Schema] = [:]
-            var required: [String] = []
-            let structDescription = parseDocstring(from: Syntax(node))
-
-            for member in node.memberBlock.members {
-                if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                    let propDescription = parseDocstring(from: Syntax(varDecl))
-                    for binding in varDecl.bindings {
-                        if let pattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                            // The name of the property.
-                            let propName = pattern.identifier.text
-                            let typeSyntax = typeAnnotation.type
-
-                            var (schema, isOptional) = parseType(typeSyntax)
-
-                            var min: Double?
-                            var max: Double?
-                            var minLen: Int?
-                            var maxLen: Int?
-                            var patternStr: String?
-
-                            if let attributes = binding.parent?.parent?.as(VariableDeclSyntax.self)?.attributes {
-                                for attr in attributes {
-                                    if let customAttr = attr.as(AttributeSyntax.self) {
-                                        let attrName = customAttr.attributeName.trimmedDescription
-                                        if let args = customAttr.arguments?.as(LabeledExprListSyntax.self), let firstArg = args.first {
-                                            if attrName == "Minimum", let val = Double(firstArg.expression.trimmedDescription) {
-                                                min = val
-                                            }
-                                            if attrName == "Maximum", let val = Double(firstArg.expression.trimmedDescription) {
-                                                max = val
-                                            }
-                                            if attrName == "MinLength", let val = Int(firstArg.expression.trimmedDescription) {
-                                                minLen = val
-                                            }
-                                            if attrName == "MaxLength", let val = Int(firstArg.expression.trimmedDescription) {
-                                                maxLen = val
-                                            }
-                                            if attrName == "Pattern" {
-                                                if let stringLiteral = firstArg.expression.as(StringLiteralExprSyntax.self), let seg = stringLiteral.segments.first?.as(StringSegmentSyntax.self) {
-                                                    patternStr = seg.content.text
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if propDescription != nil || min != nil || max != nil || minLen != nil || maxLen != nil || patternStr != nil {
-                                schema = schema.updating(
-                                    description: propDescription,
-                                    minimum: min,
-                                    maximum: max,
-                                    minLength: minLen,
-                                    maxLength: maxLen,
-                                    pattern: patternStr
-                                )
-                            }
-
-                            properties[propName] = schema
-                            if !isOptional {
-                                required.append(propName)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Parse schema
-            let schema = Schema(
-                type: "object",
-                properties: properties.isEmpty ? nil : properties,
-                required: required.isEmpty ? nil : required,
-                description: structDescription
-            )
-            schemas[structName] = schema
-        }
-
+        schemas[structName] = Schema(
+            type: "object",
+            properties: properties.isEmpty ? nil : properties,
+            required: required.isEmpty ? nil : required,
+            description: structDescription
+        )
         return .skipChildren
+    }
+
+    /// Checks whether an `InheritanceClauseSyntax` contains any of the specified type names.
+    ///
+    /// - Parameters:
+    ///   - clause: Optional `InheritanceClauseSyntax` from a struct or enum declaration.
+    ///   - targetTypes: Set of protocol or raw type names to match.
+    /// - Returns: `true` if at least one inherited type matches `targetTypes`.
+    private func hasInheritedType(_ clause: InheritanceClauseSyntax?, matching targetTypes: Set<String>) -> Bool {
+        guard let clause = clause else { return false }
+        for inherited in clause.inheritedTypes where targetTypes.contains(inherited.type.trimmedDescription) {
+            return true
+        }
+        return false
+    }
+
+    /// Applies docstring description and validation property wrapper attributes (`@Minimum`, `@Maximum`, `@MinLength`, `@MaxLength`,
+    /// `@Pattern`) to a property `Schema`.
+    ///
+    /// - Parameters:
+    ///   - schema: The base property `Schema`.
+    ///   - description: Optional docstring description for the property.
+    ///   - attributes: The `AttributeListSyntax` attached to the `VariableDeclSyntax`.
+    /// - Returns: The updated `Schema` with any extracted constraints applied.
+    private func applyPropertyAttributes(
+        to schema: Schema,
+        description: String?,
+        attributes: AttributeListSyntax
+    ) -> Schema {
+        var min: Double?
+        var max: Double?
+        var minLen: Int?
+        var maxLen: Int?
+        var patternStr: String?
+
+        for attr in attributes {
+            guard let customAttr = attr.as(AttributeSyntax.self),
+                  let args = customAttr.arguments?.as(LabeledExprListSyntax.self),
+                  let firstArg = args.first
+            else {
+                continue
+            }
+            let attrName = customAttr.attributeName.trimmedDescription
+            let exprText = firstArg.expression.trimmedDescription
+            switch attrName {
+            case "Minimum": min = Double(exprText)
+            case "Maximum": max = Double(exprText)
+            case "MinLength": minLen = Int(exprText)
+            case "MaxLength": maxLen = Int(exprText)
+            case "Pattern":
+                if let strLit = firstArg.expression.as(StringLiteralExprSyntax.self),
+                   let seg = strLit.segments.first?.as(StringSegmentSyntax.self) {
+                    patternStr = seg.content.text
+                }
+            default: break
+            }
+        }
+
+        guard description != nil || min != nil || max != nil || minLen != nil || maxLen != nil || patternStr != nil else {
+            return schema
+        }
+        return schema.updating(
+            description: description,
+            minimum: min,
+            maximum: max,
+            minLength: minLen,
+            maxLength: maxLen,
+            pattern: patternStr
+        )
     }
 
     /// Visits and parses `typealias` declarations into OpenAPI schemas.
@@ -213,40 +249,34 @@ public class ModelVisitor: SyntaxVisitor {
         if let optType = type.as(OptionalTypeSyntax.self) {
             let (schema, _) = parseType(optType.wrappedType)
             return (schema, true)
-        } else if let identType = type.as(IdentifierTypeSyntax.self) {
-            let typeName = identType.name.text
-            return (mapPrimitive(typeName), false)
-        } else if let arrayType = type.as(ArrayTypeSyntax.self) {
+        }
+        if let identType = type.as(IdentifierTypeSyntax.self) {
+            return (mapPrimitive(identType.name.text), false)
+        }
+        if let arrayType = type.as(ArrayTypeSyntax.self) {
             let (itemSchema, _) = parseType(arrayType.element)
-
-            let items: SchemaItem
-            if let ref = itemSchema.ref {
-                items = SchemaItem(ref: ref)
-            } else {
-                items = SchemaItem(type: itemSchema.type, format: itemSchema.format)
-            }
-
-            let arraySchema = Schema(type: "array", items: items)
-            return (arraySchema, false)
-        } else if let dictType = type.as(DictionaryTypeSyntax.self) {
+            return (Schema(type: "array", items: toSchemaItem(itemSchema)), false)
+        }
+        if let dictType = type.as(DictionaryTypeSyntax.self) {
             let (valueSchema, _) = parseType(dictType.value)
-            let item: SchemaItem
-            if let ref = valueSchema.ref {
-                item = SchemaItem(ref: ref)
-            } else {
-                item = SchemaItem(type: valueSchema.type, format: valueSchema.format)
-            }
-            return (Schema(type: "object", additionalProperties: item), false)
-        } else if let tupleType = type.as(TupleTypeSyntax.self) {
-            var prefixItems: [Schema] = []
-            for element in tupleType.elements {
-                let (elemSchema, _) = parseType(element.type)
-                prefixItems.append(elemSchema)
-            }
+            return (Schema(type: "object", additionalProperties: toSchemaItem(valueSchema)), false)
+        }
+        if let tupleType = type.as(TupleTypeSyntax.self) {
+            let prefixItems = tupleType.elements.map { parseType($0.type).0 }
             return (Schema(type: "array", prefixItems: prefixItems.isEmpty ? nil : prefixItems), false)
         }
-
         return (Schema(type: "string"), false)
+    }
+
+    /// Converts an inferred element `Schema` into a `SchemaItem` for array `items` or object `additionalProperties`.
+    ///
+    /// - Parameter schema: The element or value `Schema`.
+    /// - Returns: A `SchemaItem` preserving either `$ref` or `(type, format)`.
+    private func toSchemaItem(_ schema: Schema) -> SchemaItem {
+        if let ref = schema.ref {
+            return SchemaItem(ref: ref)
+        }
+        return SchemaItem(type: schema.type, format: schema.format)
     }
 
     /// Maps a primitive Swift type to an OpenAPI Schema.
@@ -254,19 +284,6 @@ public class ModelVisitor: SyntaxVisitor {
     /// - Parameter name: The Swift type identifier string.
     /// - Returns: The mapped OpenAPI `Schema`.
     public func mapPrimitive(_ name: String) -> Schema {
-        switch name {
-        case "String": return Schema(type: "string")
-        case "Int": return Schema(type: "integer", format: "int32")
-        case "Int64": return Schema(type: "integer", format: "int64")
-        case "Double": return Schema(type: "number", format: "double")
-        case "Float": return Schema(type: "number", format: "float")
-        case "Bool": return Schema(type: "boolean")
-        case "Date": return Schema(type: "string", format: "date-time")
-        case "UUID": return Schema(type: "string", format: "uuid")
-        case "Data": return Schema(type: "string", format: "binary")
-        case "AnyCodable": return Schema(type: "object")
-        default:
-            return Schema(ref: "#/components/schemas/\(name)")
-        }
+        return Self.primitiveSchemaMap[name] ?? Schema(ref: "#/components/schemas/\(name)")
     }
 }

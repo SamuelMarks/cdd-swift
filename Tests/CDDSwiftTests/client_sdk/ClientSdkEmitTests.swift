@@ -7,7 +7,11 @@ import XCTest
 final class ClientSdkEmitTests: XCTestCase {
     /// Verifies emitting a Swift SDK from a minimal `OpenAPIDocument`.
     func testSdkEmit() {
-        let doc = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: ["/users": PathItem(get: Operation(operationId: "getUsers"))])
+        let doc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: ["/users": PathItem(get: Operation(operationId: "getUsers"))]
+        )
         let code = OpenAPIToSwiftGenerator.generate(from: doc)
         XCTAssertTrue(code.contains("func getUsers("))
 
@@ -15,14 +19,24 @@ final class ClientSdkEmitTests: XCTestCase {
         XCTAssertNotNil(OpenAPIToSwiftGenerator.generateFiles(from: emptyDoc)["client.swift"])
 
         let opWithCallbacks = Operation(operationId: nil, callbacks: ["onEvent": [:]])
-        let docWithCallbacks = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: ["/test": PathItem(get: opWithCallbacks)])
+        let docWithCallbacks = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: ["/test": PathItem(get: opWithCallbacks)]
+        )
         XCTAssertNotNil(OpenAPIToSwiftGenerator.generateFiles(from: docWithCallbacks, tests: true)["client.swift"])
 
         let traceItem = PathItem(additionalOperations: ["trace": Operation(operationId: "traceOp")])
-        let traceDoc = OpenAPIDocument(openapi: "3.2.0", info: Info(title: "API", version: "1.0"), paths: ["/trace": traceItem], security: [["auth": []]])
+        let traceDoc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: ["/trace": traceItem],
+            security: [["auth": []]]
+        )
         XCTAssertNotNil(OpenAPIToSwiftGenerator.generateFiles(from: traceDoc, tests: true)["client.swift"])
 
-        XCTAssertTrue(emitSDKCLI(document: OpenAPIDocument(openapi: "3.2.0", info: Info(title: "x", version: "1"))).contains("struct APIClientCLI"))
+        XCTAssertTrue(emitSDKCLI(document: OpenAPIDocument(openapi: "3.2.0", info: Info(title: "x", version: "1")))
+            .contains("struct APIClientCLI"))
     }
 
     /// Verifies `OpenAPIDocumentBuilder` construction and JSON serialization.
@@ -51,6 +65,22 @@ final class ClientSdkEmitTests: XCTestCase {
     /// Verifies `CliVisitor` extraction of CLI subcommands and options into OpenAPI paths.
     func testClientSdkCliParse() {
         let code = """
+        struct APIClientCLI: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                commandName: "api",
+                abstract: "Custom Title CLI",
+                version: "3.4.5",
+                subcommands: []
+            )
+            var ignoredBinding = 42
+        }
+        struct OtherStruct {}
+        class MockAPIClient {
+            func getIgnoredMock() {}
+        }
+        class OtherClass {
+            func getOtherClassRoute() {}
+        }
         struct GetUsersCommand: AsyncParsableCommand {
             @Option var id: Int
             @Option var name: String?
@@ -67,11 +97,27 @@ final class ClientSdkEmitTests: XCTestCase {
         let syntax = Parser.parse(source: code)
         let visitor = CliVisitor(viewMode: .all)
         visitor.walk(syntax)
+        XCTAssertEqual(visitor.infoTitle, "Custom Title")
+        XCTAssertEqual(visitor.infoVersion, "3.4.5")
+
+        let syntaxPlainTitle = Parser.parse(source: """
+        struct APIClientCLI: AsyncParsableCommand {
+            static let configuration = CommandConfiguration("unlabelled", abstract: "PlainTitle")
+        }
+        """)
+        let visitorPlain = CliVisitor(viewMode: .all)
+        visitorPlain.walk(syntaxPlainTitle)
+        XCTAssertEqual(visitorPlain.infoTitle, "PlainTitle")
         XCTAssertNotNil(visitor.paths["/getUsers"])
         XCTAssertNotNil(visitor.paths["/postItems"])
         XCTAssertNotNil(visitor.paths["/putItems"])
         XCTAssertNotNil(visitor.paths["/deleteItems"])
         XCTAssertNotNil(visitor.paths["/patchItems"])
+
+        let routeVisitor = RouteVisitor(viewMode: .all)
+        routeVisitor.walk(syntax)
+        XCTAssertNil(routeVisitor.paths["/getIgnoredMock"])
+        XCTAssertNotNil(routeVisitor.paths["/getOtherClassRoute"])
     }
 
     /// Verifies `OpenAPIParser` error handling and `SwiftASTParser.parseDocument` merging of routes, mocks, servers, and callbacks.

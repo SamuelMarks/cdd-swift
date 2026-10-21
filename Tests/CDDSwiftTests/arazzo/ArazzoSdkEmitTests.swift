@@ -1,49 +1,41 @@
+/// Unit tests for `ArazzoSdkEmitter` workflow client code generation and identifier sanitization.
 import CDDSwift
 import SwiftParser
 import XCTest
 
+/// Test suite verifying `ArazzoSdkEmitter`.
 final class ArazzoSdkEmitTests: XCTestCase {
+    /// Verifies `sanitizeIdentifier` and `pascalCase` helpers on `ArazzoSdkEmitter`.
     func testSanitizeIdentifierAndPascalCase() {
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("normalName"), "normalName")
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("kebab-case-name"), "kebabCaseName")
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("snake_case_name"), "snakeCaseName")
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("default"), "`default`")
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("class"), "`class`")
+        XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier("123start"), "_123start")
         XCTAssertEqual(ArazzoSdkEmitter.sanitizeIdentifier(""), "identifier")
 
         XCTAssertEqual(ArazzoSdkEmitter.pascalCase("orderCheckout"), "OrderCheckout")
         XCTAssertEqual(ArazzoSdkEmitter.pascalCase("order-checkout"), "OrderCheckout")
+        XCTAssertEqual(ArazzoSdkEmitter.pascalCase("123Flow"), "_123Flow")
         XCTAssertEqual(ArazzoSdkEmitter.pascalCase(""), "WorkflowType")
     }
 
-    func testEmitWorkflowClient() {
-        let criterion = ArazzoCriterion(
-            context: "$statusCode",
-            condition: "200",
-            type: .simple
-        )
-        let failureAction = ArazzoFailureAction(
-            name: "retryOnError",
-            type: .retry,
-            retryAfter: 0.5,
-            retryLimit: 2
-        )
+    /// Builds a sample `ArazzoSpecification` with multiple workflows for SDK emitter testing.
+    ///
+    /// - Returns: The constructed `ArazzoSpecification`.
+    private func makeSampleArazzoSpec() -> ArazzoSpecification {
+        let criterion = ArazzoCriterion(context: "$statusCode", condition: "200", type: .simple)
+        let failureAction = ArazzoFailureAction(name: "retryOnError", type: .retry, retryAfter: 0.5, retryLimit: 2)
         let step1 = ArazzoStep(
             stepId: "stepCreateUser",
             description: "Creates user",
             operationId: "createUser",
             successCriteria: [criterion],
             onFailure: [failureAction],
-            outputs: [
-                "userId": AnyCodable("$response.body#/id"),
-                "numericId": AnyCodable(123)
-            ]
+            outputs: ["userId": AnyCodable("$response.body#/id"), "numericId": AnyCodable(123)]
         )
-        let step2 = ArazzoStep(
-            stepId: "stepGetUser",
-            description: "Gets user"
-        )
-
+        let step2 = ArazzoStep(stepId: "stepGetUser", description: "Gets user")
         let inputSchema = Schema(
             type: "object",
             properties: [
@@ -55,25 +47,19 @@ final class ArazzoSdkEmitTests: XCTestCase {
                 "metadata": Schema(type: "object")
             ]
         )
-
         let workflowFull = ArazzoWorkflow(
             workflowId: "userOnboarding",
             summary: "Onboards new user",
             inputs: inputSchema,
             steps: [step1, step2],
-            outputs: [
-                "createdId": AnyCodable("$steps.stepCreateUser.outputs.userId"),
-                "numericCount": AnyCodable(42)
-            ]
+            outputs: ["createdId": AnyCodable("$steps.stepCreateUser.outputs.userId"), "numericCount": AnyCodable(42)]
         )
-
         let workflowEmpty = ArazzoWorkflow(
             workflowId: "simpleFlow",
             inputs: Schema(type: "object", properties: [:]),
             steps: [step2]
         )
-
-        let spec = ArazzoSpecification(
+        return ArazzoSpecification(
             arazzo: "1.1.0",
             info: ArazzoInfo(title: "Test Spec", version: "1.0.0"),
             sourceDescriptions: [
@@ -81,6 +67,11 @@ final class ArazzoSdkEmitTests: XCTestCase {
             ],
             workflows: [workflowFull, workflowEmpty]
         )
+    }
+
+    /// Verifies `emitWorkflowClient` output and syntax validity.
+    func testEmitWorkflowClient() {
+        let spec = makeSampleArazzoSpec()
 
         let emittedDefault = ArazzoSdkEmitter.emitWorkflowClient(from: spec)
         XCTAssertTrue(emittedDefault.contains("APIClient"))

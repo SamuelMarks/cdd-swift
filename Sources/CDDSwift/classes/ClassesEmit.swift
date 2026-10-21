@@ -16,14 +16,48 @@ private struct ModelPropertyDescriptor {
 /// - Parameters:
 ///   - name: The PascalCase model name.
 ///   - schema: The OpenAPI `Schema` to render as a Swift struct, enum, or typealias.
+///   - schemas: Optional dictionary of all component schemas used to resolve `$ref` inheritance in `allOf`.
 /// - Returns: Generated Swift source code for the model.
-public func emitModel(name: String, schema: Schema) -> String {
-    // Initialize the output string for the Swift model.
-    var output = ""
-    output += emitDocstring(schema.description, indent: 0)
+public func emitModel(name: String, schema: Schema, schemas: [String: Schema] = [:]) -> String {
+    var output = emitDocstring(schema.description, indent: 0)
+    output += emitValidationDocComments(for: schema, indent: 0)
 
-    // Process validations for docstrings
-    // Collect validation constraints to include in the docstring.
+    if schema.type == "string" && schema.enum_values != nil {
+        return output + emitStringEnumModel(name: name, schema: schema)
+    }
+
+    if isTypealiasSchema(schema) {
+        let swiftType = mapType(schema: schema)
+        return output + "public typealias \(name) = \(swiftType)\n"
+    }
+
+    if let options = schema.anyOf ?? schema.oneOf {
+        return output + emitUnionEnumModel(name: name, schema: schema, options: options)
+    }
+
+    return output + emitObjectStructModel(name: name, schema: schema, schemas: schemas)
+}
+
+/// Checks whether a schema should be emitted as a top-level `public typealias`.
+///
+/// - Parameter schema: The OpenAPI `Schema` to inspect.
+/// - Returns: `true` if the schema represents a primitive, array, or dictionary typealias.
+private func isTypealiasSchema(_ schema: Schema) -> Bool {
+    let primitiveTypes: Set<String?> = ["array", "string", "integer", "number", "boolean"]
+    if primitiveTypes.contains(schema.type) {
+        return true
+    }
+    return schema.type == "object" && schema.properties == nil && schema.additionalProperties != nil
+}
+
+/// Emits validation constraint lines (`Minimum`, `Maximum`, `Minimum Length`, `Maximum Length`, `Pattern`) as doc comments.
+///
+/// - Parameters:
+///   - schema: The OpenAPI `Schema` containing validation keywords.
+///   - indent: Number of leading spaces before `///`.
+/// - Returns: Formatted doc comment lines.
+private func emitValidationDocComments(for schema: Schema, indent: Int) -> String {
+    let prefix = String(repeating: " ", count: indent)
     var validationDocs: [String] = []
     if let min = schema.minimum {
         validationDocs.append("Minimum: \(min)")
@@ -40,209 +74,178 @@ public func emitModel(name: String, schema: Schema) -> String {
     if let pattern = schema.pattern {
         validationDocs.append("Pattern: \(pattern)")
     }
+    return validationDocs.map { "\(prefix)/// - \($0)\n" }.joined()
+}
 
-    for vDoc in validationDocs {
-        output += "/// - \(vDoc)\n"
+/// Emits property wrapper attributes (`@Minimum`, `@Maximum`, `@MinLength`, `@MaxLength`, `@Pattern`) for a struct property.
+///
+/// - Parameter propSchema: The property's OpenAPI `Schema`.
+/// - Returns: Formatted property wrapper lines indented by 4 spaces.
+private func emitPropertyWrappers(for propSchema: Schema) -> String {
+    var wrappers: [String] = []
+    if let min = propSchema.minimum {
+        wrappers.append("@Minimum(\(min))")
     }
-
-    if schema.type == "string" && schema.enum_values != nil {
-        output += "public enum \(name): String, Codable, Equatable, CaseIterable {\n"
-        if let enumValues = schema.enum_values {
-            for val in enumValues {
-                if let strVal = val.value as? String {
-                    output += "    case \(strVal.replacingOccurrences(of: "-", with: "_").lowercased()) = \"\(strVal)\"\n"
-                }
-            }
-        }
-        output += "}\n"
-        return output
+    if let max = propSchema.maximum {
+        wrappers.append("@Maximum(\(max))")
     }
-
-    if schema.type == "array" {
-        let swiftType = mapType(schema: schema)
-        output += "public typealias \(name) = \(swiftType)\n"
-        return output
+    if let minLen = propSchema.minLength {
+        wrappers.append("@MinLength(\(minLen))")
     }
-
-    if schema.type == "string" || schema.type == "integer" || schema.type == "number" || schema.type == "boolean" {
-        let swiftType = mapType(schema: schema)
-        output += "public typealias \(name) = \(swiftType)\n"
-        return output
+    if let maxLen = propSchema.maxLength {
+        wrappers.append("@MaxLength(\(maxLen))")
     }
-
-    if schema.type == "object" && schema.properties == nil && schema.additionalProperties != nil {
-        let swiftType = mapType(schema: schema)
-        output += "public typealias \(name) = \(swiftType)\n"
-        return output
+    if let pattern = propSchema.pattern {
+        wrappers.append("@Pattern(\"\(pattern)\")")
     }
+    return wrappers.map { "    \($0)\n" }.joined()
+}
 
-    if let options = schema.anyOf ?? schema.oneOf {
-        output += "public enum \(name): Codable, Equatable {\n"
-        // Counter for generating cases without associated values.
-        var i = 1
-
-        if let discriminator = schema.discriminator {
-            // Generate polymorphic enum based on discriminator
-            // Extract the discriminator property name.
-            let propName = discriminator.propertyName
-            for option in options {
-                // Determine the mapped Swift type for the enum case.
-                let typeName = mapType(schema: option)
-                output += "    case \(typeName.lowercased())(\(typeName))\n"
-            }
-
-            output += "\n    public init(from decoder: Decoder) throws {\n"
-            output += "        let container = try decoder.container(keyedBy: CodingKeys.self)\n"
-            output += "        let type = try container.decode(String.self, forKey: .\(propName))\n"
-            output += "        switch type {\n"
-            for option in options {
-                // Determine the mapped Swift type for the enum case.
-                let typeName = mapType(schema: option)
-                // mappingKey
-                let mappingKey = discriminator.mapping?.first(where: { $0.value == "#/components/schemas/\(typeName)" || $0.value == "#/definitions/\(typeName)" })?.key ?? typeName
-                output += "        case \"\(mappingKey)\":\n"
-                output += "            let singleContainer = try decoder.singleValueContainer()\n"
-                output += "            self = .\(typeName.lowercased())(try singleContainer.decode(\(typeName).self))\n"
-            }
-            output += "        default:\n"
-            output += "            throw DecodingError.dataCorruptedError(forKey: .\(propName), in: container, debugDescription: \"Unknown discriminator value: \\(type)\")\n"
-            output += "        }\n"
-            output += "    }\n"
-
-            output += "\n    public func encode(to encoder: Encoder) throws {\n"
-            output += "        var container = encoder.singleValueContainer()\n"
-            output += "        switch self {\n"
-            for option in options {
-                // Determine the mapped Swift type for the enum case.
-                let typeName = mapType(schema: option)
-                output += "        case .\(typeName.lowercased())(let value):\n"
-                output += "            try container.encode(value)\n"
-            }
-            output += "        }\n"
-            output += "    }\n"
-
-            output += "\n    private enum CodingKeys: String, CodingKey {\n"
-            output += "        case \(propName)\n"
-            output += "    }\n"
-        } else {
-            for option in options {
-                // Determine the mapped Swift type for the enum case.
-                let typeName = mapType(schema: option)
-                output += "    case option\(i)(\(typeName))\n"
-                i += 1
-            }
-
-            output += "\n    public init(from decoder: Decoder) throws {\n"
-            output += "        let container = try decoder.singleValueContainer()\n"
-            i = 1
-            for option in options {
-                // Determine the mapped Swift type for the enum case.
-                let typeName = mapType(schema: option)
-                output += "        if let value = try? container.decode(\(typeName).self) {\n"
-                output += "            self = .option\(i)(value)\n"
-                output += "            return\n"
-                output += "        }\n"
-                i += 1
-            }
-            output += "        throw DecodingError.typeMismatch(\(name).self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: \"Failed to decode \(name) anyOf/oneOf\"))\n"
-            output += "    }\n"
-
-            output += "\n    public func encode(to encoder: Encoder) throws {\n"
-            output += "        var container = encoder.singleValueContainer()\n"
-            output += "        switch self {\n"
-            i = 1
-            for _ in options {
-                output += "        case .option\(i)(let value):\n"
-                output += "            try container.encode(value)\n"
-                i += 1
-            }
-            output += "        }\n"
-            output += "    }\n"
-        }
-
-        output += "}\n"
-        return output
-    }
-
-    output += "public struct \(name): Codable, Equatable {\n"
-    var allProperties: [ModelPropertyDescriptor] = []
-
-    if let allOf = schema.allOf {
-        for subSchema in allOf {
-            if let props = subSchema.properties {
-                for (propName, propSchema) in props {
-                    let isReq = subSchema.required?.contains(propName) ?? false
-                    allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
-                }
+/// Emits a `String`-backed `Codable` enum for an OpenAPI string schema with `enum` values.
+///
+/// - Parameters:
+///   - name: The PascalCase enum name.
+///   - schema: The OpenAPI `Schema` containing `enum_values`.
+/// - Returns: Generated Swift enum declaration string.
+private func emitStringEnumModel(name: String, schema: Schema) -> String {
+    var output = "public enum \(name): String, Codable, Equatable, CaseIterable, Sendable {\n"
+    if let enumValues = schema.enum_values {
+        for val in enumValues {
+            if let strVal = val.stringValue {
+                let sanitized = SwiftIdentifierSanitizer.sanitizeCamelCase(
+                    strVal.replacingOccurrences(of: "-", with: "_").lowercased(),
+                    fallback: "value"
+                )
+                output += "    case \(sanitized) = \"\(strVal)\"\n"
             }
         }
     }
+    output += "}\n"
+    return output
+}
 
-    if let properties = schema.properties {
-        for (propName, propSchema) in properties {
-            let isReq = schema.required?.contains(propName) ?? false
-            allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
-        }
+/// Emits a `Codable` enum for an OpenAPI `oneOf` or `anyOf` union schema.
+///
+/// - Parameters:
+///   - name: The PascalCase enum name.
+///   - schema: The parent OpenAPI `Schema` (inspected for `discriminator`).
+///   - options: The union branch `Schema` array.
+/// - Returns: Generated Swift union enum declaration string.
+private func emitUnionEnumModel(name: String, schema: Schema, options: [Schema]) -> String {
+    if let discriminator = schema.discriminator {
+        return emitDiscriminatedUnionEnum(name: name, discriminator: discriminator, options: options)
+    }
+    return emitUntaggedUnionEnum(name: name, options: options)
+}
+
+/// Emits a discriminated polymorphic `Codable` enum for a union schema with a `Discriminator`.
+///
+/// - Parameters:
+///   - name: The PascalCase enum name.
+///   - discriminator: The OpenAPI `Discriminator` configuration.
+///   - options: The union branch `Schema` array.
+/// - Returns: Generated Swift enum declaration with discriminated `init(from:)` and `encode(to:)`.
+private func emitDiscriminatedUnionEnum(name: String, discriminator: Discriminator, options: [Schema]) -> String {
+    var output = "public enum \(name): Codable, Equatable, Sendable {\n"
+    let propName = discriminator.propertyName
+    for option in options {
+        let typeName = mapType(schema: option)
+        output += "    case \(typeName.lowercased())(\(typeName))\n"
     }
 
-    var uniquePropsMap: [String: (Schema, Bool)] = [:]
-    for prop in allProperties {
-        uniquePropsMap[prop.name] = (prop.schema, prop.isRequired)
+    output += "\n    public init(from decoder: Decoder) throws {\n"
+    output += "        let container = try decoder.container(keyedBy: CodingKeys.self)\n"
+    output += "        let type = try container.decode(String.self, forKey: .\(propName))\n"
+    output += "        switch type {\n"
+    for option in options {
+        let typeName = mapType(schema: option)
+        let mappingKey = discriminator.mapping?
+            .first(where: { $0.value == "#/components/schemas/\(typeName)" || $0.value == "#/definitions/\(typeName)" })?
+            .key ?? typeName
+        output += "        case \"\(mappingKey)\":\n"
+        output += "            let singleContainer = try decoder.singleValueContainer()\n"
+        output += "            self = .\(typeName.lowercased())(try singleContainer.decode(\(typeName).self))\n"
+    }
+    output += "        default:\n"
+    output += "            throw DecodingError.dataCorruptedError(forKey: .\(propName), in: container, debugDescription: \"Unknown discriminator value: \\(type)\")\n"
+    output += "        }\n"
+    output += "    }\n"
+
+    output += "\n    public func encode(to encoder: Encoder) throws {\n"
+    output += "        var container = encoder.singleValueContainer()\n"
+    output += "        switch self {\n"
+    for option in options {
+        let typeName = mapType(schema: option)
+        output += "        case .\(typeName.lowercased())(let value):\n"
+        output += "            try container.encode(value)\n"
+    }
+    output += "        }\n"
+    output += "    }\n"
+
+    output += "\n    private enum CodingKeys: String, CodingKey {\n"
+    output += "        case \(propName)\n"
+    output += "    }\n"
+    output += "}\n"
+    return output
+}
+
+/// Emits an untagged `Codable` union enum using sequential single-value container decoding (`option1`, `option2`, ...).
+///
+/// - Parameters:
+///   - name: The PascalCase enum name.
+///   - options: The union branch `Schema` array.
+/// - Returns: Generated Swift enum declaration string.
+private func emitUntaggedUnionEnum(name: String, options: [Schema]) -> String {
+    var output = "public enum \(name): Codable, Equatable, Sendable {\n"
+    for (idx, option) in options.enumerated() {
+        let typeName = mapType(schema: option)
+        output += "    case option\(idx + 1)(\(typeName))\n"
     }
 
-    // Sort properties alphabetically for consistent generation.
-    let sortedProps = uniquePropsMap.sorted { $0.key < $1.key }
+    output += "\n    public init(from decoder: Decoder) throws {\n"
+    output += "        let container = try decoder.singleValueContainer()\n"
+    for (idx, option) in options.enumerated() {
+        let typeName = mapType(schema: option)
+        output += "        if let value = try? container.decode(\(typeName).self) {\n"
+        output += "            self = .option\(idx + 1)(value)\n"
+        output += "            return\n"
+        output += "        }\n"
+    }
+    output += "        throw DecodingError.typeMismatch(\(name).self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: \"Failed to decode \(name) anyOf/oneOf\"))\n"
+    output += "    }\n"
+
+    output += "\n    public func encode(to encoder: Encoder) throws {\n"
+    output += "        var container = encoder.singleValueContainer()\n"
+    output += "        switch self {\n"
+    for idx in options.indices {
+        output += "        case .option\(idx + 1)(let value):\n"
+        output += "            try container.encode(value)\n"
+    }
+    output += "        }\n"
+    output += "    }\n"
+    output += "}\n"
+    return output
+}
+
+/// Emits a `Codable` Swift `struct` for an object or `allOf` OpenAPI schema.
+///
+/// - Parameters:
+///   - name: The PascalCase struct name.
+///   - schema: The OpenAPI `Schema` to render.
+///   - schemas: Dictionary of component schemas for resolving `allOf` references.
+/// - Returns: Generated Swift struct declaration string.
+private func emitObjectStructModel(name: String, schema: Schema, schemas: [String: Schema]) -> String {
+    var output = "public struct \(name): Codable, Equatable, Sendable {\n"
+    let sortedProps = collectStructProperties(schema: schema, schemas: schemas)
 
     for (propName, propData) in sortedProps {
         let propSchema = propData.0
         output += emitDocstring(propSchema.description, indent: 4)
-
-        var valDocs: [String] = []
-        if let min = propSchema.minimum {
-            valDocs.append("Minimum: \(min)")
-        }
-        if let max = propSchema.maximum {
-            valDocs.append("Maximum: \(max)")
-        }
-        if let minLen = propSchema.minLength {
-            valDocs.append("Minimum Length: \(minLen)")
-        }
-        if let maxLen = propSchema.maxLength {
-            valDocs.append("Maximum Length: \(maxLen)")
-        }
-        if let pattern = propSchema.pattern {
-            valDocs.append("Pattern: \(pattern)")
-        }
-
-        for vDoc in valDocs {
-            output += "    /// - \(vDoc)\n"
-        }
+        output += emitValidationDocComments(for: propSchema, indent: 4)
+        output += emitPropertyWrappers(for: propSchema)
 
         let swiftType = mapType(schema: propSchema)
-        let isRequired = propData.1
-        let optionalSuffix = isRequired ? "" : "?"
-
-        var propertyWrappers: [String] = []
-        if let min = propSchema.minimum {
-            propertyWrappers.append("@Minimum(\(min))")
-        }
-        if let max = propSchema.maximum {
-            propertyWrappers.append("@Maximum(\(max))")
-        }
-        if let minLen = propSchema.minLength {
-            propertyWrappers.append("@MinLength(\(minLen))")
-        }
-        if let maxLen = propSchema.maxLength {
-            propertyWrappers.append("@MaxLength(\(maxLen))")
-        }
-        if let pattern = propSchema.pattern {
-            propertyWrappers.append("@Pattern(\"\(pattern)\")")
-        }
-
-        for pw in propertyWrappers {
-            output += "    \(pw)\n"
-        }
-
+        let optionalSuffix = propData.1 ? "" : "?"
         output += "    public var \(propName): \(swiftType)\(optionalSuffix)\n"
     }
 
@@ -268,6 +271,47 @@ public func emitModel(name: String, schema: Schema) -> String {
     return output
 }
 
+/// Collects and deduplicates properties from `schema.allOf` and `schema.properties`, sorted alphabetically.
+///
+/// - Parameters:
+///   - schema: The target OpenAPI `Schema`.
+///   - schemas: Component schemas dictionary for resolving `$ref` entries in `allOf`.
+/// - Returns: Sorted array of `(propertyName, (Schema, isRequired))` tuples.
+private func collectStructProperties(schema: Schema, schemas: [String: Schema]) -> [(key: String, value: (Schema, Bool))] {
+    var allProperties: [ModelPropertyDescriptor] = []
+
+    if let allOf = schema.allOf {
+        for subSchema in allOf {
+            let resolvedSub: Schema
+            if let ref = subSchema.ref ?? subSchema.dynamicRef, let target = schemas[lastPathSegment(ref)] {
+                resolvedSub = target
+            } else {
+                resolvedSub = subSchema
+            }
+            if let props = resolvedSub.properties {
+                for (propName, propSchema) in props {
+                    let isReq = resolvedSub.required?.contains(propName) ?? false
+                    allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
+                }
+            }
+        }
+    }
+
+    if let properties = schema.properties {
+        for (propName, propSchema) in properties {
+            let isReq = schema.required?.contains(propName) ?? false
+            allProperties.append(ModelPropertyDescriptor(name: propName, schema: propSchema, isRequired: isReq))
+        }
+    }
+
+    var uniquePropsMap: [String: (Schema, Bool)] = [:]
+    for prop in allProperties {
+        uniquePropsMap[prop.name] = (prop.schema, prop.isRequired)
+    }
+
+    return uniquePropsMap.sorted { $0.key < $1.key }
+}
+
 /// Helper mapping schema types to Swift.
 ///
 /// - Parameter schema: The OpenAPI `Schema` to map to a Swift type string.
@@ -278,55 +322,69 @@ public func mapType(schema: Schema) -> String {
     }
     switch schema.type {
     case "string":
-        if schema.format == "date-time" {
-            return "Date"
-        }
-        if schema.format == "uuid" {
-            return "UUID"
-        }
-        if schema.format == "binary" {
-            return "Data"
-        }
-        if schema.enum_values != nil {
-            return "String"
-        }
-        return "String"
-    case "integer": return schema.format == "int64" ? "Int64" : "Int"
-    case "number": return schema.format == "float" ? "Float" : "Double"
-    case "boolean": return "Bool"
+        return mapStringFormat(schema.format)
+    case "integer":
+        return schema.format == "int64" ? "Int64" : "Int"
+    case "number":
+        return schema.format == "float" ? "Float" : "Double"
+    case "boolean":
+        return "Bool"
     case "array":
-        if let prefixItems = schema.prefixItems {
-            // types
-            let types = prefixItems.map { mapType(schema: $0) }.joined(separator: ", ")
-            return "(\(types))"
-        }
-        if let items = schema.items {
-            if let ref = items.ref {
-                return "[\(lastPathSegment(ref))]"
-            } else if let type = items.type {
-                // primitive
-                let primitive = Schema(type: type)
-                return "[\(mapType(schema: primitive))]"
-            }
-        }
-        return "[AnyCodable]"
+        return mapArrayType(schema: schema)
     case "object":
-        if let additional = schema.additionalProperties {
-            if let ref = additional.ref {
-                // valueType
-                let valueType = lastPathSegment(ref)
-                return "[String: \(valueType)]"
-            } else if let type = additional.type {
-                // primitive
-                let primitive = Schema(type: type)
-                // valueType
-                let valueType = mapType(schema: primitive)
-                return "[String: \(valueType)]"
-            }
-            return "[String: AnyCodable]"
-        }
-        return "AnyCodable"
+        return mapObjectType(schema: schema)
     default:
         return "AnyCodable"
     }
+}
+
+/// Maps an OpenAPI `"string"` format modifier to its corresponding Swift type.
+///
+/// - Parameter format: Optional `OpenAPIFormat` value.
+/// - Returns: `"Date"`, `"UUID"`, `"Data"`, or `"String"`.
+private func mapStringFormat(_ format: String?) -> String {
+    switch format {
+    case "date-time": return "Date"
+    case "uuid": return "UUID"
+    case "binary": return "Data"
+    default: return "String"
+    }
+}
+
+/// Maps an OpenAPI `"array"` schema (including `prefixItems` tuples and `items`) to a Swift type string.
+///
+/// - Parameter schema: The array `Schema`.
+/// - Returns: The mapped Swift array or tuple type string.
+private func mapArrayType(schema: Schema) -> String {
+    if let prefixItems = schema.prefixItems {
+        let types = prefixItems.map { mapType(schema: $0) }.joined(separator: ", ")
+        return "(\(types))"
+    }
+    if let items = schema.items {
+        if let ref = items.ref {
+            return "[\(lastPathSegment(ref))]"
+        } else if let type = items.type {
+            let primitive = Schema(type: type, format: items.format)
+            return "[\(mapType(schema: primitive))]"
+        }
+    }
+    return "[AnyCodable]"
+}
+
+/// Maps an OpenAPI `"object"` schema (with optional `additionalProperties`) to a Swift dictionary or `AnyCodable` type string.
+///
+/// - Parameter schema: The object `Schema`.
+/// - Returns: The mapped Swift dictionary or `"AnyCodable"` type string.
+private func mapObjectType(schema: Schema) -> String {
+    guard let additional = schema.additionalProperties else {
+        return "AnyCodable"
+    }
+    if let ref = additional.ref {
+        return "[String: \(lastPathSegment(ref))]"
+    }
+    if let type = additional.type {
+        let primitive = Schema(type: type, format: additional.format)
+        return "[String: \(mapType(schema: primitive))]"
+    }
+    return "[String: AnyCodable]"
 }

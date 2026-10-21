@@ -5,9 +5,9 @@ import Foundation
 public protocol MCPTransport: Sendable {
     /// Encodes and sends a JSON-RPC message over the transport.
     ///
-    /// - Parameter message: The `Encodable` message payload to transmit.
+    /// - Parameter message: The `Encodable & Sendable` message payload to transmit.
     /// - Throws: `CDDError.mcpTransportError` or an encoding error if transmission fails.
-    func send<T: Encodable>(_ message: T) async throws
+    func send<T: Encodable & Sendable>(_ message: T) async throws
     /// Starts reading incoming messages from the transport and invokes the provided handler for each frame.
     ///
     /// - Parameter onMessage: An asynchronous closure invoked with the raw `Data` of each received message.
@@ -23,6 +23,8 @@ public protocol MCPTransport: Sendable {
 private actor StdioTransportState {
     /// Boolean flag indicating whether the transport is actively reading.
     private var isReading = false
+    /// Continuation resumed when `close()` is called after EOF.
+    private var closeContinuation: CheckedContinuation<Void, Never>?
 
     /// Atomically transitions `isReading` from `false` to `true`.
     ///
@@ -33,9 +35,11 @@ private actor StdioTransportState {
         return true
     }
 
-    /// Marks `isReading` as `false`.
+    /// Marks `isReading` as `false` and resumes any pending close continuation.
     func stopReading() {
         isReading = false
+        closeContinuation?.resume()
+        closeContinuation = nil
     }
 
     /// Returns whether the transport is currently in the reading state.
@@ -43,6 +47,17 @@ private actor StdioTransportState {
     /// - Returns: `true` if reading is active, `false` otherwise.
     func checkIsReading() -> Bool {
         return isReading
+    }
+
+    /// Suspends until `stopReading()` is called or the task is cancelled.
+    func waitUntilStopped() async {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                closeContinuation = continuation
+            }
+        } onCancel: {
+            Task { await self.stopReading() }
+        }
     }
 }
 
@@ -76,9 +91,9 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
 
     /// Encodes and writes a newline-delimited JSON-RPC message to the output stream.
     ///
-    /// - Parameter message: The `Encodable` message to send.
+    /// - Parameter message: The `Encodable & Sendable` message to send.
     /// - Throws: `CDDError.mcpTransportError` if writing to the output stream fails.
-    public func send<T: Encodable>(_ message: T) async throws {
+    public func send<T: Encodable & Sendable>(_ message: T) async throws {
         var data = try encoder.encode(message)
         data.append(contentsOf: [0x0A]) // Newline
         let count = data.count
@@ -99,7 +114,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
         }
     }
 
-    /// Opens the underlying streams and reads newline-delimited JSON-RPC messages until closed or EOF.
+    /// Opens the underlying streams and reads newline-delimited JSON-RPC messages until closed or error.
     ///
     /// - Parameter onMessage: Closure invoked with each complete line's `Data`.
     /// - Throws: `CDDError.mcpTransportError` if reading fails.
@@ -127,17 +142,20 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
                         }
                         messageData.removeSubrange(0 ..< newlineRange.upperBound)
                     }
-                } else if bytesRead < 0 {
+                } else {
                     await state.stopReading()
                     break
                 }
             } else {
-                try? await Task.sleep(nanoseconds: 10_000_000)
+                await state.waitUntilStopped()
+                break
             }
         }
     }
 
     /// Stops the read loop and closes both input and output streams.
+    ///
+    /// - Throws: An error if closing the underlying streams fails.
     public func close() async throws {
         await state.stopReading()
         inputStream.close()

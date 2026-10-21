@@ -1,9 +1,14 @@
+/// Unit tests for `ArazzoTestEmitter`, `ArazzoServerEmitter`, `ArazzoEmitter`, and `ArazzoCodeMerger`.
 @testable import CDDSwift
 import SwiftParser
 import XCTest
 
+/// Test suite verifying Arazzo test suite, server orchestrator, JSON/YAML serialization, and AST merging.
 final class ArazzoServerEmitTests: XCTestCase {
-    func testEmitTestSuiteAndServerOrchestrator() {
+    /// Builds a sample `ArazzoSpecification` fixture for test suite and server orchestrator emission tests.
+    ///
+    /// - Returns: The constructed `ArazzoSpecification`.
+    private func makeCommerceSpec() -> ArazzoSpecification {
         let step1 = ArazzoStep(
             stepId: "createOrder",
             operationId: "postOrder",
@@ -13,26 +18,18 @@ final class ArazzoServerEmitTests: XCTestCase {
             ],
             outputs: ["orderId": AnyCodable("$response.body#/id")]
         )
-        let step2 = ArazzoStep(
-            stepId: "confirmOrder",
-            operationId: "putOrder"
-        )
+        let step2 = ArazzoStep(stepId: "confirmOrder", operationId: "putOrder")
         let wf1 = ArazzoWorkflow(
             workflowId: "checkoutFlow",
             summary: "Executes checkout order flow",
             steps: [step1, step2],
             outputs: ["finalOrder": AnyCodable("$steps.createOrder.outputs.orderId")]
         )
-        let wf2 = ArazzoWorkflow(
-            workflowId: "minimalFlow",
-            steps: [step2]
-        )
+        let wf2 = ArazzoWorkflow(workflowId: "minimalFlow", steps: [step2])
         let components = ArazzoComponents(
-            parameters: [
-                "tenantHeader": ArazzoParameter(name: "X-Tenant", in: .header, value: AnyCodable("acme"))
-            ]
+            parameters: ["tenantHeader": ArazzoParameter(name: "X-Tenant", in: .header, value: AnyCodable("acme"))]
         )
-        let spec = ArazzoSpecification(
+        return ArazzoSpecification(
             selfRef: "https://example.com/arazzo.json",
             info: ArazzoInfo(title: "Commerce Workflows", summary: "Summary text", description: "Detailed docs", version: "1.1.0"),
             sourceDescriptions: [
@@ -41,6 +38,11 @@ final class ArazzoServerEmitTests: XCTestCase {
             workflows: [wf1, wf2],
             components: components
         )
+    }
+
+    /// Verifies `ArazzoTestEmitter.emitTestSuite` and `ArazzoServerEmitter.emitServerOrchestrator`.
+    func testEmitTestSuiteAndServerOrchestrator() {
+        let spec = makeCommerceSpec()
 
         let testSuiteCode = ArazzoTestEmitter.emitTestSuite(from: spec)
         XCTAssertTrue(testSuiteCode.contains("public final class GeneratedArazzoWorkflowTests: XCTestCase"))
@@ -54,11 +56,10 @@ final class ArazzoServerEmitTests: XCTestCase {
         let parsedTestTree = Parser.parse(source: testSuiteCode)
         XCTAssertFalse(parsedTestTree.statements.isEmpty)
 
-        // Also test without components
         let specNoComp = ArazzoSpecification(
             info: ArazzoInfo(title: "NoComp", version: "1.0.0"),
             sourceDescriptions: [],
-            workflows: [wf2]
+            workflows: [spec.workflows[1]]
         )
         let testSuiteNoComp = ArazzoTestEmitter.emitTestSuite(from: specNoComp, suiteName: "CustomSuite")
         XCTAssertTrue(testSuiteNoComp.contains("public final class CustomSuite: XCTestCase"))
@@ -73,19 +74,18 @@ final class ArazzoServerEmitTests: XCTestCase {
         XCTAssertFalse(parsedServerTree.statements.isEmpty)
     }
 
+    /// Verifies `ArazzoEmitter.emitJSON`, `ArazzoEmitter.emitYAML`, and `ArazzoEmitter.parse`.
     func testArazzoEmitterJSONAndYAML() throws {
         let wf = ArazzoWorkflow(
-            workflowId: "syncUsers",
-            summary: "Synchronizes users",
-            description: "Detailed workflow sync",
+            workflowId: "syncUsers", summary: "Synchronizes users", description: "Detailed workflow sync",
             dependsOn: ["initFlow"],
             steps: [
                 ArazzoStep(
-                    stepId: "fetchStep",
-                    operationId: "listUsers",
-                    operationPath: "/paths/~1users/get",
-                    workflowId: "subWf",
+                    stepId: "fetchStep", operationId: "listUsers", operationPath: "/paths/~1users/get", workflowId: "subWf",
+                    parameters: [ArazzoParameter(name: "limit", in: .query, value: AnyCodable("10"))],
                     successCriteria: [ArazzoCriterion(context: "$statusCode", condition: "== 200")],
+                    onSuccess: [ArazzoSuccessAction(name: "done", type: .end)],
+                    onFailure: [ArazzoFailureAction(name: "retry", type: .retry)],
                     outputs: ["userId": AnyCodable("$response.body#/id")]
                 ),
                 ArazzoStep(stepId: "bareStep")
@@ -95,9 +95,7 @@ final class ArazzoServerEmitTests: XCTestCase {
         let spec = ArazzoSpecification(
             selfRef: "https://example.com/self.json",
             info: ArazzoInfo(title: "Sync Spec", summary: "Sync summary", description: "Sync description", version: "1.1.0"),
-            sourceDescriptions: [
-                ArazzoSourceDescription(name: "usersApi", url: "./users.json", type: .openapi)
-            ],
+            sourceDescriptions: [ArazzoSourceDescription(name: "usersApi", url: "./users.json", type: .openapi)],
             workflows: [wf],
             components: ArazzoComponents(parameters: ["p1": ArazzoParameter(name: "X-Key", in: .header, value: AnyCodable("v"))])
         )
@@ -113,8 +111,10 @@ final class ArazzoServerEmitTests: XCTestCase {
         XCTAssertTrue(yaml.contains(#"description: "Sync description""#))
         XCTAssertTrue(yaml.contains(#"workflowId: "syncUsers""#))
         XCTAssertTrue(yaml.contains(#"operationId: "listUsers""#))
+    }
 
-        // Minimal spec without optional fields for YAML branch coverage
+    /// Verifies `ArazzoEmitter.parse` version validation and minimal YAML serialization.
+    func testArazzoEmitterMinimalYAMLAndVersionValidation() throws {
         let minSpec = ArazzoSpecification(
             info: ArazzoInfo(title: "Min", version: "1.1.0"),
             sourceDescriptions: [],
@@ -123,101 +123,45 @@ final class ArazzoServerEmitTests: XCTestCase {
         let minYaml = ArazzoEmitter.emitYAML(from: minSpec)
         XCTAssertFalse(minYaml.contains("$self:"))
 
-        // Invalid Arazzo version check
-        let badVersionJson = """
-        {
-          "arazzo": "2.0.0",
-          "info": { "title": "Bad", "version": "1.0.0" },
-          "sourceDescriptions": [],
-          "workflows": []
-        }
-        """
+        let badVersionJson = #"{"arazzo":"2.0.0","info":{"title":"Bad","version":"1.0.0"},"sourceDescriptions":[],"workflows":[]}"#
         XCTAssertThrowsError(try ArazzoEmitter.parse(json: badVersionJson))
 
-        let v100Json = """
-        {
-          "arazzo": "1.0.0",
-          "info": { "title": "V1", "version": "1.0.0" },
-          "sourceDescriptions": [],
-          "workflows": []
-        }
-        """
+        let v100Json = #"{"arazzo":"1.0.0","info":{"title":"V1","version":"1.0.0"},"sourceDescriptions":[],"workflows":[]}"#
         let v100Spec = try ArazzoEmitter.parse(json: v100Json)
         XCTAssertEqual(v100Spec.arazzo, "1.0.0")
 
-        let v101Json = """
-        {
-          "arazzo": "1.0.1",
-          "info": { "title": "V101", "version": "1.0.0" },
-          "sourceDescriptions": [],
-          "workflows": []
-        }
-        """
+        let v101Json = #"{"arazzo":"1.0.1","info":{"title":"V101","version":"1.0.0"},"sourceDescriptions":[],"workflows":[]}"#
         let v101Spec = try ArazzoEmitter.parse(json: v101Json)
         XCTAssertEqual(v101Spec.arazzo, "1.0.1")
     }
 
+    /// Verifies `ArazzoCodeMerger.merge` preserving user structs, enums, and helper methods.
     func testArazzoCodeMerger() {
         let existing = """
         import Foundation
-
         /// Custom struct doc
-        public struct CheckoutInputs {
-            public let oldField: String?
-        }
-
-        public struct UserCustomHelper {
-            public let x: Int
-        }
-
+        public struct CheckoutInputs { public let oldField: String? }
+        public struct UserCustomHelper { public let x: Int }
         /// Custom enum doc
-        public enum WorkflowHelperEnum {
-            case old
-        }
-
-        public enum UnchangedEnum {
-            case stay
-        }
-
+        public enum WorkflowHelperEnum { case old }
+        public enum UnchangedEnum { case stay }
         /// Custom class doc
         public class WorkflowsClient {
-            public func checkout(inputs: CheckoutInputs) async throws {
-            }
-
-            public func customUserHelperMethod() -> String {
-                return "preserved"
-            }
+            public func checkout(inputs: CheckoutInputs) async throws {}
+            public func customUserHelperMethod() -> String { return "preserved" }
         }
-
-        public class UnchangedClass {
-        }
+        public class UnchangedClass {}
         """
 
         let generated = """
-        public struct CheckoutInputs {
-            public let newField: Int?
-        }
-
-        public struct NewWorkflowOutputs {
-            public let ok: Bool
-        }
-
-        public enum WorkflowHelperEnum {
-            case updated
-        }
-
-        public enum BrandNewEnum {
-            case added
-        }
-
+        public struct CheckoutInputs { public let newField: Int? }
+        public struct NewWorkflowOutputs { public let ok: Bool }
+        public enum WorkflowHelperEnum { case updated }
+        public enum BrandNewEnum { case added }
         public class WorkflowsClient {
-            public func checkout(inputs: CheckoutInputs) async throws {
-                let x = 1
-            }
+            public func checkout(inputs: CheckoutInputs) async throws { let x = 1 }
         }
-
-        public class BrandNewClass {
-        }
+        public class BrandNewClass {}
         """
 
         let merged = ArazzoCodeMerger.merge(generatedCode: generated, into: existing)
@@ -231,10 +175,10 @@ final class ArazzoServerEmitTests: XCTestCase {
         XCTAssertTrue(merged.contains("public class UnchangedClass"))
         XCTAssertTrue(merged.contains("customUserHelperMethod"))
 
-        // Also test class merge when no extra user methods exist & newline variations
         let nl = String(UnicodeScalar(10))
         let existing2 = "public class WorkflowsClient {" + nl + "    public func checkout() {}" + nl + "}" + nl
-        let generated2 = "public class WorkflowsClient {" + nl + "    public func checkout() {}" + nl + "}" + nl + "public struct AppendedStruct {}"
+        let generated2 = "public class WorkflowsClient {" + nl
+            + "    public func checkout() {}" + nl + "}" + nl + "public struct AppendedStruct {}"
         let merged2 = ArazzoCodeMerger.merge(generatedCode: generated2, into: existing2)
         XCTAssertTrue(merged2.contains("AppendedStruct"))
 

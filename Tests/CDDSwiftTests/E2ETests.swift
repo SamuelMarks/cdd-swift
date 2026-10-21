@@ -1,9 +1,12 @@
+/// End-to-end integration tests verifying OpenAPI and Arazzo round-trips across Swift code generators and AST parsers.
 @testable import CDDSwift
 import SwiftParser
 import SwiftSyntax
 import XCTest
 
+/// Test suite verifying end-to-end OpenAPI and Arazzo generation and AST parsing round-trips.
 final class E2ETests: XCTestCase {
+    /// Verifies generating Swift models and client routes from `example-openapi.json` and parsing them back via `SwiftASTParser`.
     func testE2E() throws {
         let currentFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = currentFileURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -15,8 +18,13 @@ final class E2ETests: XCTestCase {
         XCTAssertFalse(syntax.hasError)
         let schemas = try SwiftASTParser().parseModels(from: swiftCode)
         XCTAssertGreaterThan(schemas.count, 0)
+        let expectedSchemas = try XCTUnwrap(document.components?.schemas)
+        for schemaName in expectedSchemas.keys {
+            XCTAssertNotNil(schemas[schemaName])
+        }
     }
 
+    /// Verifies generating SDK, CLI, and server code from `comprehensive-openapi.json` and round-tripping through `SwiftASTParser`.
     func testComprehensiveE2E() throws {
         let currentFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = currentFileURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -40,6 +48,7 @@ final class E2ETests: XCTestCase {
         XCTAssertNotNil(parsedDoc.paths)
     }
 
+    /// Verifies `SwiftASTParser.parseDocument(from:)` on combined model, mock, and route functions.
     func testParseDocument() throws {
         let code = """
         struct MyModel: Codable { let id: String }
@@ -53,20 +62,24 @@ final class E2ETests: XCTestCase {
         XCTAssertNotNil(doc.paths?["/getRoute"])
     }
 
+    /// Verifies that overlapping route and mock functions preserve both operations on `paths`.
     func testOverlapParse() throws {
         let code = """
         func getUsers() {}
         func mockUsers() {}
         """
         let doc = try SwiftASTParser().parseDocument(from: code)
-        XCTAssertNotNil(doc.paths?["/users"])
+        XCTAssertNotNil(doc.paths?["/users"]?.get)
+        XCTAssertNotNil(doc.paths?["/getUsers"]?.get)
     }
 
+    /// Verifies that `OpenAPIParser.parse` throws on an empty JSON object.
     func testEmptyJSONParse() {
         let json = "{}"
         XCTAssertThrowsError(try OpenAPIParser.parse(json: json))
     }
 
+    /// Verifies Arazzo 1.1.0 SDK, CLI, Server, and Test emission syntax validity and AST round-tripping.
     func testArazzoRoundTripAndSyntaxValidity() throws {
         let step1 = ArazzoStep(
             stepId: "loginStep",

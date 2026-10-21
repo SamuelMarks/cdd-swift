@@ -7,18 +7,7 @@ excluded:
   - cdd-test-relative-dir
 
 disabled_rules:
-  - opening_brace
   - optional_data_string_conversion
-  - colon
-  - comma
-  - duplicate_imports
-  - switch_case_alignment
-  - nesting
-  - type_name
-  - unused_closure_parameter
-  - unused_optional_binding
-  - comment_spacing
-  - vertical_whitespace
 
 opt_in_rules:
   - force_unwrapping
@@ -28,27 +17,27 @@ opt_in_rules:
   - implicitly_unwrapped_optional
 
 file_length:
-  warning: 950
-  error: 1100
-
-type_body_length:
   warning: 500
   error: 650
 
+type_body_length:
+  warning: 250
+  error: 350
+
 line_length:
-  warning: 320
-  error: 450
+  warning: 140
+  error: 180
   ignores_interpolated_strings: true
   ignores_urls: true
   ignores_comments: true
 
 cyclomatic_complexity:
-  warning: 45
-  error: 60
+  warning: 10
+  error: 15
 
 function_body_length:
-  warning: 350
-  error: 650
+  warning: 60
+  error: 100
 
 identifier_name:
   allowed_symbols: ["_"]

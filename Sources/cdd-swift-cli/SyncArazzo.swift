@@ -24,6 +24,8 @@ struct SyncArazzo: AsyncParsableCommand {
     var truth: String = "swift"
 
     /// Executes the `sync_arazzo` command.
+    ///
+    /// - Throws: `CDDError` if reading, parsing, or writing files fails.
     mutating func run() async throws {
         if truth.lowercased() == "arazzo" {
             let json = try WASIFileHelpers.readString(at: outputPath)
@@ -44,8 +46,7 @@ struct SyncArazzo: AsyncParsableCommand {
 
             if WASIFileHelpers.fileExists(at: outputPath),
                let existingJson = try? WASIFileHelpers.readString(at: outputPath),
-               let existingSpec = try? ArazzoEmitter.parse(json: existingJson)
-            {
+               let existingSpec = try? ArazzoEmitter.parse(json: existingJson) {
                 var workflowMap: [String: ArazzoWorkflow] = [:]
                 var orderedIds: [String] = []
                 for wf in existingSpec.workflows {

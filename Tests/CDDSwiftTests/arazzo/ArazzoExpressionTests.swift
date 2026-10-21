@@ -1,7 +1,10 @@
+/// Unit tests for `ArazzoExpressionEvaluator` runtime expression, JSON Pointer, criterion, and replacement evaluation.
 import CDDSwift
 import XCTest
 
+/// Test suite verifying `ArazzoExpressionEvaluator` and `ArazzoExecutionContext`.
 final class ArazzoExpressionTests: XCTestCase {
+    /// Verifies evaluating `$url`, `$method`, and `$statusCode` expressions against `ArazzoExecutionContext`.
     func testEvaluateUrlMethodStatusCode() throws {
         var context = ArazzoExecutionContext()
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$url", in: context))
@@ -13,15 +16,16 @@ final class ArazzoExpressionTests: XCTestCase {
         context.statusCode = 201
 
         let url = try ArazzoExpressionEvaluator.evaluate(expression: "$url", in: context)
-        XCTAssertEqual(url.value as? String, "https://api.example.com/v1")
+        XCTAssertEqual(url.stringValue, "https://api.example.com/v1")
 
         let method = try ArazzoExpressionEvaluator.evaluate(expression: "$method", in: context)
-        XCTAssertEqual(method.value as? String, "POST")
+        XCTAssertEqual(method.stringValue, "POST")
 
         let code = try ArazzoExpressionEvaluator.evaluate(expression: "$statusCode", in: context)
-        XCTAssertEqual(code.value as? Int, 201)
+        XCTAssertEqual(code.intValue, 201)
     }
 
+    /// Verifies evaluating `$request.header.*`, `$request.query.*`, `$request.path.*`, and `$request.body` expressions.
     func testEvaluateRequestParts() throws {
         var context = ArazzoExecutionContext()
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$request.header.Authorization", in: context))
@@ -35,26 +39,27 @@ final class ArazzoExpressionTests: XCTestCase {
         context.requestBody = AnyCodable(["user": ["id": 42, "name": "Alice"]])
 
         let header = try ArazzoExpressionEvaluator.evaluate(expression: "$request.header.Authorization", in: context)
-        XCTAssertEqual(header.value as? String, "Bearer token123")
+        XCTAssertEqual(header.stringValue, "Bearer token123")
 
         let query = try ArazzoExpressionEvaluator.evaluate(expression: "$request.query.filter", in: context)
-        XCTAssertEqual(query.value as? String, "active")
+        XCTAssertEqual(query.stringValue, "active")
 
         let path = try ArazzoExpressionEvaluator.evaluate(expression: "$request.path.userId", in: context)
-        XCTAssertEqual(path.value as? String, "u42")
+        XCTAssertEqual(path.stringValue, "u42")
 
         let wholeBody = try ArazzoExpressionEvaluator.evaluate(expression: "$request.body", in: context)
-        XCTAssertNotNil(wholeBody.value)
+        XCTAssertNotNil(wholeBody.objectValue)
 
         let bodyWithoutHash = try ArazzoExpressionEvaluator.evaluate(expression: "$request.bodyWithoutHash", in: context)
-        XCTAssertNotNil(bodyWithoutHash.value)
+        XCTAssertNotNil(bodyWithoutHash.objectValue)
 
         let bodyPointer = try ArazzoExpressionEvaluator.evaluate(expression: "$request.body#/user/name", in: context)
-        XCTAssertEqual(bodyPointer.value as? String, "Alice")
+        XCTAssertEqual(bodyPointer.stringValue, "Alice")
 
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$request.body#/nonexistent", in: context))
     }
 
+    /// Verifies evaluating `$response.header.*` and `$response.body` expressions.
     func testEvaluateResponseParts() throws {
         var context = ArazzoExecutionContext()
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$response.header.ETag", in: context))
@@ -64,20 +69,21 @@ final class ArazzoExpressionTests: XCTestCase {
         context.responseBody = AnyCodable(["order": ["status": "completed", "total": 99.5]])
 
         let header = try ArazzoExpressionEvaluator.evaluate(expression: "$response.header.ETag", in: context)
-        XCTAssertEqual(header.value as? String, "w12345")
+        XCTAssertEqual(header.stringValue, "w12345")
 
         let wholeBody = try ArazzoExpressionEvaluator.evaluate(expression: "$response.body", in: context)
-        XCTAssertNotNil(wholeBody.value)
+        XCTAssertNotNil(wholeBody.objectValue)
 
         let bodyWithoutHash = try ArazzoExpressionEvaluator.evaluate(expression: "$response.bodyWithoutHash", in: context)
-        XCTAssertNotNil(bodyWithoutHash.value)
+        XCTAssertNotNil(bodyWithoutHash.objectValue)
 
         let bodyProp = try ArazzoExpressionEvaluator.evaluate(expression: "$response.body#/order/status", in: context)
-        XCTAssertEqual(bodyProp.value as? String, "completed")
+        XCTAssertEqual(bodyProp.stringValue, "completed")
 
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$response.body#/order/missing", in: context))
     }
 
+    /// Verifies evaluating `$inputs.*`, `$outputs.*`, `$steps.*`, and `$sourceDescriptions.*` expressions.
     func testEvaluateInputsOutputsStepsAndSourceDescriptions() throws {
         var context = ArazzoExecutionContext()
         XCTAssertThrowsError(try ArazzoExpressionEvaluator.evaluate(expression: "$inputs.id", in: context))
@@ -93,58 +99,60 @@ final class ArazzoExpressionTests: XCTestCase {
         context.sourceDescriptions = ["petApi": "https://api.petstore.com"]
 
         let inVal = try ArazzoExpressionEvaluator.evaluate(expression: "$inputs.id", in: context)
-        XCTAssertEqual(inVal.value as? String, "in-123")
+        XCTAssertEqual(inVal.stringValue, "in-123")
 
         let outVal = try ArazzoExpressionEvaluator.evaluate(expression: "$outputs.finalResult", in: context)
-        XCTAssertEqual(outVal.value as? String, "out-456")
+        XCTAssertEqual(outVal.stringValue, "out-456")
 
         let stepVal = try ArazzoExpressionEvaluator.evaluate(expression: "$steps.s1.outputs.token", in: context)
-        XCTAssertEqual(stepVal.value as? String, "step-tok")
+        XCTAssertEqual(stepVal.stringValue, "step-tok")
 
         let sourceUrl = try ArazzoExpressionEvaluator.evaluate(expression: "$sourceDescriptions.petApi.url", in: context)
-        XCTAssertEqual(sourceUrl.value as? String, "https://api.petstore.com")
+        XCTAssertEqual(sourceUrl.stringValue, "https://api.petstore.com")
 
         let literal = try ArazzoExpressionEvaluator.evaluate(expression: "literalValue", in: context)
-        XCTAssertEqual(literal.value as? String, "literalValue")
+        XCTAssertEqual(literal.stringValue, "literalValue")
     }
 
+    /// Verifies RFC 6901 JSON Pointer evaluation including `~0` and `~1` escape sequences.
     func testEvaluateJsonPointer() {
-        let data = AnyCodable([
+        let data: AnyCodable = [
             "items": [
                 ["name": "item1", "val~key": "val1"],
                 ["name": "item2", "slash/key": "val2"]
             ],
             "empty": ""
-        ])
+        ]
 
-        XCTAssertTrue(ArazzoExpressionEvaluator.evaluateJsonPointer("", on: data)?.value is [String: Any])
-        XCTAssertTrue(ArazzoExpressionEvaluator.evaluateJsonPointer("/", on: data)?.value is [String: Any])
-        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/0/name", on: data)?.value as? String, "item1")
-        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/0/val~0key", on: data)?.value as? String, "val1")
-        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/1/slash~1key", on: data)?.value as? String, "val2")
+        XCTAssertNotNil(ArazzoExpressionEvaluator.evaluateJsonPointer("", on: data)?.objectValue)
+        XCTAssertNotNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/", on: data)?.objectValue)
+        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/0/name", on: data)?.stringValue, "item1")
+        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/0/val~0key", on: data)?.stringValue, "val1")
+        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/1/slash~1key", on: data)?.stringValue, "val2")
         XCTAssertNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/99", on: data))
         XCTAssertNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/notanint", on: data))
         XCTAssertNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/items/0/name/deep", on: data))
 
         let anyCodableDictData = AnyCodable(["nested": AnyCodable("val")])
-        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/nested", on: anyCodableDictData)?.value as? String, "val")
+        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/nested", on: anyCodableDictData)?.stringValue, "val")
         XCTAssertNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/missing", on: anyCodableDictData))
 
         let anyCodableArrData = AnyCodable([AnyCodable("first"), AnyCodable("second")])
-        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/0", on: anyCodableArrData)?.value as? String, "first")
+        XCTAssertEqual(ArazzoExpressionEvaluator.evaluateJsonPointer("/0", on: anyCodableArrData)?.stringValue, "first")
         XCTAssertNil(ArazzoExpressionEvaluator.evaluateJsonPointer("/99", on: anyCodableArrData))
     }
 
+    /// Verifies `evaluateCriterion` across simple relational operators, regex patterns, and criterion types.
     func testEvaluateCriterion() throws {
         var context = ArazzoExecutionContext()
         context.statusCode = 200
-        context.responseBody = AnyCodable([
+        context.responseBody = [
             "status": "success",
             "count": 10,
             "rate": 4.5,
             "strNum": "42",
             "enabled": true
-        ])
+        ]
 
         let statusCrit = ArazzoCriterion(context: "$statusCode", condition: "== 200", type: .simple)
         XCTAssertTrue(try ArazzoExpressionEvaluator.evaluateCriterion(statusCrit, in: context))
@@ -173,7 +181,7 @@ final class ArazzoExpressionTests: XCTestCase {
         let strNumCrit = ArazzoCriterion(context: "$response.body#/strNum", condition: "> 40", type: .simple)
         XCTAssertTrue(try ArazzoExpressionEvaluator.evaluateCriterion(strNumCrit, in: context))
 
-        let strCrit = ArazzoCriterion(context: "$response.body#/status", condition: "\"success\"", type: .simple)
+        let strCrit = ArazzoCriterion(context: "$response.body#/status", condition: #""success""#, type: .simple)
         XCTAssertTrue(try ArazzoExpressionEvaluator.evaluateCriterion(strCrit, in: context))
 
         let boolCrit = ArazzoCriterion(context: "$response.body#/enabled", condition: "true", type: .simple)
@@ -211,53 +219,75 @@ final class ArazzoExpressionTests: XCTestCase {
 
         let boolNumCompareCrit = ArazzoCriterion(context: "$response.body#/enabled", condition: "> 10", type: .simple)
         XCTAssertFalse(try ArazzoExpressionEvaluator.evaluateCriterion(boolNumCompareCrit, in: context))
+
+        let unknownReq = try ArazzoExpressionEvaluator.evaluate(expression: "$request.unknown", in: context)
+        XCTAssertEqual(unknownReq.stringValue, "$request.unknown")
+        let unknownResp = try ArazzoExpressionEvaluator.evaluate(expression: "$response.unknown", in: context)
+        XCTAssertEqual(unknownResp.stringValue, "$response.unknown")
     }
 
+    /// Verifies in-place `ArazzoPayloadReplacement` mutations across nested objects and arrays.
     func testApplyReplacement() {
-        let original = AnyCodable([
+        let original: AnyCodable = [
             "user": [
                 "name": "Bob",
                 "roles": ["guest", "viewer"],
                 "matrix": [["a", "b"], ["c", "d"]]
             ]
-        ])
+        ]
 
         let rep1 = ArazzoPayloadReplacement(target: "#/user/name", targetSelectorType: .jsonpointer, value: AnyCodable("Robert"))
         let updated1 = ArazzoExpressionEvaluator.applyReplacement(rep1, to: original)
         let nameVal = ArazzoExpressionEvaluator.evaluateJsonPointer("/user/name", on: updated1)
-        XCTAssertEqual(nameVal?.value as? String, "Robert")
+        XCTAssertEqual(nameVal?.stringValue, "Robert")
 
-        let repOutOfBounds = ArazzoPayloadReplacement(target: "/user/roles/999", targetSelectorType: .jsonpointer, value: AnyCodable("none"))
+        let repOutOfBounds = ArazzoPayloadReplacement(
+            target: "/user/roles/999",
+            targetSelectorType: .jsonpointer,
+            value: AnyCodable("none")
+        )
         let updatedOutOfBounds = ArazzoExpressionEvaluator.applyReplacement(repOutOfBounds, to: original)
-        XCTAssertEqual((updatedOutOfBounds.value as? [String: Any]) != nil, true)
+        XCTAssertNotNil(updatedOutOfBounds.objectValue)
 
-        let repNonIntOnArray = ArazzoPayloadReplacement(target: "/user/roles/notanint", targetSelectorType: .jsonpointer, value: AnyCodable("none"))
+        let repNonIntOnArray = ArazzoPayloadReplacement(
+            target: "/user/roles/notanint",
+            targetSelectorType: .jsonpointer,
+            value: AnyCodable("none")
+        )
         let updatedNonInt = ArazzoExpressionEvaluator.applyReplacement(repNonIntOnArray, to: original)
-        XCTAssertEqual((updatedNonInt.value as? [String: Any]) != nil, true)
+        XCTAssertNotNil(updatedNonInt.objectValue)
 
         let rep2 = ArazzoPayloadReplacement(target: "/user/roles/1", targetSelectorType: .jsonpointer, value: AnyCodable("editor"))
         let updated2 = ArazzoExpressionEvaluator.applyReplacement(rep2, to: original)
         let roleVal = ArazzoExpressionEvaluator.evaluateJsonPointer("/user/roles/1", on: updated2)
-        XCTAssertEqual(roleVal?.value as? String, "editor")
+        XCTAssertEqual(roleVal?.stringValue, "editor")
 
         let repMatrix = ArazzoPayloadReplacement(target: "/user/matrix/0/1", targetSelectorType: .jsonpointer, value: AnyCodable("z"))
         let updatedMatrix = ArazzoExpressionEvaluator.applyReplacement(repMatrix, to: original)
         let matrixVal = ArazzoExpressionEvaluator.evaluateJsonPointer("/user/matrix/0/1", on: updatedMatrix)
-        XCTAssertEqual(matrixVal?.value as? String, "z")
+        XCTAssertEqual(matrixVal?.stringValue, "z")
 
-        let repNewIntermediate = ArazzoPayloadReplacement(target: "/profile/avatar/url", targetSelectorType: .jsonpointer, value: AnyCodable("https://img.png"))
-        let emptyRoot = AnyCodable([String: Any]())
+        let repNewIntermediate = ArazzoPayloadReplacement(
+            target: "/profile/avatar/url",
+            targetSelectorType: .jsonpointer,
+            value: AnyCodable("https://img.png")
+        )
+        let emptyRoot = AnyCodable([String: JSONValue]())
         let updatedWithIntermediate = ArazzoExpressionEvaluator.applyReplacement(repNewIntermediate, to: emptyRoot)
         let avatarVal = ArazzoExpressionEvaluator.evaluateJsonPointer("/profile/avatar/url", on: updatedWithIntermediate)
-        XCTAssertEqual(avatarVal?.value as? String, "https://img.png")
+        XCTAssertEqual(avatarVal?.stringValue, "https://img.png")
 
         let repEmpty = ArazzoPayloadReplacement(target: "", targetSelectorType: .jsonpointer, value: AnyCodable("allNew"))
         let updatedEmpty = ArazzoExpressionEvaluator.applyReplacement(repEmpty, to: original)
-        XCTAssertEqual(updatedEmpty.value as? String, "allNew")
+        XCTAssertEqual(updatedEmpty.stringValue, "allNew")
 
-        let repInvalidType = ArazzoPayloadReplacement(target: "/primitive/key", targetSelectorType: .jsonpointer, value: AnyCodable("fallback"))
+        let repInvalidType = ArazzoPayloadReplacement(
+            target: "/primitive/key",
+            targetSelectorType: .jsonpointer,
+            value: AnyCodable("fallback")
+        )
         let rootPrimitive = AnyCodable(42)
         let updatedPrimitive = ArazzoExpressionEvaluator.applyReplacement(repInvalidType, to: rootPrimitive)
-        XCTAssertEqual(updatedPrimitive.value as? Int, 42)
+        XCTAssertEqual(updatedPrimitive.intValue, 42)
     }
 }

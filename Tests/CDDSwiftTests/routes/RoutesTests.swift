@@ -31,8 +31,14 @@ final class RoutesTests: XCTestCase {
         )
         let emitted = emitMethod(path: "/form", method: "POST", operation: op, documentSecurity: nil, securitySchemes: [:])
         XCTAssertTrue(emitted.contains(#"request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")"#))
-        XCTAssertTrue(emitted.contains(#"let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")"#))
-        XCTAssertTrue(emitted.contains(#"encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: " ", with: "+")"#))
+        XCTAssertTrue(emitted
+            .contains(
+                #"let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")"#
+            ))
+        XCTAssertTrue(emitted
+            .contains(
+                #"encodedKey = key.addingPercentEncoding(withAllowedCharacters: unreserved)?.replacingOccurrences(of: " ", with: "+")"#
+            ))
     }
 
     /// Verifies emitting a POST operation with an `application/json` body.
@@ -95,7 +101,10 @@ final class RoutesTests: XCTestCase {
         let op = Operation(
             summary: "Get specific response",
             operationId: "getSpecificResponse",
-            responses: ["200": Response(description: "OK", content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/MyModel"))])]
+            responses: ["200": Response(
+                description: "OK",
+                content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/MyModel"))]
+            )]
         )
         let emitted = emitMethod(path: "/specific", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
         XCTAssertTrue(emitted.contains("public func getSpecificResponse() async throws -> MyModel"))
@@ -118,7 +127,14 @@ final class RoutesTests: XCTestCase {
     func testRoutesEmitQueryArrayUnknownStyle() {
         let op = Operation(
             parameters: [
-                Parameter(name: "q", in: "query", required: false, style: "unknown", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string")))
+                Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    style: "unknown",
+                    explode: false,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                )
             ]
         )
         let emitted = emitMethod(path: "/test", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
@@ -151,7 +167,10 @@ final class RoutesTests: XCTestCase {
     func testRoutesEmitReturnData() {
         let op = Operation(
             responses: [
-                "200": Response(description: "OK", content: ["application/json": MediaType(schema: Schema(type: "string", format: "binary"))])
+                "200": Response(
+                    description: "OK",
+                    content: ["application/json": MediaType(schema: Schema(type: "string", format: "binary"))]
+                )
             ]
         )
         let emitted = emitMethod(path: "/test", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
@@ -182,7 +201,11 @@ final class RoutesTests: XCTestCase {
 
         let optOp = Operation(
             operationId: "myCallback",
-            requestBody: RequestBody(description: nil, content: ["application/json": MediaType(schema: Schema(type: "object"))], required: nil)
+            requestBody: RequestBody(
+                description: nil,
+                content: ["application/json": MediaType(schema: Schema(type: "object"))],
+                required: nil
+            )
         )
         let optCallbacks: [String: Callback] = [
             "myEvent": ["{$request.query.callbackUrl}": PathItem(post: optOp)],
@@ -219,23 +242,41 @@ final class RoutesTests: XCTestCase {
                 Parameter(name: "note", in: "formData", required: false, schema: Schema(type: "string")),
                 Parameter(name: "avatar", in: "formData", required: true, schema: Schema(type: "string", format: "binary"))
             ],
-            requestBody: RequestBody(content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))], required: false)
+            requestBody: RequestBody(
+                content: ["application/octet-stream": MediaType(schema: Schema(type: "string", format: "binary"))],
+                required: false
+            )
         )
-        let emittedMultipart = emitMethod(path: "/avatar", method: "POST", operation: multipartFormOp, documentSecurity: nil, securitySchemes: [:])
+        let emittedMultipart = emitMethod(
+            path: "/avatar",
+            method: "POST",
+            operation: multipartFormOp,
+            documentSecurity: nil,
+            securitySchemes: [:]
+        )
         XCTAssertTrue(emittedMultipart.contains("multipart/form-data; boundary="))
         XCTAssertTrue(emittedMultipart.contains("name=" + bs + q + "caption" + bs + q))
         XCTAssertTrue(emittedMultipart.contains("name=" + bs + q + "note" + bs + q))
     }
+}
 
-    /// Verifies path styles (`simple`, `label`, `matrix`), query styles (`form`, `pipeDelimited`, `deepObject`), security schemes, and multipart bodies.
-    func testEmitMethodStylesAndSecurityCombinations() {
+/// Test suite verifying parameter serialization styles, security schemes, and `RouteVisitor` parsing.
+final class RoutesStylesAndSecurityTests: XCTestCase {
+    /// Verifies path styles (`simple`, `matrix`), header parameters, and security schemes.
+    func testEmitMethodPathStylesAndSecurity() {
         let op1 = Operation(
             operationId: "updatePetWithForm",
             parameters: [
                 Parameter(name: "name", in: "query", schema: Schema(type: "string")),
                 Parameter(name: "status", in: "query", schema: Schema(type: "string")),
-                Parameter(name: "id", in: "path", style: "simple", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "id2", in: "path", style: "simple", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
+                Parameter(
+                    name: "id", in: "path", style: "simple", explode: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "id2", in: "path", style: "simple", explode: false,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
                 Parameter(name: "id3", in: "path", style: "matrix", explode: false, schema: Schema(type: "string")),
                 Parameter(name: "head", in: "header", schema: Schema(type: "string")),
                 Parameter(name: "api_key", in: "query", schema: Schema(type: "string"))
@@ -247,21 +288,54 @@ final class RoutesTests: XCTestCase {
             "apiKeyAuth": SecurityScheme(type: "apiKey", name: "X-API-KEY", in: "header"),
             "apiKeyQuery": SecurityScheme(type: "apiKey", name: "api_key", in: "query")
         ]
-        XCTAssertTrue(emitMethod(path: "/path/{id}/{id2}/{id3}", method: "POST", operation: op1, documentSecurity: [["bearerAuth": []], ["apiKeyAuth": []], ["apiKeyQuery": []]], securitySchemes: schemes1).contains("func updatePetWithForm"))
+        XCTAssertTrue(emitMethod(
+            path: "/path/{id}/{id2}/{id3}",
+            method: "POST",
+            operation: op1,
+            documentSecurity: [["bearerAuth": []], ["apiKeyAuth": []], ["apiKeyQuery": []]],
+            securitySchemes: schemes1
+        ).contains("func updatePetWithForm"))
+    }
 
+    /// Verifies required path/query/header parameters across `simple`, `matrix`, `label`, `form`, `pipeDelimited`, and `deepObject` styles.
+    func testEmitMethodRequiredArrayAndObjectStyles() {
         let op2 = Operation(
             operationId: nil,
             parameters: [
-                Parameter(name: "p_simple_array_req", in: "path", required: true, style: "simple", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "p_simple_array_req_noexp", in: "path", required: true, style: "simple", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "p_matrix_array_req", in: "path", required: true, style: "matrix", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "p_matrix_array_req_noexp", in: "path", required: true, style: "matrix", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
+                Parameter(
+                    name: "p_simple_array_req", in: "path", required: true, style: "simple", explode: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "p_simple_array_req_noexp", in: "path", required: true, style: "simple", explode: false,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "p_matrix_array_req", in: "path", required: true, style: "matrix", explode: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "p_matrix_array_req_noexp", in: "path", required: true, style: "matrix", explode: false,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
                 Parameter(name: "p_matrix_req", in: "path", required: true, style: "matrix", schema: Schema(type: "string")),
-                Parameter(name: "p_label_array_req", in: "path", required: true, style: "label", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "p_label_array_req_noexp", in: "path", required: true, style: "label", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
+                Parameter(
+                    name: "p_label_array_req", in: "path", required: true, style: "label", explode: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "p_label_array_req_noexp", in: "path", required: true, style: "label", explode: false,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
                 Parameter(name: "p_label_req", in: "path", required: true, style: "label", schema: Schema(type: "string")),
-                Parameter(name: "q_arr_form_exp_req", in: "query", required: true, style: "form", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-                Parameter(name: "q_arr_pipe_req", in: "query", required: true, style: "pipeDelimited", schema: Schema(type: "array", items: SchemaItem(type: "string"))),
+                Parameter(
+                    name: "q_arr_form_exp_req", in: "query", required: true, style: "form", explode: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
+                Parameter(
+                    name: "q_arr_pipe_req", in: "query", required: true, style: "pipeDelimited",
+                    schema: Schema(type: "array", items: SchemaItem(type: "string"))
+                ),
                 Parameter(name: "q_obj_deep_req", in: "query", required: true, style: "deepObject", schema: Schema(type: "object")),
                 Parameter(name: "header_req", in: "header", required: true, schema: Schema(type: "string"))
             ],
@@ -277,16 +351,43 @@ final class RoutesTests: XCTestCase {
             "apiKeyQuery": SecurityScheme(type: "apiKey", name: "api_key", in: "query"),
             "apiKeyHeader": SecurityScheme(type: "apiKey", name: "X-API-KEY", in: "header")
         ]
-        XCTAssertTrue(emitMethod(path: "/path/{p_simple_array_req}", method: "POST", operation: op2, documentSecurity: [["oauth": []], ["openIdConnect": []]], securitySchemes: schemes2).contains("func post_path_p_simple_array_req"))
+        XCTAssertTrue(emitMethod(
+            path: "/path/{p_simple_array_req}",
+            method: "POST",
+            operation: op2,
+            documentSecurity: [["oauth": []], ["openIdConnect": []]],
+            securitySchemes: schemes2
+        ).contains("func post_path_p_simple_array_req"))
+    }
 
+    /// Verifies optional array/object styles and Swagger 2.0 body parameter fallback.
+    func testEmitMethodOptionalStylesAndBodyFallback() {
         let optParams: [Parameter] = [
             Parameter(ref: nil, name: nil, in: nil, schema: nil),
-            Parameter(name: "p_simple_opt", in: "path", required: false, style: "simple", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-            Parameter(name: "p_simple_opt_noexp", in: "path", required: false, style: "simple", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-            Parameter(name: "p_matrix_opt", in: "path", required: false, style: "matrix", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-            Parameter(name: "p_matrix_opt_noexp", in: "path", required: false, style: "matrix", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-            Parameter(name: "p_label_opt", in: "path", required: false, style: "label", explode: true, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
-            Parameter(name: "p_label_opt_noexp", in: "path", required: false, style: "label", explode: false, schema: Schema(type: "array", items: SchemaItem(type: "string"))),
+            Parameter(
+                name: "p_simple_opt", in: "path", required: false, style: "simple", explode: true,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
+            Parameter(
+                name: "p_simple_opt_noexp", in: "path", required: false, style: "simple", explode: false,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
+            Parameter(
+                name: "p_matrix_opt", in: "path", required: false, style: "matrix", explode: true,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
+            Parameter(
+                name: "p_matrix_opt_noexp", in: "path", required: false, style: "matrix", explode: false,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
+            Parameter(
+                name: "p_label_opt", in: "path", required: false, style: "label", explode: true,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
+            Parameter(
+                name: "p_label_opt_noexp", in: "path", required: false, style: "label", explode: false,
+                schema: Schema(type: "array", items: SchemaItem(type: "string"))
+            ),
             Parameter(name: "p2", in: "query", style: "pipeDelimited", schema: Schema(type: "array", items: SchemaItem(type: "string"))),
             Parameter(name: "q", in: "query", style: "deepObject", schema: Schema(type: "object")),
             Parameter(name: "qObjNoStyle", in: "query", schema: Schema(type: "object")),
@@ -300,10 +401,17 @@ final class RoutesTests: XCTestCase {
             "k1": SecurityScheme(type: "apiKey", name: nil, in: "query"),
             "k2": SecurityScheme(type: "apiKey", name: "k2", in: nil)
         ]
-        XCTAssertTrue(emitMethod(path: "/path/{p_simple_opt}/{p_matrix_opt}/{p_label_opt}", method: "POST", operation: op3, documentSecurity: [["k1": []], ["k2": []]], securitySchemes: schemes3).contains("URLQueryItem"))
+        XCTAssertTrue(emitMethod(
+            path: "/path/{p_simple_opt}/{p_matrix_opt}/{p_label_opt}",
+            method: "POST",
+            operation: op3,
+            documentSecurity: [["k1": []], ["k2": []]],
+            securitySchemes: schemes3
+        ).contains("URLQueryItem"))
 
         let opBodyParam = Operation(parameters: [Parameter(name: nil, in: "body", schema: Schema(type: "string"))])
-        XCTAssertTrue(emitMethod(path: "/body", method: "POST", operation: opBodyParam, documentSecurity: nil, securitySchemes: [:]).contains("JSONEncoder().encode"))
+        XCTAssertTrue(emitMethod(path: "/body", method: "POST", operation: opBodyParam, documentSecurity: nil, securitySchemes: [:])
+            .contains("JSONEncoder().encode"))
     }
 
     /// Verifies `RouteVisitor` parsing of function declarations, parameters, bodies, and `@link` annotations.

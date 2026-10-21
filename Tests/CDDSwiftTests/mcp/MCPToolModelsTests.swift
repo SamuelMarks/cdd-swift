@@ -1,7 +1,10 @@
+/// Unit tests for Model Context Protocol (MCP) tool definition, invocation, and listing models.
 import XCTest
 @testable import CDDSwift
 
+/// Test suite verifying MCP tool models in `MCPToolModels.swift`.
 final class MCPToolModelsTests: XCTestCase {
+    /// Verifies `ToolInputSchema` encoding and decoding round-trip.
     func testToolInputSchema() throws {
         let schema = ToolInputSchema(type: "object", properties: ["foo": AnyCodable("bar")], required: ["foo"])
         XCTAssertEqual(schema.type, "object")
@@ -14,6 +17,7 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, schema)
     }
 
+    /// Verifies `Tool` encoding and decoding round-trip.
     func testTool() throws {
         let schema = ToolInputSchema(type: "object")
         let tool = Tool(name: "myTool", description: "Does things", inputSchema: schema)
@@ -27,10 +31,11 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, tool)
     }
 
+    /// Verifies `CallToolRequestParams` encoding and decoding round-trip.
     func testCallToolRequestParams() throws {
         let params = CallToolRequestParams(_meta: Meta(progressToken: .string("p")), name: "myTool", arguments: ["arg": AnyCodable(1)])
         XCTAssertEqual(params.name, "myTool")
-        XCTAssertEqual(params.arguments?["arg"]?.value as? Int, 1)
+        XCTAssertEqual(params.arguments?["arg"]?.intValue, 1)
 
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
@@ -39,10 +44,11 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `CallToolResult` encoding and decoding round-trip.
     func testCallToolResult() throws {
         let res = CallToolResult(_meta: Meta(progressToken: .string("p")), content: [AnyCodable("hello")], isError: true)
         XCTAssertEqual(res.isError, true)
-        XCTAssertEqual(res.content.first?.value as? String, "hello")
+        XCTAssertEqual(res.content.first?.stringValue, "hello")
 
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
@@ -51,6 +57,7 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ListToolsRequestParams` encoding and decoding round-trip.
     func testListToolsRequestParams() throws {
         let params = ListToolsRequestParams(_meta: Meta(progressToken: .integer(1)), cursor: "next")
         XCTAssertEqual(params.cursor, "next")
@@ -62,6 +69,7 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ListToolsResult` encoding and decoding round-trip.
     func testListToolsResult() throws {
         let tool = Tool(name: "tool1", inputSchema: ToolInputSchema(type: "object"))
         let res = ListToolsResult(_meta: Meta(progressToken: .integer(1)), nextCursor: "n1", tools: [tool])
@@ -75,6 +83,7 @@ final class MCPToolModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ToolListChangedNotificationParams` encoding and decoding round-trip.
     func testToolListChangedNotificationParams() throws {
         let params = ToolListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))

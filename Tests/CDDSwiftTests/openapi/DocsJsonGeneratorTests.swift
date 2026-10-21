@@ -70,11 +70,29 @@ final class DocsJsonGeneratorTests: XCTestCase {
         let mixed1 = DocsJsonGenerator.generate(from: document, includeImports: false)
         let mixed2 = DocsJsonGenerator.generate(from: document, includeWrapping: false)
         XCTAssertNotEqual(mixed1, mixed2)
+    }
 
-        // 7. Custom server URL, nil paths, and nil operationId
-        let docWithServer = OpenAPIDocument(openapi: "3", info: Info(title: "test", version: "1"), servers: [Server(url: "https://custom.url")], paths: ["/anon": PathItem(get: Operation(operationId: nil))])
-        XCTAssertTrue(DocsJsonGenerator.generate(from: docWithServer).contains("swift"))
+    /// Verifies generating Docs JSON for custom server URLs, anonymous operations, and empty paths.
+    func testDocsJsonCustomServerAndEmptyPaths() throws {
+        let docWithServer = OpenAPIDocument(
+            openapi: "3",
+            info: Info(title: "test", version: "1"),
+            servers: [Server(url: "https://custom.url")],
+            paths: ["/anon": PathItem(get: Operation(operationId: nil))]
+        )
+        let serverJsonStr = DocsJsonGenerator.generate(from: docWithServer)
+        let serverOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: Data(serverJsonStr.utf8))
+        XCTAssertEqual(serverOutputs.count, 1)
+        XCTAssertEqual(serverOutputs[0].operations.count, 1)
+        XCTAssertNil(serverOutputs[0].operations[0].operationId)
+        XCTAssertEqual(serverOutputs[0].operations[0].path, "/anon")
+        XCTAssertTrue(serverOutputs[0].operations[0].code.snippet.contains("https://custom.url/anon"))
+        XCTAssertTrue(serverOutputs[0].operations[0].code.wrapper_start?.contains("func get_anon()") == true)
+
         let docNilPaths = OpenAPIDocument(openapi: "3", info: Info(title: "test", version: "1"), paths: nil)
-        XCTAssertTrue(DocsJsonGenerator.generate(from: docNilPaths).contains("swift"))
+        let nilPathsJsonStr = DocsJsonGenerator.generate(from: docNilPaths)
+        let nilPathsOutputs = try JSONDecoder().decode([DocsJsonOutput].self, from: Data(nilPathsJsonStr.utf8))
+        XCTAssertEqual(nilPathsOutputs.count, 1)
+        XCTAssertTrue(nilPathsOutputs[0].operations.isEmpty)
     }
 }

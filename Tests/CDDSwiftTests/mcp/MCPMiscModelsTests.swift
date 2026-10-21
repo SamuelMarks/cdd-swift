@@ -1,7 +1,10 @@
+/// Unit tests for Model Context Protocol (MCP) prompts, logging, pagination, roots, completion, and sampling models.
 import XCTest
 @testable import CDDSwift
 
+/// Test suite verifying MCP models in `MCPMiscModels.swift`.
 final class MCPMiscModelsTests: XCTestCase {
+    /// Verifies `Annotated` encoding and decoding round-trip.
     func testAnnotated() throws {
         let annotated = Annotated(annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(annotated.annotations?.priority, 1.0)
@@ -13,6 +16,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, annotated)
     }
 
+    /// Verifies `CancelledNotificationParams` encoding and decoding round-trip.
     func testCancelledNotificationParams() throws {
         let params = CancelledNotificationParams(requestId: .string("1"), reason: "Timeout")
         XCTAssertEqual(params.requestId, .string("1"))
@@ -24,6 +28,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ProgressNotificationParams` encoding and decoding round-trip.
     func testProgressNotificationParams() throws {
         let params = ProgressNotificationParams(progressToken: .integer(1), progress: 0.5, total: 1.0)
         XCTAssertEqual(params.progress, 0.5)
@@ -35,6 +40,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `PaginatedRequestParams` encoding and decoding round-trip.
     func testPaginatedRequestParams() throws {
         let params = PaginatedRequestParams(cursor: "c")
         XCTAssertEqual(params.cursor, "c")
@@ -46,6 +52,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `PaginatedResult` encoding and decoding round-trip.
     func testPaginatedResult() throws {
         let result = PaginatedResult(_meta: Meta(progressToken: .string("p")), nextCursor: "n")
         XCTAssertEqual(result.nextCursor, "n")
@@ -57,6 +64,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, result)
     }
 
+    /// Verifies `PingRequestParams` encoding and decoding round-trip.
     func testPingRequestParams() throws {
         let params = PingRequestParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
@@ -68,6 +76,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `TextContent` encoding and decoding round-trip.
     func testTextContent() throws {
         let text = TextContent(text: "Hello", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(text.text, "Hello")
@@ -79,6 +88,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, text)
     }
 
+    /// Verifies `ImageContent` encoding and decoding round-trip.
     func testImageContent() throws {
         let img = ImageContent(data: "base64", mimeType: "image/png", annotations: Annotations(audience: [.user], priority: 1.0))
         XCTAssertEqual(img.data, "base64")
@@ -90,8 +100,12 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, img)
     }
 
+    /// Verifies `EmbeddedResource` encoding and decoding round-trip.
     func testEmbeddedResource() throws {
-        let resource = EmbeddedResource(resource: .text(TextResourceContents(uri: "u", mimeType: "m", text: "t")), annotations: Annotations(audience: [.user], priority: 1.0))
+        let resource = EmbeddedResource(
+            resource: .text(TextResourceContents(uri: "u", mimeType: "m", text: "t")),
+            annotations: Annotations(audience: [.user], priority: 1.0)
+        )
         XCTAssertEqual(resource.type, "resource")
 
         let encoder = JSONEncoder()
@@ -101,6 +115,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, resource)
     }
 
+    /// Verifies `SetLevelRequestParams` encoding and decoding round-trip.
     func testSetLevelRequestParams() throws {
         let params = SetLevelRequestParams(level: .debug)
         XCTAssertEqual(params.level, .debug)
@@ -112,6 +127,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `LoggingMessageNotificationParams` encoding and decoding round-trip.
     func testLoggingMessageNotificationParams() throws {
         let params = LoggingMessageNotificationParams(level: .info, logger: "main", data: AnyCodable("msg"))
         XCTAssertEqual(params.level, .info)
@@ -123,6 +139,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `PromptArgument` encoding and decoding round-trip.
     func testPromptArgument() throws {
         let arg = PromptArgument(name: "n", description: "d", required: true)
         XCTAssertEqual(arg.name, "n")
@@ -134,6 +151,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, arg)
     }
 
+    /// Verifies `Prompt` encoding and decoding round-trip.
     func testPrompt() throws {
         let prompt = Prompt(name: "p", description: "d", arguments: [PromptArgument(name: "n")])
         XCTAssertEqual(prompt.name, "p")
@@ -145,6 +163,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, prompt)
     }
 
+    /// Verifies `PromptMessage` encoding and decoding across text, image, and embedded resource content.
     func testPromptMessage() throws {
         let textContent = TextContent(text: "hello")
         let msg = PromptMessage(role: .user, content: .text(textContent))
@@ -169,12 +188,14 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded3, msg3)
     }
 
+    /// Verifies `PromptMessageContent` decoding failure on invalid JSON.
     func testPromptMessageContentInvalid() {
         let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(PromptMessageContent.self, from: data))
     }
 
+    /// Verifies `PromptReference` encoding and decoding round-trip.
     func testPromptReference() throws {
         let ref = PromptReference(name: "p")
         XCTAssertEqual(ref.name, "p")
@@ -186,6 +207,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, ref)
     }
 
+    /// Verifies `GetPromptRequestParams` encoding and decoding round-trip.
     func testGetPromptRequestParams() throws {
         let params = GetPromptRequestParams(name: "n", arguments: ["a": "b"])
         XCTAssertEqual(params.name, "n")
@@ -197,8 +219,13 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `GetPromptResult` encoding and decoding round-trip.
     func testGetPromptResult() throws {
-        let result = GetPromptResult(_meta: Meta(progressToken: .string("p")), description: "d", messages: [PromptMessage(role: .user, content: .text(TextContent(text: "t")))])
+        let result = GetPromptResult(
+            _meta: Meta(progressToken: .string("p")),
+            description: "d",
+            messages: [PromptMessage(role: .user, content: .text(TextContent(text: "t")))]
+        )
         XCTAssertEqual(result.description, "d")
 
         let encoder = JSONEncoder()
@@ -208,6 +235,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, result)
     }
 
+    /// Verifies `ListPromptsRequestParams` encoding and decoding round-trip.
     func testListPromptsRequestParams() throws {
         let params = ListPromptsRequestParams(cursor: "c")
         XCTAssertEqual(params.cursor, "c")
@@ -219,6 +247,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ListPromptsResult` encoding and decoding round-trip.
     func testListPromptsResult() throws {
         let result = ListPromptsResult(_meta: Meta(progressToken: .string("p")), nextCursor: "n", prompts: [Prompt(name: "p")])
         XCTAssertEqual(result.nextCursor, "n")
@@ -230,6 +259,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, result)
     }
 
+    /// Verifies `PromptListChangedNotificationParams` encoding and decoding round-trip.
     func testPromptListChangedNotificationParams() throws {
         let params = PromptListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
@@ -240,7 +270,11 @@ final class MCPMiscModelsTests: XCTestCase {
         let decoded = try decoder.decode(PromptListChangedNotificationParams.self, from: data)
         XCTAssertEqual(decoded, params)
     }
+}
 
+/// Test suite verifying MCP workspace roots, completion, and sampling domain models.
+final class MCPSamplingAndRootsModelsTests: XCTestCase {
+    /// Verifies `Root` encoding and decoding round-trip.
     func testRoot() throws {
         let root = Root(uri: "u", name: "n")
         XCTAssertEqual(root.uri, "u")
@@ -252,6 +286,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, root)
     }
 
+    /// Verifies `ListRootsRequestParams` encoding and decoding round-trip.
     func testListRootsRequestParams() throws {
         let params = ListRootsRequestParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
@@ -263,6 +298,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ListRootsResult` encoding and decoding round-trip.
     func testListRootsResult() throws {
         let result = ListRootsResult(_meta: Meta(progressToken: .string("p")), roots: [Root(uri: "u")])
         XCTAssertEqual(result.roots.count, 1)
@@ -274,6 +310,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, result)
     }
 
+    /// Verifies `RootsListChangedNotificationParams` encoding and decoding round-trip.
     func testRootsListChangedNotificationParams() throws {
         let params = RootsListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
@@ -285,6 +322,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `CompleteRequestParams` encoding and decoding for prompt and resource references.
     func testCompleteRequestParams() throws {
         let ref = CompleteReference.prompt(PromptReference(name: "p"))
         let arg = CompleteRequestParams.CompleteArgument(name: "n", value: "v")
@@ -304,12 +342,14 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded2, params2)
     }
 
+    /// Verifies `CompleteReference` decoding failure on invalid JSON.
     func testCompleteReferenceInvalid() {
         let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(CompleteReference.self, from: data))
     }
 
+    /// Verifies `ResourceReference` encoding and decoding round-trip.
     func testResourceReference() throws {
         let ref = ResourceReference(uri: "u")
         XCTAssertEqual(ref.uri, "u")
@@ -321,6 +361,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, ref)
     }
 
+    /// Verifies `CompleteResult` encoding and decoding round-trip.
     func testCompleteResult() throws {
         let completion = CompleteResult.Completion(values: ["v1", "v2"], total: 2, hasMore: false)
         let result = CompleteResult(_meta: Meta(progressToken: .string("p")), completion: completion)
@@ -333,6 +374,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, result)
     }
 
+    /// Verifies `SamplingMessage` encoding and decoding round-trip.
     func testSamplingMessage() throws {
         let msg = SamplingMessage(role: .assistant, content: .text(TextContent(text: "t")))
         XCTAssertEqual(msg.role, .assistant)
@@ -344,6 +386,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, msg)
     }
 
+    /// Verifies `ModelHint` encoding and decoding round-trip.
     func testModelHint() throws {
         let hint = ModelHint(name: "n")
         XCTAssertEqual(hint.name, "n")
@@ -355,6 +398,7 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, hint)
     }
 
+    /// Verifies `ModelPreferences` encoding and decoding round-trip.
     func testModelPreferences() throws {
         let prefs = ModelPreferences(hints: [ModelHint(name: "n")], costPriority: 1.0, speedPriority: 0.5, intelligencePriority: 0.8)
         XCTAssertEqual(prefs.costPriority, 1.0)
@@ -366,10 +410,20 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, prefs)
     }
 
+    /// Verifies `CreateMessageRequestParams` encoding and decoding round-trip.
     func testCreateMessageRequestParams() throws {
         let msg = SamplingMessage(role: .user, content: .text(TextContent(text: "t")))
         let prefs = ModelPreferences(hints: [ModelHint(name: "n")])
-        let params = CreateMessageRequestParams(messages: [msg], modelPreferences: prefs, systemPrompt: "s", includeContext: "i", temperature: 0.7, maxTokens: 100, stopSequences: ["stop"], metadata: ["a": AnyCodable("b")])
+        let params = CreateMessageRequestParams(
+            messages: [msg],
+            modelPreferences: prefs,
+            systemPrompt: "s",
+            includeContext: "i",
+            temperature: 0.7,
+            maxTokens: 100,
+            stopSequences: ["stop"],
+            metadata: ["a": AnyCodable("b")]
+        )
         XCTAssertEqual(params.maxTokens, 100)
 
         let encoder = JSONEncoder()
@@ -379,8 +433,15 @@ final class MCPMiscModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `CreateMessageResult` encoding and decoding round-trip.
     func testCreateMessageResult() throws {
-        let result = CreateMessageResult(_meta: Meta(progressToken: .string("p")), role: .assistant, content: .text(TextContent(text: "t")), model: "m", stopReason: "stop")
+        let result = CreateMessageResult(
+            _meta: Meta(progressToken: .string("p")),
+            role: .assistant,
+            content: .text(TextContent(text: "t")),
+            model: "m",
+            stopReason: "stop"
+        )
         XCTAssertEqual(result.model, "m")
 
         let encoder = JSONEncoder()

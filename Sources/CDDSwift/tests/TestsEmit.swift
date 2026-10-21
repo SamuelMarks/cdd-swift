@@ -62,7 +62,8 @@ public struct DummyJSONContext: Sendable {
     }
 }
 
-/// Synthesizes a Swift literal expression for a parameter in generated test cases using schema metadata (`example`, `default`, `enum`, `format`, `type`).
+/// Synthesizes a Swift literal expression for a parameter in generated test cases using schema metadata (`example`, `default`, `enum`,
+/// `format`, `type`).
 ///
 /// - Parameters:
 ///   - param: The OpenAPI `Parameter` descriptor.
@@ -71,33 +72,26 @@ public struct DummyJSONContext: Sendable {
 public func synthesizeDummyParameterLiteral(param: Parameter, swiftType: String) -> String {
     let q = String(UnicodeScalar(34))
     if let ex = param.example ?? param.schema?.example ?? param.schema?.default_value,
-       let str = ex.value as? String
-    {
+       let str = ex.stringValue {
         return swiftType.hasPrefix("[") ? "[\(q)\(str)\(q)]" : "\(q)\(str)\(q)"
     }
-    if let firstEnum = param.schema?.enum_values?.first?.value as? String {
+    if let firstEnum = param.schema?.enum_values?.first?.stringValue {
         return swiftType.hasPrefix("[") ? "[\(q)\(firstEnum)\(q)]" : "\(q)\(firstEnum)\(q)"
     }
-    if swiftType == "UUID" {
-        return "UUID()"
-    }
-    if swiftType == "Date" {
-        return "Date()"
-    }
-    if swiftType == "Data" {
-        return "Data(\(q)test_data\(q).utf8)"
-    }
-    if swiftType == "Int" || swiftType == "Int64" || swiftType == "Int32" {
-        return "1"
-    }
-    if swiftType == "Bool" {
-        return "true"
-    }
-    if swiftType == "Double" || swiftType == "Float" {
-        return "1.0"
-    }
-    if swiftType == "[String]" {
-        return "[\(q)available\(q)]"
+    let literalByType: [String: String] = [
+        "UUID": "UUID()",
+        "Date": "Date()",
+        "Data": "Data(\(q)test_data\(q).utf8)",
+        "Int": "1",
+        "Int64": "1",
+        "Int32": "1",
+        "Bool": "true",
+        "Double": "1.0",
+        "Float": "1.0",
+        "[String]": "[\(q)available\(q)]"
+    ]
+    if let match = literalByType[swiftType] {
+        return match
     }
     if swiftType.hasPrefix("[") {
         return "[]"
@@ -112,97 +106,131 @@ public func synthesizeDummyParameterLiteral(param: Parameter, swiftType: String)
 public func generateDummyJSON(context: DummyJSONContext) -> String {
     let q = String(UnicodeScalar(34))
     if let ref = context.ref {
-        let name = lastPathSegment(ref)
-        if context.visited.contains(name) {
-            return "{}"
-        }
-        if let s = context.schemas?[name] {
-            var newVisited = context.visited
-            newVisited.insert(name)
-            return generateDummyJSON(
-                context: DummyJSONContext(
-                    type: s.type,
-                    format: s.format,
-                    ref: s.ref,
-                    properties: s.properties,
-                    required: s.required,
-                    items: s.items,
-                    enumValues: s.enum_values,
-                    exampleOrDefault: s.example ?? s.default_value,
-                    schemas: context.schemas,
-                    visited: newVisited
-                )
-            )
-        }
-        return "{}"
+        return generateReferencedDummyJSON(ref: ref, context: context)
     }
 
-    if let firstEnum = context.enumValues?.first?.value as? String {
+    if let firstEnum = context.enumValues?.first?.stringValue {
         return "\(q)\(firstEnum)\(q)"
     }
 
     let t = context.type ?? "object"
     switch t {
     case "string":
-        if context.format == "uuid" {
-            return "\(q)00000000-0000-0000-0000-000000000000\(q)"
-        }
-        if context.format == "date-time" {
-            return "\(q)2026-01-01T00:00:00Z\(q)"
-        }
-        return "\(q)test_string\(q)"
+        return generateDummyStringJSON(format: context.format)
     case "integer", "number":
         return "1"
     case "boolean":
         return "true"
     case "array":
-        if let items = context.items {
-            let itemStr = generateDummyJSON(
+        return generateDummyArrayJSON(context: context)
+    case "object":
+        return generateDummyObjectJSON(context: context)
+    default:
+        return "{}"
+    }
+}
+
+/// Resolves a `$ref` schema pointer and generates its dummy JSON representation while guarding against cycles.
+///
+/// - Parameters:
+///   - ref: The `$ref` string.
+///   - context: The current `DummyJSONContext`.
+/// - Returns: The resolved dummy JSON string (or `"{}"` if cyclic or missing).
+private func generateReferencedDummyJSON(ref: String, context: DummyJSONContext) -> String {
+    let name = lastPathSegment(ref)
+    if context.visited.contains(name) {
+        return "{}"
+    }
+    guard let s = context.schemas?[name] else {
+        return "{}"
+    }
+    var newVisited = context.visited
+    newVisited.insert(name)
+    return generateDummyJSON(
+        context: DummyJSONContext(
+            type: s.type,
+            format: s.format,
+            ref: s.ref,
+            properties: s.properties,
+            required: s.required,
+            items: s.items,
+            enumValues: s.enum_values,
+            exampleOrDefault: s.example ?? s.default_value,
+            schemas: context.schemas,
+            visited: newVisited
+        )
+    )
+}
+
+/// Generates a dummy JSON string literal for an OpenAPI `"string"` schema based on its format.
+///
+/// - Parameter format: Optional format string (`"uuid"`, `"date-time"`, etc.).
+/// - Returns: Quoted JSON string literal.
+private func generateDummyStringJSON(format: String?) -> String {
+    let q = String(UnicodeScalar(34))
+    if format == "uuid" {
+        return "\(q)00000000-0000-0000-0000-000000000000\(q)"
+    }
+    if format == "date-time" {
+        return "\(q)2026-01-01T00:00:00Z\(q)"
+    }
+    return "\(q)test_string\(q)"
+}
+
+/// Generates a dummy JSON array literal for an OpenAPI `"array"` schema.
+///
+/// - Parameter context: The `DummyJSONContext` containing `items`.
+/// - Returns: JSON array literal string.
+private func generateDummyArrayJSON(context: DummyJSONContext) -> String {
+    guard let items = context.items else {
+        return "[]"
+    }
+    let itemStr = generateDummyJSON(
+        context: DummyJSONContext(
+            type: items.type,
+            format: items.format,
+            ref: items.ref,
+            schemas: context.schemas,
+            visited: context.visited
+        )
+    )
+    return "[\(itemStr)]"
+}
+
+/// Generates a dummy JSON object literal for an OpenAPI `"object"` schema.
+///
+/// - Parameter context: The `DummyJSONContext` containing `properties` and `required`.
+/// - Returns: JSON object literal string.
+private func generateDummyObjectJSON(context: DummyJSONContext) -> String {
+    let q = String(UnicodeScalar(34))
+    var dict: [String] = []
+    var keysToInclude = context.required ?? []
+    if keysToInclude.isEmpty, let propKeys = context.properties?.keys.sorted() {
+        keysToInclude = propKeys
+    }
+
+    for key in keysToInclude {
+        if let p = context.properties?[key] {
+            let val = generateDummyJSON(
                 context: DummyJSONContext(
-                    type: items.type,
-                    format: items.format,
-                    ref: items.ref,
+                    type: p.type,
+                    format: p.format,
+                    ref: p.ref,
+                    properties: p.properties,
+                    required: p.required,
+                    items: p.items,
+                    enumValues: p.enum_values,
+                    exampleOrDefault: p.example ?? p.default_value,
                     schemas: context.schemas,
                     visited: context.visited
                 )
             )
-            return "[\(itemStr)]"
+            dict.append("\(q)\(key)\(q): \(val)")
         } else {
-            return "[]"
+            dict.append("\(q)\(key)\(q): \(q)\(q)")
         }
-    case "object":
-        var dict: [String] = []
-        var keysToInclude = context.required ?? []
-        if keysToInclude.isEmpty, let propKeys = context.properties?.keys.sorted() {
-            keysToInclude = propKeys
-        }
-
-        for key in keysToInclude {
-            if let p = context.properties?[key] {
-                let val = generateDummyJSON(
-                    context: DummyJSONContext(
-                        type: p.type,
-                        format: p.format,
-                        ref: p.ref,
-                        properties: p.properties,
-                        required: p.required,
-                        items: p.items,
-                        enumValues: p.enum_values,
-                        exampleOrDefault: p.example ?? p.default_value,
-                        schemas: context.schemas,
-                        visited: context.visited
-                    )
-                )
-                dict.append("\(q)\(key)\(q): \(val)")
-            } else {
-                dict.append("\(q)\(key)\(q): \(q)\(q)")
-            }
-        }
-        let dictStr = dict.joined(separator: ", ")
-        return "{\(dictStr)}"
-    default:
-        return "{}"
     }
+    return "{\(dict.joined(separator: ", "))}"
 }
 
 /// Emits XCTest cases based on the OpenAPI Spec.
@@ -212,8 +240,37 @@ public func generateDummyJSON(context: DummyJSONContext) -> String {
 ///   - document: Optional full `OpenAPIDocument` providing component schemas and security schemes.
 /// - Returns: Generated `APIClientTests` Swift source code.
 public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = nil) -> String {
-    var output = "import XCTest\nimport Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
+    var output = emitTestsClassHeader(document: document)
+    let schemas = document?.components?.schemas ?? document?.definitions
 
+    if let paths = paths {
+        let sortedPaths = paths.sorted { $0.key < $1.key }
+        for (path, item) in sortedPaths {
+            for (httpMethod, op) in item.operationsByMethod {
+                output += emitOperationTestMethod(
+                    path: path,
+                    method: httpMethod.rawValue.uppercased(),
+                    op: op,
+                    schemas: schemas
+                )
+            }
+        }
+    } else {
+        output += "    public func testExample() async throws {\n"
+        output += "        XCTAssertNotNil(client)\n"
+        output += "    }\n"
+    }
+
+    output += "}\n"
+    return output
+}
+
+/// Emits the imports, class declaration, `setUp()`, and `tearDown()` methods for `APIClientTests`.
+///
+/// - Parameter document: Optional `OpenAPIDocument` used to inspect security schemes.
+/// - Returns: Generated Swift class header for `APIClientTests`.
+private func emitTestsClassHeader(document: OpenAPIDocument?) -> String {
+    var output = "import XCTest\nimport Foundation\n#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif\n\n"
     output += "@available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)\n"
     output += "open class APIClientTests: XCTestCase {\n"
 
@@ -243,130 +300,162 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
             }
 
     """
+    return output
+}
 
-    let schemas = document?.components?.schemas ?? document?.definitions
+/// Emits a single XCTest method exercising an OpenAPI operation on `APIClient`.
+///
+/// - Parameters:
+///   - path: The URL path template string.
+///   - method: The uppercase HTTP method name.
+///   - op: The OpenAPI `Operation` descriptor.
+///   - schemas: Optional dictionary of component schemas.
+/// - Returns: Generated Swift test method source code.
+private func emitOperationTestMethod(
+    path: String,
+    method: String,
+    op: Operation,
+    schemas: [String: Schema]?
+) -> String {
+    let cleanPath = path
+        .replacingOccurrences(of: "/", with: "_")
+        .replacingOccurrences(of: "{", with: "")
+        .replacingOccurrences(of: "}", with: "")
+    let funcName = op.operationId ?? "\(method.lowercased())\(cleanPath)"
 
-    if let paths = paths {
-        let sortedPaths = paths.sorted { $0.key < $1.key }
-        for (path, item) in sortedPaths {
-            for (httpMethod, op) in item.operationsByMethod {
-                let method = httpMethod.rawValue.uppercased()
-                let funcName = op.operationId ?? "\(method.lowercased())\(path.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: ""))"
-
-                var hasBodyParam = false
-                var bodyParamName = ""
-                var bodyType = ""
-                var bodySchema: Schema?
-
-                if let reqBody = op.requestBody, let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
-                    hasBodyParam = true
-                    bodyParamName = "body"
-                    bodyType = mapType(schema: schema)
-                    bodySchema = schema
-                } else if let formContent = op.requestBody?.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
-                    hasBodyParam = true
-                    bodyParamName = "formData"
-                    bodyType = mapType(schema: schema)
-                    bodySchema = schema
-                } else if let multiContent = op.requestBody?.content?["multipart/form-data"], let schema = multiContent.schema {
-                    hasBodyParam = true
-                    bodyParamName = "multipartData"
-                    bodyType = mapType(schema: schema)
-                    bodySchema = schema
-                } else if let octetContent = op.requestBody?.content?["application/octet-stream"], let schema = octetContent.schema {
-                    hasBodyParam = true
-                    bodyParamName = "fileData"
-                    bodyType = "Data"
-                    bodySchema = schema
-                } else if let globalParams = op.parameters {
-                    for param in globalParams {
-                        if param.in == "body", let schema = param.schema {
-                            hasBodyParam = true
-                            bodyParamName = param.name ?? "body"
-                            bodyType = mapType(schema: schema)
-                            bodySchema = schema
-                            break
-                        }
-                    }
-                }
-
-                var callArgs: [String] = []
-
-                if let params = op.parameters {
-                    for param in params {
-                        if param.in == "body" {
-                            continue
-                        }
-                        let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
-                        let safePName = pName.replacingOccurrences(of: "-", with: "_")
-                        let type = param.schema.map { mapType(schema: $0) } ?? "String"
-                        let isRequired = param.required ?? false
-                        let pIn = param.in ?? "query"
-                        let dummyValue = synthesizeDummyParameterLiteral(param: param, swiftType: type)
-
-                        if isRequired || pIn == "formData" || pIn == "header" || param.schema?.enum_values != nil || param.example != nil {
-                            callArgs.append("\(safePName): \(dummyValue)")
-                        }
-                    }
-                }
-
-                if hasBodyParam {
-                    let isRequired = op.requestBody?.required ?? true
-                    if isRequired || bodyType == "Data" {
-                        if bodyType == "String" {
-                            callArgs.append("\(bodyParamName): \"test_string\"")
-                        } else if bodyType == "Data" {
-                            callArgs.append("\(bodyParamName): Data(\"test_data\".utf8)")
-                        } else {
-                            let jsonStr = generateDummyJSON(
-                                context: DummyJSONContext(
-                                    type: bodySchema?.type,
-                                    format: bodySchema?.format,
-                                    ref: bodySchema?.ref,
-                                    properties: bodySchema?.properties,
-                                    required: bodySchema?.required,
-                                    items: bodySchema?.items,
-                                    enumValues: bodySchema?.enum_values,
-                                    exampleOrDefault: bodySchema?.example ?? bodySchema?.default_value,
-                                    schemas: schemas
-                                )
-                            )
-                            let escapedJson = jsonStr.replacingOccurrences(of: "\"", with: "\\\"")
-                            callArgs.append("\(bodyParamName): try JSONDecoder().decode(\(bodyType).self, from: Data(\"\(escapedJson)\".utf8))")
-                        }
-                    }
-                }
-
-                let callArgsString = callArgs.joined(separator: ", ")
-
-                var testPrefix = "00"
-                switch method.uppercased() {
-                case "POST": testPrefix = "01_POST_"
-                case "PUT": testPrefix = "02_PUT_"
-                case "PATCH": testPrefix = "03_PATCH_"
-                case "GET": testPrefix = "04_GET_"
-                case "DELETE": testPrefix = "99_DELETE_"
-                default: testPrefix = "50_"
-                }
-
-                let testName = "test\(testPrefix)\(funcName.prefix(1).uppercased())\(funcName.dropFirst())"
-                output += "    public func \(testName)() async throws {\n"
-                output += "        XCTAssertNotNil(client)\n"
-                output += "        do {\n"
-                output += "            let _ = try await client?.\(funcName)(\(callArgsString))\n"
-                output += "        } catch {\n"
-                output += "            // Ignore server errors for dummy data\n"
-                output += "        }\n"
-
-                output += "    }\n"
-            }
-        }
-    } else {
-        output += "    public func testExample() async throws {\n"
-        output += "        XCTAssertNotNil(client)\n"
-        output += "    }\n"
+    var callArgs = buildParameterTestCallArgs(from: op.parameters)
+    if let bodyArg = buildBodyTestCallArg(for: op, schemas: schemas) {
+        callArgs.append(bodyArg)
     }
 
-    output += "}\n"
+    let callArgsString = callArgs.joined(separator: ", ")
+    let testPrefix = testOrderPrefix(forMethod: method)
+    let testName = "test\(testPrefix)\(funcName.prefix(1).uppercased())\(funcName.dropFirst())"
+
+    var output = "\n    public func \(testName)() async throws {\n"
+    output += "        XCTAssertNotNil(client)\n"
+    output += "        do {\n"
+    output += "            let _ = try await client?.\(funcName)(\(callArgsString))\n"
+    output += "        } catch {\n"
+    output += "            // Ignore server errors for dummy data\n"
+    output += "        }\n"
+    output += "    }\n"
     return output
+}
+
+/// Builds test invocation argument strings for non-body operation parameters.
+///
+/// - Parameter parameters: Optional array of OpenAPI `Parameter` definitions.
+/// - Returns: Array of `"paramName: dummyLiteral"` strings.
+private func buildParameterTestCallArgs(from parameters: [Parameter]?) -> [String] {
+    guard let params = parameters else { return [] }
+    var callArgs: [String] = []
+    for param in params where param.in != "body" {
+        let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
+        let safePName = pName.replacingOccurrences(of: "-", with: "_")
+        let type = param.schema.map { mapType(schema: $0) } ?? "String"
+        let isRequired = param.required ?? false
+        let pIn: ParameterLocation = param.in ?? .query
+        let dummyValue = synthesizeDummyParameterLiteral(param: param, swiftType: type)
+
+        if isRequired || pIn == .formData || pIn == .header || param.schema?.enum_values != nil || param.example != nil {
+            callArgs.append("\(safePName): \(dummyValue)")
+        }
+    }
+    return callArgs
+}
+
+/// Describes the parameter name, Swift type, and `Schema` for a test call's request body.
+private struct TestBodyDescriptor {
+    /// Parameter label in the generated `APIClient` method.
+    let paramName: String
+    /// Mapped Swift type name.
+    let swiftType: String
+    /// Underlying OpenAPI `Schema` for the body.
+    let schema: Schema
+}
+
+/// Extracts request body metadata and builds a dummy request body argument string for a generated test call.
+///
+/// - Parameters:
+///   - op: The OpenAPI `Operation` descriptor.
+///   - schemas: Optional dictionary of component schemas.
+/// - Returns: Formatted `"bodyParam: expr"` string if a body argument should be passed, or `nil`.
+private func buildBodyTestCallArg(for op: Operation, schemas: [String: Schema]?) -> String? {
+    guard let descriptor = resolveTestBodyDescriptor(for: op) else {
+        return nil
+    }
+    let bodyParamName = descriptor.paramName
+    let bodyType = descriptor.swiftType
+    let bodySchema = descriptor.schema
+    let isRequired = op.requestBody?.required ?? true
+    guard isRequired || bodyType == "Data" else {
+        return nil
+    }
+    if bodyType == "String" {
+        return "\(bodyParamName): \"test_string\""
+    }
+    if bodyType == "Data" {
+        return "\(bodyParamName): Data(\"test_data\".utf8)"
+    }
+    let jsonStr = generateDummyJSON(
+        context: DummyJSONContext(
+            type: bodySchema.type,
+            format: bodySchema.format,
+            ref: bodySchema.ref,
+            properties: bodySchema.properties,
+            required: bodySchema.required,
+            items: bodySchema.items,
+            enumValues: bodySchema.enum_values,
+            exampleOrDefault: bodySchema.example ?? bodySchema.default_value,
+            schemas: schemas
+        )
+    )
+    let escapedJson = jsonStr.replacingOccurrences(of: "\"", with: "\\\"")
+    return "\(bodyParamName): try JSONDecoder().decode(\(bodyType).self, from: Data(\"\(escapedJson)\".utf8))"
+}
+
+/// Resolves the parameter name, Swift type name, and `Schema` for an operation's request body.
+///
+/// - Parameter op: The OpenAPI `Operation` descriptor.
+/// - Returns: A `TestBodyDescriptor` if the operation has a request body, or `nil`.
+private func resolveTestBodyDescriptor(for op: Operation) -> TestBodyDescriptor? {
+    if let reqBody = op.requestBody {
+        if let jsonContent = reqBody.content?["application/json"], let schema = jsonContent.schema {
+            return TestBodyDescriptor(paramName: "body", swiftType: mapType(schema: schema), schema: schema)
+        }
+        if let formContent = reqBody.content?["application/x-www-form-urlencoded"], let schema = formContent.schema {
+            return TestBodyDescriptor(paramName: "formData", swiftType: mapType(schema: schema), schema: schema)
+        }
+        if let multiContent = reqBody.content?["multipart/form-data"], let schema = multiContent.schema {
+            return TestBodyDescriptor(paramName: "multipartData", swiftType: mapType(schema: schema), schema: schema)
+        }
+        if let octetContent = reqBody.content?["application/octet-stream"], let schema = octetContent.schema {
+            return TestBodyDescriptor(paramName: "fileData", swiftType: "Data", schema: schema)
+        }
+    }
+    if let globalParams = op.parameters {
+        for param in globalParams where param.in == "body" {
+            if let schema = param.schema {
+                return TestBodyDescriptor(paramName: param.name ?? "body", swiftType: mapType(schema: schema), schema: schema)
+            }
+        }
+    }
+    return nil
+}
+
+/// Returns a numeric ordering prefix for test names so CRUD operations run in a logical lifecycle order (`POST` -> `PUT` -> `PATCH` ->
+/// `GET` -> `DELETE`).
+///
+/// - Parameter method: Uppercase HTTP method string.
+/// - Returns: Prefix string such as `"01_POST_"`.
+private func testOrderPrefix(forMethod method: String) -> String {
+    switch method.uppercased() {
+    case "POST": return "01_POST_"
+    case "PUT": return "02_PUT_"
+    case "PATCH": return "03_PATCH_"
+    case "GET": return "04_GET_"
+    case "DELETE": return "99_DELETE_"
+    default: return "50_"
+    }
 }

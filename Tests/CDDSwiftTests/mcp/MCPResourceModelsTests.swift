@@ -1,9 +1,18 @@
+/// Unit tests for Model Context Protocol (MCP) resource, template, and subscription models.
 import XCTest
 @testable import CDDSwift
 
+/// Test suite verifying MCP resource models in `MCPResourceModels.swift`.
 final class MCPResourceModelsTests: XCTestCase {
+    /// Verifies `Resource` encoding and decoding round-trip.
     func testResource() throws {
-        let res = Resource(uri: "file://foo", name: "foo", description: "d", mimeType: "text/plain", annotations: Annotations(audience: [.user], priority: 1.0))
+        let res = Resource(
+            uri: "file://foo",
+            name: "foo",
+            description: "d",
+            mimeType: "text/plain",
+            annotations: Annotations(audience: [.user], priority: 1.0)
+        )
         XCTAssertEqual(res.uri, "file://foo")
 
         let encoder = JSONEncoder()
@@ -13,8 +22,15 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ResourceTemplate` encoding and decoding round-trip.
     func testResourceTemplate() throws {
-        let res = ResourceTemplate(uriTemplate: "file://{foo}", name: "foo", description: "d", mimeType: "text/plain", annotations: Annotations(audience: [.user], priority: 1.0))
+        let res = ResourceTemplate(
+            uriTemplate: "file://{foo}",
+            name: "foo",
+            description: "d",
+            mimeType: "text/plain",
+            annotations: Annotations(audience: [.user], priority: 1.0)
+        )
         XCTAssertEqual(res.uriTemplate, "file://{foo}")
 
         let encoder = JSONEncoder()
@@ -24,6 +40,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ListResourcesRequestParams` encoding and decoding round-trip.
     func testListResourcesRequestParams() throws {
         let params = ListResourcesRequestParams(_meta: Meta(progressToken: .string("p")), cursor: "c")
         XCTAssertEqual(params.cursor, "c")
@@ -35,6 +52,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ListResourcesResult` encoding and decoding round-trip.
     func testListResourcesResult() throws {
         let res = ListResourcesResult(nextCursor: "n", resources: [Resource(uri: "u", name: "n")])
         XCTAssertEqual(res.nextCursor, "n")
@@ -46,6 +64,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ListResourceTemplatesRequestParams` encoding and decoding round-trip.
     func testListResourceTemplatesRequestParams() throws {
         let params = ListResourceTemplatesRequestParams(_meta: Meta(progressToken: .string("p")), cursor: "c")
         XCTAssertEqual(params.cursor, "c")
@@ -57,6 +76,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ListResourceTemplatesResult` encoding and decoding round-trip.
     func testListResourceTemplatesResult() throws {
         let res = ListResourceTemplatesResult(nextCursor: "n", resourceTemplates: [ResourceTemplate(uriTemplate: "u", name: "n")])
         XCTAssertEqual(res.nextCursor, "n")
@@ -68,6 +88,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ReadResourceRequestParams` encoding and decoding round-trip.
     func testReadResourceRequestParams() throws {
         let params = ReadResourceRequestParams(_meta: Meta(progressToken: .string("p")), uri: "u")
         XCTAssertEqual(params.uri, "u")
@@ -79,6 +100,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ResourceContents` encoding and decoding for text and blob variants.
     func testResourceContents() throws {
         let text = TextResourceContents(uri: "u", mimeType: "m", text: "t")
         let blob = BlobResourceContents(uri: "u2", mimeType: "m2", blob: "b")
@@ -98,12 +120,14 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decodedBlob, blobContent)
     }
 
+    /// Verifies `ResourceContents` decoding failure on invalid JSON.
     func testResourceContentsInvalid() {
         let data = Data("true".utf8)
         let decoder = JSONDecoder()
         XCTAssertThrowsError(try decoder.decode(ResourceContents.self, from: data))
     }
 
+    /// Verifies `ReadResourceResult` encoding and decoding round-trip.
     func testReadResourceResult() throws {
         let text = TextResourceContents(uri: "u", mimeType: "m", text: "t")
         let res = ReadResourceResult(_meta: Meta(progressToken: .string("p")), contents: [.text(text)])
@@ -116,6 +140,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, res)
     }
 
+    /// Verifies `ResourceListChangedNotificationParams` encoding and decoding round-trip.
     func testResourceListChangedNotificationParams() throws {
         let params = ResourceListChangedNotificationParams(_meta: Meta(progressToken: .string("p")))
         XCTAssertEqual(params._meta?.progressToken, .string("p"))
@@ -127,6 +152,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `ResourceUpdatedNotificationParams` encoding and decoding round-trip.
     func testResourceUpdatedNotificationParams() throws {
         let params = ResourceUpdatedNotificationParams(_meta: Meta(progressToken: .string("p")), uri: "u")
         XCTAssertEqual(params.uri, "u")
@@ -138,6 +164,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `SubscribeRequestParams` encoding and decoding round-trip.
     func testSubscribeRequestParams() throws {
         let params = SubscribeRequestParams(_meta: Meta(progressToken: .string("p")), uri: "u")
         XCTAssertEqual(params.uri, "u")
@@ -149,6 +176,7 @@ final class MCPResourceModelsTests: XCTestCase {
         XCTAssertEqual(decoded, params)
     }
 
+    /// Verifies `UnsubscribeRequestParams` encoding and decoding round-trip.
     func testUnsubscribeRequestParams() throws {
         let params = UnsubscribeRequestParams(_meta: Meta(progressToken: .string("p")), uri: "u")
         XCTAssertEqual(params.uri, "u")

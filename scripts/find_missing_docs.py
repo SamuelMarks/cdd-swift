@@ -143,6 +143,23 @@ def collect_preceding_doc(lines: List[str], line_idx: int) -> List[str]:
         if (prev.startswith("@") or prev.startswith("#")) and not doc_lines:
             j -= 1
             continue
+        if prev.endswith(")") and not doc_lines:
+            # Check if this closes a multi-line @attribute(...) block
+            k = j
+            paren_depth = 0
+            found_attr = False
+            while k >= 0:
+                line_k = lines[k].strip()
+                paren_depth += line_k.count(")") - line_k.count("(")
+                if paren_depth <= 0 and line_k.startswith("@"):
+                    found_attr = True
+                    break
+                if line_k.startswith("///") or line_k.endswith("{") or line_k.endswith("}"):
+                    break
+                k -= 1
+            if found_attr:
+                j = k - 1
+                continue
         if prev.startswith("///"):
             doc_lines.append(prev)
             j -= 1
@@ -158,21 +175,21 @@ def collect_preceding_doc(lines: List[str], line_idx: int) -> List[str]:
     return doc_lines
 
 
-def has_signature_parameters(lines: List[str], line_idx: int) -> bool:
-    """Determine whether a `func`, `init`, or `subscript` signature has one or more parameters.
+def extract_signature_parts(lines: List[str], line_idx: int) -> Tuple[str, str]:
+    """Extract the parameter clause and trailing signature (throws / return type) of a declaration.
 
     Args:
         lines: All lines in the file.
         line_idx: The 0-based index where the declaration starts.
 
     Returns:
-        `True` if the parameter list is non-empty, `False` if `()`.
+        A tuple `(inner_params, post_params_signature)` where `inner_params` is the
+        content inside `(...)` and `post_params_signature` is the text between `)` and `{` (or end of declaration).
     """
     sig = ""
     for j in range(line_idx, min(len(lines), line_idx + 25)):
         sig += lines[j]
         if "{" in lines[j] or (")" in sig and "(" in sig):
-            # Make sure parentheses are balanced up to the closing paren of parameter list
             open_idx = sig.find("(")
             if open_idx != -1:
                 depth = 0
@@ -183,8 +200,55 @@ def has_signature_parameters(lines: List[str], line_idx: int) -> bool:
                         depth -= 1
                         if depth == 0:
                             inner = sig[open_idx + 1 : k].strip()
-                            return len(inner) > 0
-    return False
+                            rest = sig[k + 1 :]
+                            if "{" in rest:
+                                rest = rest[: rest.find("{")]
+                            else:
+                                rest = rest.splitlines()[0] if rest else ""
+                            return inner, rest.strip()
+    return "", ""
+
+
+def has_signature_parameters(lines: List[str], line_idx: int) -> bool:
+    """Determine whether a `func`, `init`, or `subscript` signature has one or more parameters.
+
+    Args:
+        lines: All lines in the file.
+        line_idx: The 0-based index where the declaration starts.
+
+    Returns:
+        `True` if the parameter list is non-empty, `False` if `()`.
+    """
+    inner, _ = extract_signature_parts(lines, line_idx)
+    return len(inner) > 0
+
+
+def signature_requires_returns_and_throws(
+    lines: List[str], line_idx: int, kind: str
+) -> Tuple[bool, bool]:
+    """Determine whether a declaration in `Sources/` requires `- Returns:` and/or `- Throws:` tags.
+
+    Args:
+        lines: All lines in the file.
+        line_idx: The 0-based index where the declaration starts.
+        kind: The declaration kind (`func`, `init`, `subscript`).
+
+    Returns:
+        A tuple `(needs_returns, needs_throws)`.
+    """
+    if kind not in ("func", "init", "subscript"):
+        return False, False
+    _, post_sig = extract_signature_parts(lines, line_idx)
+    needs_returns = (
+        kind in ("func", "subscript")
+        and "->" in post_sig
+        and "-> Void" not in post_sig
+        and "-> ()" not in post_sig
+    )
+    needs_throws = (
+        bool(re.search(r"\bthrows\b", post_sig)) and "rethrows" not in post_sig
+    )
+    return needs_returns, needs_throws
 
 
 def audit_file(filepath: str) -> Tuple[int, int, List[str]]:
@@ -208,7 +272,12 @@ def audit_file(filepath: str) -> Tuple[int, int, List[str]]:
     has_file_header = False
     for line in lines:
         s = line.strip()
-        if not s or s.startswith("#if") or s.startswith("#elseif") or s.startswith("#else"):
+        if (
+            not s
+            or s.startswith("#if")
+            or s.startswith("#elseif")
+            or s.startswith("#else")
+        ):
             continue
         if s.startswith("///") or s.startswith("/**"):
             has_file_header = True
@@ -309,14 +378,40 @@ def audit_file(filepath: str) -> Tuple[int, int, List[str]]:
                         issues.append(
                             f"{filepath}:{i + 1}:Missing `- Parameter` documentation on {kind}: {stripped}"
                         )
-                if not has_banned and not missing_param_doc:
+                missing_ret_or_throws = False
+                if filepath.startswith("Sources") or "/Sources/" in filepath:
+                    needs_returns, needs_throws = signature_requires_returns_and_throws(
+                        lines, i, kind
+                    )
+                    if (
+                        needs_returns
+                        and "- Returns:" not in doc_text
+                        and "- returns:" not in doc_text
+                    ):
+                        missing_ret_or_throws = True
+                        issues.append(
+                            f"{filepath}:{i + 1}:Missing `- Returns:` documentation on {kind}: {stripped}"
+                        )
+                    if (
+                        needs_throws
+                        and kind == "func"
+                        and "- Throws:" not in doc_text
+                        and "- throws:" not in doc_text
+                    ):
+                        missing_ret_or_throws = True
+                        issues.append(
+                            f"{filepath}:{i + 1}:Missing `- Throws:` documentation on {kind}: {stripped}"
+                        )
+                if not has_banned and not missing_param_doc and not missing_ret_or_throws:
                     documented_items += 1
         elif prop_match:
             kind = prop_match.group("kind")
             total_items += 1
             doc_lines = collect_preceding_doc(lines, i)
             if not doc_lines:
-                issues.append(f"{filepath}:{i + 1}:Undocumented property ({kind}): {stripped}")
+                issues.append(
+                    f"{filepath}:{i + 1}:Undocumented property ({kind}): {stripped}"
+                )
             else:
                 has_banned = any(
                     pat.search(dl) for dl in doc_lines for pat in BANNED_DOC_PATTERNS
@@ -328,7 +423,7 @@ def audit_file(filepath: str) -> Tuple[int, int, List[str]]:
 
 
 def scan_sources(root_dir: str = "Sources") -> Tuple[int, int, List[str]]:
-    """Scan all `.swift` files under `root_dir` for documentation coverage.
+    """Scan all `.swift` files under `root_dir` (and `Tests` when scanning default `Sources`) for documentation coverage.
 
     Args:
         root_dir: The root source directory to scan.
@@ -340,15 +435,20 @@ def scan_sources(root_dir: str = "Sources") -> Tuple[int, int, List[str]]:
     documented = 0
     all_issues: List[str] = []
 
-    for root, _, files in sorted(os.walk(root_dir)):
-        for file in sorted(files):
-            if not file.endswith(".swift"):
-                continue
-            filepath = os.path.join(root, file)
-            t, d, issues = audit_file(filepath)
-            total += t
-            documented += d
-            all_issues.extend(issues)
+    dirs_to_scan = [root_dir]
+    if root_dir == "Sources" and os.path.isdir("Tests"):
+        dirs_to_scan.append("Tests")
+
+    for scan_dir in dirs_to_scan:
+        for root, _, files in sorted(os.walk(scan_dir)):
+            for file in sorted(files):
+                if not file.endswith(".swift"):
+                    continue
+                filepath = os.path.join(root, file)
+                t, d, issues = audit_file(filepath)
+                total += t
+                documented += d
+                all_issues.extend(issues)
 
     return total, documented, all_issues
 

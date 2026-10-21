@@ -1,98 +1,6 @@
 /// Core OpenAPI 3.2.0 and Swagger 2.0 specification root, info, server, component, and path models.
 import Foundation
 
-// MARK: - Domain Enums
-
-/// Standard JSON Schema / OpenAPI data types.
-public enum SchemaType: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
-    /// UTF-8 character string type (`"string"`).
-    case string
-    /// Floating-point or arbitrary-precision numeric type (`"number"`).
-    case number
-    /// Integral numeric type (`"integer"`).
-    case integer
-    /// Boolean truth value type (`"boolean"`).
-    case boolean
-    /// Ordered list of items type (`"array"`).
-    case array
-    /// Key-value map / structured object type (`"object"`).
-    case object
-    /// Explicit null value type (`"null"`).
-    case null
-}
-
-/// Locations where an OpenAPI or Swagger parameter may be transmitted in an HTTP request.
-public enum ParameterLocation: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
-    /// Appended to the URL query string (`"query"`).
-    case query
-    /// Sent as a custom HTTP request header (`"header"`).
-    case header
-    /// Interpolated into the URL path template (`"path"`).
-    case path
-    /// Passed inside the `Cookie` HTTP header (`"cookie"`).
-    case cookie
-    /// Swagger 2.0 request body payload parameter (`"body"`).
-    case body
-    /// Swagger 2.0 URL-encoded or multipart form parameter (`"formData"`).
-    case formData
-}
-
-/// Serialization styles defining how OpenAPI parameter values are delimited and formatted.
-public enum ParameterStyle: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
-    /// Semicolon-prefixed path parameters (`"matrix"`).
-    case matrix
-    /// Dot-prefixed path parameters (`"label"`).
-    case label
-    /// Ampersand-separated query or form parameters (`"form"`).
-    case form
-    /// Comma-separated path or header values (`"simple"`).
-    case simple
-    /// Space-separated array or object values (`"spaceDelimited"`).
-    case spaceDelimited
-    /// Pipe-separated array or object values (`"pipeDelimited"`).
-    case pipeDelimited
-    /// Bracketed nested object query parameters (`"deepObject"`).
-    case deepObject
-}
-
-/// Authentication scheme types supported by OpenAPI 3.2.0 and Swagger 2.0.
-public enum SecuritySchemeType: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
-    /// API key passed in a header, query parameter, or cookie (`"apiKey"`).
-    case apiKey
-    /// HTTP authentication scheme such as Bearer or Basic (`"http"`).
-    case http
-    /// Client certificate mutual TLS authentication (`"mutualTLS"`).
-    case mutualTLS
-    /// OAuth 2.0 authorization flows (`"oauth2"`).
-    case oauth2
-    /// OpenID Connect Discovery authentication (`"openIdConnect"`).
-    case openIdConnect
-    /// Legacy Swagger 2.0 HTTP Basic authentication (`"basic"`).
-    case basic
-}
-
-/// Standard HTTP request methods supported by OpenAPI 3.2.0 `PathItem` definitions.
-public enum HTTPMethod: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
-    /// HTTP `GET` method.
-    case get
-    /// HTTP `PUT` method.
-    case put
-    /// HTTP `POST` method.
-    case post
-    /// HTTP `DELETE` method.
-    case delete
-    /// HTTP `OPTIONS` method.
-    case options
-    /// HTTP `HEAD` method.
-    case head
-    /// HTTP `PATCH` method.
-    case patch
-    /// HTTP `TRACE` method.
-    case trace
-    /// HTTP `QUERY` method introduced in OpenAPI 3.2.0.
-    case query
-}
-
 // MARK: - Root Object
 
 /// Represents an OpenAPI 3.x or Swagger 2.0 root document.
@@ -121,8 +29,6 @@ public struct OpenAPIDocument: Codable, Equatable, Sendable {
     public let tags: [Tag]?
     /// Additional external documentation for the API.
     public let externalDocs: ExternalDocumentation?
-
-    // Swagger 2.0 properties
     /// Legacy Swagger 2.0 host name or IP address serving the API.
     public let host: String?
     /// Legacy Swagger 2.0 base path prefix on which the API is served.
@@ -213,27 +119,13 @@ public struct OpenAPIDocument: Codable, Equatable, Sendable {
     ///   - responses: Optional Swagger 2.0 response definitions map.
     ///   - securityDefinitions: Optional Swagger 2.0 security definitions map.
     public init(
-        openapi: String? = nil,
-        swagger: String? = nil,
-        selfRef: String? = nil,
-        info: Info,
-        jsonSchemaDialect: String? = nil,
-        servers: [Server]? = nil,
-        paths: [String: PathItem]? = nil,
-        webhooks: [String: PathItem]? = nil,
-        components: Components? = nil,
-        security: [SecurityRequirement]? = nil,
-        tags: [Tag]? = nil,
-        externalDocs: ExternalDocumentation? = nil,
-        host: String? = nil,
-        basePath: String? = nil,
-        schemes: [String]? = nil,
-        consumes: [String]? = nil,
-        produces: [String]? = nil,
-        definitions: [String: Schema]? = nil,
-        parameters: [String: Parameter]? = nil,
-        responses: [String: Response]? = nil,
-        securityDefinitions: [String: SecurityScheme]? = nil
+        openapi: String? = nil, swagger: String? = nil, selfRef: String? = nil, info: Info,
+        jsonSchemaDialect: String? = nil, servers: [Server]? = nil, paths: [String: PathItem]? = nil,
+        webhooks: [String: PathItem]? = nil, components: Components? = nil, security: [SecurityRequirement]? = nil,
+        tags: [Tag]? = nil, externalDocs: ExternalDocumentation? = nil, host: String? = nil, basePath: String? = nil,
+        schemes: [String]? = nil, consumes: [String]? = nil, produces: [String]? = nil,
+        definitions: [String: Schema]? = nil, parameters: [String: Parameter]? = nil,
+        responses: [String: Response]? = nil, securityDefinitions: [String: SecurityScheme]? = nil
     ) {
         self.openapi = openapi
         self.swagger = swagger
@@ -288,7 +180,10 @@ public struct Info: Codable, Equatable, Sendable {
     ///   - contact: Optional `Contact` details.
     ///   - license: Optional `License` details.
     ///   - version: Semantic version of the API.
-    public init(title: String, summary: String? = nil, description: String? = nil, termsOfService: String? = nil, contact: Contact? = nil, license: License? = nil, version: String) {
+    public init(
+        title: String, summary: String? = nil, description: String? = nil, termsOfService: String? = nil,
+        contact: Contact? = nil, license: License? = nil, version: String
+    ) {
         self.title = title
         self.summary = summary
         self.description = description
@@ -441,17 +336,10 @@ public struct Components: Codable, Equatable, Sendable {
     ///   - pathItems: Optional map of reusable path items.
     ///   - mediaTypes: Optional map of reusable media types.
     public init(
-        schemas: [String: Schema]? = nil,
-        responses: [String: Response]? = nil,
-        parameters: [String: Parameter]? = nil,
-        examples: [String: Example]? = nil,
-        requestBodies: [String: RequestBody]? = nil,
-        headers: [String: Header]? = nil,
-        securitySchemes: [String: SecurityScheme]? = nil,
-        links: [String: Link]? = nil,
-        callbacks: [String: Callback]? = nil,
-        pathItems: [String: PathItem]? = nil,
-        mediaTypes: [String: MediaType]? = nil
+        schemas: [String: Schema]? = nil, responses: [String: Response]? = nil, parameters: [String: Parameter]? = nil,
+        examples: [String: Example]? = nil, requestBodies: [String: RequestBody]? = nil, headers: [String: Header]? = nil,
+        securitySchemes: [String: SecurityScheme]? = nil, links: [String: Link]? = nil, callbacks: [String: Callback]? = nil,
+        pathItems: [String: PathItem]? = nil, mediaTypes: [String: MediaType]? = nil
     ) {
         self.schemas = schemas
         self.responses = responses
@@ -555,21 +443,11 @@ public struct PathItem: Codable, Equatable, Sendable {
     ///   - servers: Optional path-level server overrides.
     ///   - parameters: Optional path-level shared parameters.
     public init(
-        ref: String? = nil,
-        summary: String? = nil,
-        description: String? = nil,
-        get: Operation? = nil,
-        put: Operation? = nil,
-        post: Operation? = nil,
-        delete: Operation? = nil,
-        options: Operation? = nil,
-        head: Operation? = nil,
-        patch: Operation? = nil,
-        trace: Operation? = nil,
-        query: Operation? = nil,
-        additionalOperations: [String: Operation]? = nil,
-        servers: [Server]? = nil,
-        parameters: [Parameter]? = nil
+        ref: String? = nil, summary: String? = nil, description: String? = nil,
+        get: Operation? = nil, put: Operation? = nil, post: Operation? = nil, delete: Operation? = nil,
+        options: Operation? = nil, head: Operation? = nil, patch: Operation? = nil, trace: Operation? = nil,
+        query: Operation? = nil, additionalOperations: [String: Operation]? = nil,
+        servers: [Server]? = nil, parameters: [Parameter]? = nil
     ) {
         self.ref = ref
         self.summary = summary
@@ -590,35 +468,11 @@ public struct PathItem: Codable, Equatable, Sendable {
 
     /// Returns all non-nil standard HTTP operations defined on this `PathItem` in canonical order.
     public var operationsByMethod: [(HTTPMethod, Operation)] {
-        var result: [(HTTPMethod, Operation)] = []
-        if let op = get {
-            result.append((.get, op))
-        }
-        if let op = put {
-            result.append((.put, op))
-        }
-        if let op = post {
-            result.append((.post, op))
-        }
-        if let op = delete {
-            result.append((.delete, op))
-        }
-        if let op = options {
-            result.append((.options, op))
-        }
-        if let op = head {
-            result.append((.head, op))
-        }
-        if let op = patch {
-            result.append((.patch, op))
-        }
-        if let op = trace {
-            result.append((.trace, op))
-        }
-        if let op = query {
-            result.append((.query, op))
-        }
-        return result
+        let candidates: [(HTTPMethod, Operation?)] = [
+            (.get, get), (.put, put), (.post, post), (.delete, delete),
+            (.options, options), (.head, head), (.patch, patch), (.trace, trace), (.query, query)
+        ]
+        return candidates.compactMap { method, op in op.map { (method, $0) } }
     }
 }
 

@@ -79,10 +79,9 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             for filePath in files where filePath.hasSuffix(".json") {
                 let data = try WASIFileHelpers.readFile(at: filePath)
                 let json = String(decoding: data, as: UTF8.self)
-                if let doc = try? OpenAPIParser.parse(json: json) {
-                    let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
-                    results.append((name, doc))
-                }
+                let doc = try OpenAPIParser.parse(json: json)
+                let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
+                results.append((name, doc))
             }
         }
         return results
@@ -106,8 +105,12 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
         let q = String(UnicodeScalar(34))
         let nl = String(UnicodeScalar(10))
         if !noInstallablePackage {
-            var productStr = "        " + (isExecutable ? ".executable(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])" : ".library(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])")
-            var targetStr = "        " + (isExecutable ? ".executableTarget(name: \(q)\(packageName)\(q), dependencies: [\(q)ArgumentParser\(q)])" : ".target(name: \(q)\(packageName)\(q))")
+            var productStr = "        " +
+                (isExecutable ? ".executable(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])" :
+                    ".library(name: \(q)\(packageName)\(q), targets: [\(q)\(packageName)\(q)])")
+            var targetStr = "        " +
+                (isExecutable ? ".executableTarget(name: \(q)\(packageName)\(q), dependencies: [\(q)ArgumentParser\(q)])" :
+                    ".target(name: \(q)\(packageName)\(q))")
 
             if testsMocks && !isExecutable {
                 productStr += "," + nl + "        .library(name: \(q)\(packageName)Mocks\(q), targets: [\(q)\(packageName)Mocks\(q)])"
@@ -183,7 +186,8 @@ struct ToSDK: AsyncParsableCommand {
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDK")
 
         let docs = try options.getDocuments()
-        let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDK")
+        let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir)
+            .appendingPathComponent("Sources").appendingPathComponent("GeneratedSDK")
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
             let files = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: options.testsMocks)
@@ -195,7 +199,8 @@ struct ToSDK: AsyncParsableCommand {
                 var targetDir = docDir
                 if options.testsMocks, !options.noInstallablePackage {
                     if filename == "mocks.swift" {
-                        targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKMocks")
+                        targetDir = URL(fileURLWithPath: outDir).appendingPathComponent("Sources")
+                            .appendingPathComponent("GeneratedSDKMocks")
                         if docs.count > 1 {
                             targetDir = targetDir.appendingPathComponent(name)
                         }
@@ -219,7 +224,10 @@ struct ToSDK: AsyncParsableCommand {
 /// CLI subcommand that generates an executable `ArgumentParser` CLI client from an OpenAPI specification.
 struct ToSDKCLI: AsyncParsableCommand {
     /// Command configuration for `to_sdk_cli`.
-    static let configuration = CommandConfiguration(commandName: "to_sdk_cli", abstract: "Generate a Client SDK CLI from an OpenAPI specification.")
+    static let configuration = CommandConfiguration(
+        commandName: "to_sdk_cli",
+        abstract: "Generate a Client SDK CLI from an OpenAPI specification."
+    )
 
     /// Shared OpenAPI generation options.
     @OptionGroup var options: BaseFromOpenAPIOptions
@@ -234,266 +242,21 @@ struct ToSDKCLI: AsyncParsableCommand {
         try options.generateScaffolding(in: outDir, packageName: "GeneratedSDKCLI", isExecutable: true)
 
         let docs = try options.getDocuments()
-        let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKCLI")
+        let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir)
+            .appendingPathComponent("Sources").appendingPathComponent("GeneratedSDKCLI")
         try createDirRecursive(srcDir.path)
         for (name, doc) in docs {
+            if !options.noInstallablePackage {
+                let sdkFiles = OpenAPIToSwiftGenerator.generateFiles(from: doc, tests: false)
+                for (sdkFile, sdkCode) in sdkFiles {
+                    let prefix = docs.count > 1 ? "\(name)_" : ""
+                    let sdkUrl = srcDir.appendingPathComponent("\(prefix)\(sdkFile)")
+                    try WASIFileHelpers.writeString(sdkCode, to: sdkUrl.path)
+                }
+            }
             let code = emitSDKCLI(document: doc)
             let fileUrl = srcDir.appendingPathComponent("\(name).swift") // using name instead of main if multiple
             try WASIFileHelpers.writeString(code, to: fileUrl.path)
-        }
-    }
-}
-
-/// CLI subcommand that generates a Vapor server stub, Fluent models/DAOs, and XCTVapor test suites from an OpenAPI specification.
-struct ToServer: AsyncParsableCommand {
-    /// Command configuration for `to_server`.
-    static let configuration = CommandConfiguration(commandName: "to_server", abstract: "Generate a Server stub from an OpenAPI specification.")
-
-    /// Shared OpenAPI generation options.
-    @OptionGroup var options: BaseFromOpenAPIOptions
-
-    /// Generates the Vapor server package, routes, models, DAOs, migrations, and test suites.
-    ///
-    /// - Throws: `CDDError` if reading specifications or writing generated files fails.
-    mutating func run() async throws {
-        let outDir = options.resolveOutputDir()
-        print("✅ Generating Server into \(outDir)")
-        try createDirRecursive(outDir)
-
-        let q = String(UnicodeScalar(34))
-        let nl = String(UnicodeScalar(10))
-
-        if !options.noInstallablePackage {
-            let vaporDeps = ".package(url: \(q)https://github.com/vapor/vapor.git\(q), from: \(q)4.113.2\(q))"
-            let dbDeps = options.testsMocks
-                ? "," + nl + "                    .package(url: \(q)https://github.com/vapor/fluent.git\(q), from: \(q)4.8.0\(q)),"
-                + nl + "                    .package(url: \(q)https://github.com/vapor/fluent-sqlite-driver.git\(q), from: \(q)4.1.0\(q)),"
-                + nl + "                    .package(url: \(q)https://github.com/vadymmarkov/Fakery.git\(q), from: \(q)5.0.0\(q))"
-                : ""
-
-            let vaporTargetDeps = ".product(name: \(q)Vapor\(q), package: \(q)vapor\(q))"
-            let dbTargetDeps = options.testsMocks
-                ? "," + nl + "                            .product(name: \(q)Fluent\(q), package: \(q)fluent\(q)),"
-                + nl + "                            .product(name: \(q)FluentSQLiteDriver\(q), package: \(q)fluent-sqlite-driver\(q)),"
-                + nl + "                            .product(name: \(q)Fakery\(q), package: \(q)Fakery\(q))"
-                : ""
-
-            let testsTarget = options.testsMocks
-                ? "," + nl + "                    .testTarget("
-                + nl + "                        name: \(q)GeneratedServerTests\(q),"
-                + nl + "                        dependencies: ["
-                + nl + "                            .target(name: \(q)GeneratedServer\(q)),"
-                + nl + "                            .product(name: \(q)XCTVapor\(q), package: \(q)vapor\(q))"
-                + nl + "                        ]"
-                + nl + "                    )"
-                : ""
-
-            let packageSwift = """
-            // swift-tools-version: 6.0
-            import PackageDescription
-
-            let package = Package(
-                name: "GeneratedServer",
-                platforms: [
-                   .macOS(.v13)
-                ],
-                dependencies: [
-                    \(vaporDeps)\(dbDeps)
-                ],
-                targets: [
-                    .executableTarget(
-                        name: "GeneratedServer",
-                        dependencies: [
-                            \(vaporTargetDeps)\(dbTargetDeps)
-                        ]
-                    )\(testsTarget)
-                ]
-            )
-            """
-            let pkgUrl = URL(fileURLWithPath: outDir).appendingPathComponent("Package.swift")
-            try WASIFileHelpers.writeString(packageSwift, to: pkgUrl.path)
-        }
-
-        if !options.noGithubActions {
-            let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
-            try createDirRecursive(workflowDir.path)
-            let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
-            let workflow = """
-            name: Swift
-            on: [push, pull_request]
-            jobs:
-              build:
-                runs-on: ubuntu-latest
-                steps:
-                - uses: actions/checkout@v6
-                - name: Set up Swift
-                  uses: swift-actions/setup-swift@v2
-                  with:
-                    swift-version: "6.0.3"
-                - name: Build
-                  run: swift build
-                - name: Run tests
-                  run: swift test
-            """
-            try WASIFileHelpers.writeString(workflow, to: workflowUrl.path)
-        }
-
-        if !options.noInstallablePackage {
-            let testsDir = URL(fileURLWithPath: outDir).appendingPathComponent("Tests").appendingPathComponent("GeneratedServerTests")
-            try createDirRecursive(testsDir.path)
-
-            let sortedSchemas = (try? options.getDocuments().first?.document.components?.schemas?.keys.sorted()) ?? []
-
-            var stubModeCode = """
-            import XCTVapor
-            @testable import GeneratedServer
-
-            /// Tests for the stub mode.
-            final class StubModeTests: XCTestCase {
-                /// Tests the stub mode of the server.
-                func testStubMode() async throws {
-                    let app = try await Application.make(.testing)
-                    defer { Task { try? await app.asyncShutdown() } }
-                    try routes(app)
-            """
-            if let firstSchema = sortedSchemas.first {
-                stubModeCode += """
-
-                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
-                            XCTAssertEqual(req.status, .notImplemented)
-                        }
-                """
-            }
-            stubModeCode += """
-
-                }
-            }
-            """
-            try WASIFileHelpers.writeString(stubModeCode, to: testsDir.appendingPathComponent("StubModeTests.swift").path)
-
-            var ephemeralModeCode = """
-            import XCTVapor
-            @testable import GeneratedServer
-
-            /// Tests for the ephemeral mode.
-            final class EphemeralModeTests: XCTestCase {
-                /// Tests the ephemeral mode
-                func testEphemeralMode() async throws {
-                    let app = try await Application.make(.testing)
-                    defer { Task { try? await app.asyncShutdown() } }
-                    app.databases.use(.sqlite(.memory), as: .sqlite)
-            """
-            for schema in sortedSchemas {
-                ephemeralModeCode += nl + "        app.migrations.add(Create\(schema)())"
-            }
-            ephemeralModeCode += """
-
-                    try await app.autoMigrate()
-                    try routes(app)
-            """
-            if let firstSchema = sortedSchemas.first {
-                ephemeralModeCode += """
-
-                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
-                            // Without seeder, should be empty array instead of 501
-                            XCTAssertEqual(req.status, .ok)
-                            let body = req.body.string
-                            XCTAssertEqual(body, "[]")
-                        }
-                """
-            }
-            ephemeralModeCode += """
-
-                }
-            }
-            """
-            try WASIFileHelpers.writeString(ephemeralModeCode, to: testsDir.appendingPathComponent("EphemeralModeTests.swift").path)
-
-            var seededModeCode = """
-            import XCTVapor
-            @testable import GeneratedServer
-
-            /// Tests for the seeded mode.
-            final class SeededModeTests: XCTestCase {
-                /// Tests the seeded mode
-                func testSeededMode() async throws {
-                    let app = try await Application.make(.testing)
-                    defer { Task { try? await app.asyncShutdown() } }
-                    app.databases.use(.sqlite(.memory), as: .sqlite)
-            """
-            for schema in sortedSchemas {
-                seededModeCode += nl + "        app.migrations.add(Create\(schema)())"
-            }
-            seededModeCode += """
-
-                    try await app.autoMigrate()
-                    try await DatabaseSeeder.seed(on: app.db)
-                    try routes(app)
-            """
-            if let firstSchema = sortedSchemas.first {
-                seededModeCode += """
-
-                        try app.test(.GET, "\(firstSchema.lowercased())s") { req in
-                            XCTAssertEqual(req.status, .ok)
-                            let body = req.body.string
-                            XCTAssertTrue(body.count > 2) // Should contain json elements
-                        }
-                """
-            }
-            seededModeCode += """
-
-                }
-            }
-            """
-            try WASIFileHelpers.writeString(seededModeCode, to: testsDir.appendingPathComponent("SeededModeTests.swift").path)
-
-            let authMiddlewareCode = """
-            import XCTVapor
-            @testable import GeneratedServer
-
-            /// Tests for the auth middleware.
-            final class AuthMiddlewareTests: XCTestCase {
-                /// Tests the auth middleware mock
-                func testAuthMiddlewareMock() async throws {
-                    let app = try await Application.make(.testing)
-                    defer { Task { try? await app.asyncShutdown() } }
-
-                    try routes(app)
-
-                    try app.test(.GET, "_mock/trigger-webhook/test") { req in
-                        XCTAssertEqual(req.status, .ok)
-                    }
-                }
-            }
-            """
-            try WASIFileHelpers.writeString(authMiddlewareCode, to: testsDir.appendingPathComponent("AuthMiddlewareTests.swift").path)
-        }
-
-        let docs = try options.getDocuments()
-        let srcDir = options.noInstallablePackage ? URL(fileURLWithPath: outDir) : URL(fileURLWithPath: outDir).appendingPathComponent("Sources").appendingPathComponent("GeneratedServer")
-        try createDirRecursive(srcDir.path)
-
-        for (_, doc) in docs {
-            let files = emitServerFiles(document: doc, testsMocks: options.testsMocks)
-
-            for (relativePath, fileContent) in files {
-                let fileUrl = srcDir.appendingPathComponent(relativePath)
-                let parentDir = fileUrl.deletingLastPathComponent().path
-                try createDirRecursive(parentDir)
-                try WASIFileHelpers.writeString(fileContent, to: fileUrl.path)
-            }
-
-            if let schemas = doc.components?.schemas ?? doc.definitions {
-                let modelsDir = srcDir.appendingPathComponent("Models").path
-                try createDirRecursive(modelsDir)
-                for (schemaName, schema) in schemas.sorted(by: { $0.key < $1.key }) {
-                    var modelCode = "import Foundation" + nl + nl
-                    modelCode += emitModel(name: schemaName, schema: schema)
-                    modelCode += nl
-                    let modelUrl = srcDir.appendingPathComponent("Models").appendingPathComponent("\(schemaName).swift")
-                    try WASIFileHelpers.writeString(modelCode, to: modelUrl.path)
-                }
-            }
         }
     }
 }

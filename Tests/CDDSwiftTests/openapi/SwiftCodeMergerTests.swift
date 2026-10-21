@@ -1,7 +1,10 @@
+/// Unit tests for `SwiftCodeMerger` AST-preserving Swift source merging.
 @testable import CDDSwift
 import XCTest
 
+/// Test suite verifying `SwiftCodeMerger`.
 final class SwiftCodeMergerTests: XCTestCase {
+    /// Verifies appending newly generated structs when they do not exist in the target file.
     func testMergeAppendsIfNew() {
         let existing = "struct UserCode {}"
         let generated = "struct AutoGen {}"
@@ -17,6 +20,7 @@ final class SwiftCodeMergerTests: XCTestCase {
         XCTAssertEqual(merged, expected)
     }
 
+    /// Verifies replacing an existing struct while preserving its leading documentation comments.
     func testMergeReplacesAndPreservesComments() {
         let existing = """
         struct UserCode {}
@@ -46,6 +50,7 @@ final class SwiftCodeMergerTests: XCTestCase {
         XCTAssertEqual(merged, expected)
     }
 
+    /// Verifies merging enum and protocol declarations while preserving unchanged types and comments.
     func testMergeEnumsAndProtocols() {
         let existing = """
         /// Old Enum Doc
@@ -84,6 +89,7 @@ final class SwiftCodeMergerTests: XCTestCase {
         XCTAssertTrue(merged.contains("/// Old Protocol Doc"))
     }
 
+    /// Verifies newline formatting when the existing source ends with a single newline.
     func testMergeFormattingOneNewline() {
         let existing = "struct UserCode {}\n"
         let generated = "struct AutoGen {}"
@@ -93,6 +99,7 @@ final class SwiftCodeMergerTests: XCTestCase {
         XCTAssertEqual(merged, expected)
     }
 
+    /// Verifies newline formatting when the existing source does not end with a newline.
     func testMergeFormattingNoNewline() {
         let existing = "struct UserCode {}"
         let generated = "struct AutoGen {}"

@@ -60,9 +60,7 @@ public actor MCPServerSession {
     public func start() async throws {
         try await transport.start { [weak self] data in
             guard let self = self else { return }
-            Task {
-                await self.processIncomingData(data)
-            }
+            await self.processIncomingData(data)
         }
     }
 
@@ -211,10 +209,10 @@ public actor MCPServerSession {
     /// - Parameter notification: The decoded `JSONRPCNotification` from the client.
     private func handleNotification(_ notification: JSONRPCNotification<AnyCodable>) async {
         if notification.method == "notifications/cancelled" {
-            if let paramsAny = notification.params?.value as? [String: Any],
-               let data = try? encoder.encode(AnyCodable(paramsAny)),
-               let cancelParams = try? decoder.decode(CancelledNotificationParams.self, from: data), let task = runningTasks[cancelParams.requestId]
-            {
+            if let params = notification.params,
+               let data = try? encoder.encode(params),
+               let cancelParams = try? decoder.decode(CancelledNotificationParams.self, from: data),
+               let task = runningTasks[cancelParams.requestId] {
                 task.cancel()
                 runningTasks.removeValue(forKey: cancelParams.requestId)
             }

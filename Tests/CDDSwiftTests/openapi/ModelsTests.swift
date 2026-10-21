@@ -39,34 +39,39 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(decoded.operations.first?.method, "GET")
     }
 
-    /// Verifies `HTTPMethod`, `ParameterLocation`, `ParameterStyle`, `SecuritySchemeType`, `SchemaType`, and `Schema.updating(...)`.
+    /// Verifies `HTTPMethod`, `ParameterLocation`, `ParameterStyle`, `SecuritySchemeType`, `SchemaType`, `OpenAPIFormat`, and
+    /// `Schema.updating(...)`.
     func testDomainEnumsAndHelpers() {
         let op = CDDSwift.Operation(operationId: "op1")
         let item = PathItem(get: op, put: op, post: op, delete: op, options: op, head: op, patch: op, trace: op, query: op)
         XCTAssertEqual(item.operationsByMethod.count, 9)
         XCTAssertEqual(item.operationsByMethod.map { $0.0 }, HTTPMethod.allCases)
-
-        let emptyItem = PathItem()
-        XCTAssertTrue(emptyItem.operationsByMethod.isEmpty)
+        XCTAssertTrue(PathItem().operationsByMethod.isEmpty)
 
         let param = Parameter(name: "id", in: "query", style: "form")
         XCTAssertEqual(param.location, .query)
         XCTAssertEqual(param.parameterStyle, .form)
-
-        let emptyParam = Parameter(name: "id")
-        XCTAssertNil(emptyParam.location)
-        XCTAssertNil(emptyParam.parameterStyle)
+        XCTAssertNil(Parameter(name: "id").location)
+        XCTAssertNil(Parameter(name: "id").parameterStyle)
 
         let scheme = SecurityScheme(type: "apiKey", name: "X-Key", in: "header")
         XCTAssertEqual(scheme.schemeType, .apiKey)
         XCTAssertEqual(scheme.keyLocation, .header)
+        XCTAssertNil(SecurityScheme().schemeType)
+        XCTAssertNil(SecurityScheme().keyLocation)
 
-        let emptyScheme = SecurityScheme()
-        XCTAssertNil(emptyScheme.schemeType)
-        XCTAssertNil(emptyScheme.keyLocation)
-
-        let schema = Schema(type: "string", description: "orig", maximum: 10, minimum: 1, maxLength: 20, minLength: 2, pattern: "^a")
+        let schema = Schema(
+            type: "string",
+            description: "orig",
+            format: "uuid",
+            maximum: 10,
+            minimum: 1,
+            maxLength: 20,
+            minLength: 2,
+            pattern: "^a"
+        )
         XCTAssertEqual(schema.schemaType, .string)
+        XCTAssertEqual(schema.openAPIFormat, .uuid)
         let updated = schema.updating(description: "new", minimum: 5, maximum: 50, minLength: 3, maxLength: 30, pattern: "^b")
         XCTAssertEqual(updated.description, "new")
         XCTAssertEqual(updated.minimum, 5)
@@ -74,129 +79,192 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(updated.minLength, 3)
         XCTAssertEqual(updated.maxLength, 30)
         XCTAssertEqual(updated.pattern, "^b")
-
-        let unchanged = schema.updating()
-        XCTAssertEqual(unchanged, schema)
-
-        let emptySchema = Schema()
-        XCTAssertNil(emptySchema.schemaType)
+        XCTAssertEqual(schema.updating(), schema)
+        XCTAssertNil(Schema().schemaType)
+        XCTAssertNil(Schema().openAPIFormat)
 
         let schemaItem = SchemaItem(type: "integer", format: "int64")
         XCTAssertEqual(schemaItem.schemaType, .integer)
+        XCTAssertEqual(schemaItem.openAPIFormat, .int64)
         XCTAssertEqual(schemaItem.format, "int64")
         XCTAssertNil(SchemaItem().schemaType)
+        XCTAssertNil(SchemaItem().openAPIFormat)
     }
 
-    /// Verifies initialization of all OpenAPI 3.2.0 and Swagger 2.0 model structs.
-    func testAllOpenAPIModelInitializers() {
-        let info = Info(title: "T", summary: "S", description: "D", termsOfService: "TOS", contact: Contact(name: "N", url: "U", email: "E"), license: License(name: "L", identifier: "I", url: "U"), version: "1")
+    /// Verifies JSON round-trip encoding and decoding of all OpenAPI domain enums.
+    func testDomainEnumCodableRoundTrip() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        for st in SchemaType.allCases + [.custom("x-type"), "string"] {
+            let decoded = try decoder.decode(SchemaType.self, from: encoder.encode(st))
+            XCTAssertEqual(decoded, st)
+            XCTAssertEqual(decoded.rawValue, st.rawValue)
+        }
+        for fmt in OpenAPIFormat.allCases + [.custom("x-fmt"), "uuid"] {
+            let decoded = try decoder.decode(OpenAPIFormat.self, from: encoder.encode(fmt))
+            XCTAssertEqual(decoded, fmt)
+            XCTAssertEqual(decoded.rawValue, fmt.rawValue)
+        }
+        for loc in ParameterLocation.allCases + [.custom("x-loc"), "query"] {
+            let decoded = try decoder.decode(ParameterLocation.self, from: encoder.encode(loc))
+            XCTAssertEqual(decoded, loc)
+            XCTAssertEqual(decoded.description, loc.rawValue)
+        }
+        for sty in ParameterStyle.allCases + [.custom("x-style"), "form"] {
+            let decoded = try decoder.decode(ParameterStyle.self, from: encoder.encode(sty))
+            XCTAssertEqual(decoded, sty)
+            XCTAssertEqual(decoded.description, sty.rawValue)
+        }
+        for secType in SecuritySchemeType.allCases + [.custom("x-sec"), "http"] {
+            let decoded = try decoder.decode(SecuritySchemeType.self, from: encoder.encode(secType))
+            XCTAssertEqual(decoded, secType)
+            XCTAssertEqual(decoded.description, secType.rawValue)
+        }
+        for xmlNode in XMLNodeType.allCases + [.custom("x-xml"), "element"] {
+            let decoded = try decoder.decode(XMLNodeType.self, from: encoder.encode(xmlNode))
+            XCTAssertEqual(decoded, xmlNode)
+            XCTAssertEqual(decoded.description, xmlNode.rawValue)
+        }
+        for sc in [200, "201", "2XX", "default", "x-custom", .range(4)] as [HTTPStatusCode] {
+            let decoded = try decoder.decode(HTTPStatusCode.self, from: encoder.encode(sc))
+            XCTAssertEqual(decoded, sc)
+            XCTAssertEqual(decoded.description, sc.rawValue)
+        }
+        XCTAssertEqual(try decoder.decode(HTTPStatusCode.self, from: Data("204".utf8)), .status(204))
+        for ct in ContentType.allCases + [.custom("application/problem+json"), "application/json"] {
+            let decoded = try decoder.decode(ContentType.self, from: encoder.encode(ct))
+            XCTAssertEqual(decoded, ct)
+            XCTAssertEqual(decoded.description, ct.rawValue)
+        }
+    }
+}
+
+/// Test suite verifying full initialization and JSON round-trip serialization of all OpenAPI 3.2.0 and Swagger 2.0 model structs.
+final class OpenAPIFullModelsTests: XCTestCase {
+    /// Builds a comprehensive `Schema` instance populating all JSON Schema keywords.
+    ///
+    /// - Parameters:
+    ///   - disc: Sample `Discriminator`.
+    ///   - xml: Sample `XML`.
+    ///   - ext: Sample `ExternalDocumentation`.
+    /// - Returns: The populated `Schema`.
+    private func makeFullSchema(disc: Discriminator, xml: XML, ext: ExternalDocumentation) -> Schema {
+        let si = SchemaItem(type: "string", ref: "R", format: "F")
+        return Schema(
+            type: "object", properties: [:], additionalProperties: si, items: si, prefixItems: [], required: ["a"],
+            ref: "R", title: "T", description: "D", format: "F", default_value: AnyCodable("DV"), const_value: AnyCodable("CV"),
+            multipleOf: 2, maximum: 10, exclusiveMaximum: 10, minimum: 1, exclusiveMinimum: 1, maxLength: 10, minLength: 1,
+            pattern: "P", maxItems: 10, minItems: 1, uniqueItems: true, contains: si, minContains: 1, maxContains: 2,
+            maxProperties: 10, minProperties: 1, dependentRequired: [:], dependentSchemas: [:], propertyNames: si,
+            patternProperties: [:], unevaluatedItems: si, unevaluatedProperties: si, enum_values: [AnyCodable("a")],
+            contentEncoding: "CE", contentMediaType: "CMT", contentSchema: si, allOf: [], oneOf: [], anyOf: [], not: si,
+            if_schema: si, then_schema: si, else_schema: si, id: "ID", anchor: "A", dynamicAnchor: "DA", vocabulary: [:],
+            dynamicRef: "DR", defs: [:], discriminator: disc, xml: xml, externalDocs: ext, example: AnyCodable("E"),
+            deprecated: true, readOnly: true, writeOnly: true
+        )
+    }
+
+    /// Builds a comprehensive `Components` and `PathItem` pair for `testAllOpenAPIModelInitializers`.
+    ///
+    /// - Parameters:
+    ///   - server: Sample `Server`.
+    ///   - ext: Sample `ExternalDocumentation`.
+    ///   - sec: Sample `SecurityScheme`.
+    ///   - schema: Sample `Schema`.
+    /// - Returns: A tuple of `(Components, PathItem, Parameter, Response)`.
+    private func makeFullComponentsAndPath(
+        server: Server,
+        ext: ExternalDocumentation,
+        sec: SecurityScheme,
+        schema: Schema
+    ) -> (comp: Components, pathItem: PathItem) {
+        let ex = Example(
+            ref: "R", summary: "S", description: "D", dataValue: AnyCodable("V"),
+            serializedValue: "SV", value: AnyCodable("V"), externalValue: "EV"
+        )
+        let enc = EncodingObject(
+            contentType: "CT", headers: [:], encoding: [:], prefixEncoding: [],
+            itemEncoding: nil, style: "S", explode: true, allowReserved: true
+        )
+        XCTAssertNotEqual(enc, EncodingObject(contentType: "OTHER"))
+        let mt = MediaType(
+            ref: "R", summary: "S", schema: nil, itemSchema: nil, example: AnyCodable("E"),
+            examples: ["a": ex], encoding: ["a": enc], prefixEncoding: [enc], itemEncoding: enc
+        )
+        let h = Header(
+            ref: "R", summary: "S", description: "D", required: true, deprecated: true, allowEmptyValue: true,
+            style: "S", explode: true, allowReserved: true, schema: nil, example: AnyCodable("E"),
+            examples: ["a": ex], content: ["a": mt]
+        )
+        let link = Link(
+            ref: "R", summary: "S", operationRef: "OR", operationId: "OID",
+            parameters: ["a": AnyCodable("b")], requestBody: AnyCodable("RB"), description: "D", server: server
+        )
+        let resp = Response(ref: "R", summary: "S", description: "D", headers: ["a": h], content: ["a": mt], links: ["a": link])
+        let param = Parameter(
+            ref: "R", summary: "S", name: "N", in: "I", description: "D", required: true, deprecated: true,
+            allowEmptyValue: true, style: "S", explode: true, allowReserved: true, schema: nil,
+            example: AnyCodable("E"), examples: ["a": ex], content: ["a": mt]
+        )
+        let rb = RequestBody(ref: "R", summary: "S", description: "D", content: ["a": mt], required: true)
+        let op = CDDSwift.Operation(
+            tags: ["T"], summary: "S", description: "D", externalDocs: ext, operationId: "OID",
+            parameters: [param], requestBody: rb, responses: ["200": resp], callbacks: [:],
+            deprecated: true, security: [["a": ["b"]]], servers: [server]
+        )
+        let pi = PathItem(
+            ref: "R", summary: "S", description: "D", get: op, put: op, post: op, delete: op, options: op,
+            head: op, patch: op, trace: op, query: op, additionalOperations: ["CUSTOM": op],
+            servers: [server], parameters: [param]
+        )
+        let comp = Components(
+            schemas: ["a": schema], responses: ["a": resp], parameters: ["a": param], examples: ["a": ex],
+            requestBodies: ["a": rb], headers: ["a": h], securitySchemes: ["a": sec], links: ["a": link],
+            callbacks: [:], pathItems: ["a": pi], mediaTypes: ["a": mt]
+        )
+        return (comp, pi)
+    }
+
+    /// Verifies initialization and full JSON round-trip serialization of all OpenAPI 3.2.0 and Swagger 2.0 model structs.
+    func testAllOpenAPIModelInitializers() throws {
+        let info = Info(
+            title: "T", summary: "S", description: "D", termsOfService: "TOS",
+            contact: Contact(name: "N", url: "U", email: "E"),
+            license: License(name: "L", identifier: "I", url: "U"), version: "1"
+        )
         let sv = ServerVariable(enum: ["a"], default: "a", description: "D")
         let s = Server(url: "U", description: "D", name: "N", variables: ["v": sv])
         let ext = ExternalDocumentation(description: "D", url: "U")
         let tag = Tag(name: "T", description: "D", summary: "S", parent: "P", kind: "K", externalDocs: ext)
-        let xml = XML(name: "N", namespace: "NS", prefix: "P", attribute: true, wrapped: true, nodeType: "element")
+        let xml = XML(name: "N", namespace: "NS", prefix: "P", attribute: true, wrapped: true, nodeType: .element)
         let disc = Discriminator(propertyName: "P", mapping: ["a": "b"], defaultMapping: "d")
         let oauthFlow = OAuthFlow(authorizationUrl: "A", tokenUrl: "T", refreshUrl: "R", deviceAuthorizationUrl: "DA", scopes: ["a": "b"])
-        let oauthFlows = OAuthFlows(implicit: oauthFlow, password: oauthFlow, clientCredentials: oauthFlow, authorizationCode: oauthFlow, deviceAuthorization: oauthFlow)
-        let sec = SecurityScheme(ref: "R", summary: "S", type: "T", description: "D", name: "N", in: "I", scheme: "S", bearerFormat: "BF", flows: oauthFlows, openIdConnectUrl: "O", oauth2MetadataUrl: "M", deprecated: true)
-        let ex = Example(ref: "R", summary: "S", description: "D", dataValue: AnyCodable("V"), serializedValue: "SV", value: AnyCodable("V"), externalValue: "EV")
-        let enc = EncodingObject(contentType: "CT", headers: [:], encoding: [:], prefixEncoding: [], itemEncoding: nil, style: "S", explode: true, allowReserved: true)
-        XCTAssertEqual(enc, enc)
-        let mt = MediaType(ref: "R", summary: "S", schema: nil, itemSchema: nil, example: AnyCodable("E"), examples: ["a": ex], encoding: ["a": enc], prefixEncoding: [enc], itemEncoding: enc)
-        let h = Header(ref: "R", summary: "S", description: "D", required: true, deprecated: true, allowEmptyValue: true, style: "S", explode: true, allowReserved: true, schema: nil, example: AnyCodable("E"), examples: ["a": ex], content: ["a": mt])
-        let link = Link(ref: "R", summary: "S", operationRef: "OR", operationId: "OID", parameters: ["a": AnyCodable("b")], requestBody: AnyCodable("RB"), description: "D", server: s)
-        let resp = Response(ref: "R", summary: "S", description: "D", headers: ["a": h], content: ["a": mt], links: ["a": link])
-        let param = Parameter(ref: "R", summary: "S", name: "N", in: "I", description: "D", required: true, deprecated: true, allowEmptyValue: true, style: "S", explode: true, allowReserved: true, schema: nil, example: AnyCodable("E"), examples: ["a": ex], content: ["a": mt])
-        let rb = RequestBody(ref: "R", summary: "S", description: "D", content: ["a": mt], required: true)
-        let op = CDDSwift.Operation(tags: ["T"], summary: "S", description: "D", externalDocs: ext, operationId: "OID", parameters: [param], requestBody: rb, responses: ["200": resp], callbacks: [:], deprecated: true, security: [["a": ["b"]]], servers: [s])
-        let pi = PathItem(ref: "R", summary: "S", description: "D", get: op, put: op, post: op, delete: op, options: op, head: op, patch: op, trace: op, query: op, additionalOperations: ["CUSTOM": op], servers: [s], parameters: [param])
-        let si = SchemaItem(type: "string", ref: "R", format: "F")
-        let refObj = Reference(ref: "R", summary: "S", description: "D")
-        XCTAssertEqual(refObj.ref, "R")
-        let sc = Schema(
-            type: "object",
-            properties: [:],
-            additionalProperties: si,
-            items: si,
-            prefixItems: [],
-            required: ["a"],
-            ref: "R",
-            title: "T",
-            description: "D",
-            format: "F",
-            default_value: AnyCodable("DV"),
-            const_value: AnyCodable("CV"),
-            multipleOf: 2,
-            maximum: 10,
-            exclusiveMaximum: 10,
-            minimum: 1,
-            exclusiveMinimum: 1,
-            maxLength: 10,
-            minLength: 1,
-            pattern: "P",
-            maxItems: 10,
-            minItems: 1,
-            uniqueItems: true,
-            contains: si,
-            minContains: 1,
-            maxContains: 2,
-            maxProperties: 10,
-            minProperties: 1,
-            dependentRequired: [:],
-            dependentSchemas: [:],
-            propertyNames: si,
-            patternProperties: [:],
-            unevaluatedItems: si,
-            unevaluatedProperties: si,
-            enum_values: [AnyCodable("a")],
-            contentEncoding: "CE",
-            contentMediaType: "CMT",
-            contentSchema: si,
-            allOf: [],
-            oneOf: [],
-            anyOf: [],
-            not: si,
-            if_schema: si,
-            then_schema: si,
-            else_schema: si,
-            id: "ID",
-            anchor: "A",
-            dynamicAnchor: "DA",
-            vocabulary: [:],
-            dynamicRef: "DR",
-            defs: [:],
-            discriminator: disc,
-            xml: xml,
-            externalDocs: ext,
-            example: AnyCodable("E"),
-            deprecated: true,
-            readOnly: true,
-            writeOnly: true
+        let oauthFlows = OAuthFlows(
+            implicit: oauthFlow, password: oauthFlow, clientCredentials: oauthFlow,
+            authorizationCode: oauthFlow, deviceAuthorization: oauthFlow
         )
-        let comp = Components(schemas: ["a": sc], responses: ["a": resp], parameters: ["a": param], examples: ["a": ex], requestBodies: ["a": rb], headers: ["a": h], securitySchemes: ["a": sec], links: ["a": link], callbacks: [:], pathItems: ["a": pi], mediaTypes: ["a": mt])
+        let sec = SecurityScheme(
+            ref: "R", summary: "S", type: "T", description: "D", name: "N", in: "I", scheme: "S",
+            bearerFormat: "BF", flows: oauthFlows, openIdConnectUrl: "O", oauth2MetadataUrl: "M", deprecated: true
+        )
+        let refObj = Reference(ref: "R", summary: "S", description: "D")
+        let decodedRef = try JSONDecoder().decode(Reference.self, from: JSONEncoder().encode(refObj))
+        XCTAssertEqual(decodedRef, refObj)
+
+        let sc = makeFullSchema(disc: disc, xml: xml, ext: ext)
+        let (comp, pi) = makeFullComponentsAndPath(server: s, ext: ext, sec: sec, schema: sc)
+
         let doc = OpenAPIDocument(
-            openapi: "3.2.0",
-            swagger: "2.0",
-            selfRef: "S",
-            info: info,
-            jsonSchemaDialect: "JSD",
-            servers: [s],
-            paths: ["/a": pi],
-            webhooks: ["w": pi],
-            components: comp,
-            security: [["a": ["b"]]],
-            tags: [tag],
-            externalDocs: ext,
-            host: "h",
-            basePath: "/v1",
-            schemes: ["https"],
-            consumes: ["application/json"],
-            produces: ["application/json"],
-            definitions: ["a": sc],
-            parameters: ["a": param],
-            responses: ["a": resp],
+            openapi: "3.2.0", swagger: "2.0", selfRef: "S", info: info, jsonSchemaDialect: "JSD",
+            servers: [s], paths: ["/a": pi], webhooks: ["w": pi], components: comp,
+            security: [["a": ["b"]]], tags: [tag], externalDocs: ext, host: "h", basePath: "/v1",
+            schemes: ["https"], consumes: ["application/json"], produces: ["application/json"],
+            definitions: ["a": sc], parameters: comp.parameters, responses: comp.responses,
             securityDefinitions: ["a": sec]
         )
-        XCTAssertEqual(doc.openapi, "3.2.0")
+        let encodedDoc = try JSONEncoder().encode(doc)
+        let decodedDoc = try JSONDecoder().decode(OpenAPIDocument.self, from: encodedDoc)
+        XCTAssertEqual(decodedDoc, doc)
     }
 }
