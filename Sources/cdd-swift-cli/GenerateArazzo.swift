@@ -54,7 +54,7 @@ struct GenerateArazzo: AsyncParsableCommand {
 
         let jsonString = try builder.serialize()
 
-        if let outputPath = outputPath {
+        if let outputPath {
             try WASIFileHelpers.writeString(jsonString, to: outputPath)
             print("✅ Arazzo JSON successfully written to \(outputPath)")
         } else {

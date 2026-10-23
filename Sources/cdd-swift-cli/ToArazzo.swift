@@ -31,14 +31,13 @@ struct ToArazzo: AsyncParsableCommand {
         let parser = SwiftASTArazzoParser()
         let specification = try parser.parseSpecification(from: sourceCode)
 
-        let serialized: String
-        if format.lowercased() == "yaml" {
-            serialized = ArazzoEmitter.emitYAML(from: specification)
+        let serialized: String = if format.lowercased() == "yaml" {
+            ArazzoEmitter.emitYAML(from: specification)
         } else {
-            serialized = try ArazzoEmitter.emitJSON(from: specification)
+            try ArazzoEmitter.emitJSON(from: specification)
         }
 
-        if let outputPath = outputPath {
+        if let outputPath {
             try WASIFileHelpers.writeString(serialized, to: outputPath)
             print("✅ Arazzo specification successfully written to \(outputPath)")
         } else {

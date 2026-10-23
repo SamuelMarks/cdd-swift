@@ -243,7 +243,7 @@ public func emitTests(paths: [String: PathItem]?, document: OpenAPIDocument? = n
     var output = emitTestsClassHeader(document: document)
     let schemas = document?.components?.schemas ?? document?.definitions
 
-    if let paths = paths {
+    if let paths {
         let sortedPaths = paths.sorted { $0.key < $1.key }
         for (path, item) in sortedPaths {
             for (httpMethod, op) in item.operationsByMethod {
@@ -451,11 +451,11 @@ private func resolveTestBodyDescriptor(for op: Operation) -> TestBodyDescriptor?
 /// - Returns: Prefix string such as `"01_POST_"`.
 private func testOrderPrefix(forMethod method: String) -> String {
     switch method.uppercased() {
-    case "POST": return "01_POST_"
-    case "PUT": return "02_PUT_"
-    case "PATCH": return "03_PATCH_"
-    case "GET": return "04_GET_"
-    case "DELETE": return "99_DELETE_"
-    default: return "50_"
+    case "POST": "01_POST_"
+    case "PUT": "02_PUT_"
+    case "PATCH": "03_PATCH_"
+    case "GET": "04_GET_"
+    case "DELETE": "99_DELETE_"
+    default: "50_"
     }
 }

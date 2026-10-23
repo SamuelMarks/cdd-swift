@@ -12,216 +12,216 @@ This table tracks the completeness of language integration with Swagger 2.0 for 
 
 | Swagger 2.0 Object / Feature | Presence `[To, From]` | Absence `[To, From]` | Skipped `[To, From]` | Notes / Implementation Strategy |
 | :--- | :---: | :---: | :---: | :--- |
-| **Swagger Object (Root)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`swagger`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`info`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`host`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`basePath`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`schemes`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`consumes`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`produces`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`paths`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`definitions`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`parameters`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`responses`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`securityDefinitions`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`security`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`tags`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`externalDocs`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Swagger Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`title`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`termsOfService`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`contact`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`license`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`version`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Info Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Contact Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Contact Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Contact Object (`url`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Contact Object (`email`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Contact Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **License Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **License Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **License Object (`url`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **License Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Paths Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Paths Object (`/{path}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Paths Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`$ref`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`get`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`put`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`post`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`delete`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`options`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`head`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`patch`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`parameters`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Path Item Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`tags`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`summary`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`externalDocs`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`operationId`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`consumes`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`produces`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`parameters`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`responses`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`schemes`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`deprecated`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`security`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Operation Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **External Documentation Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **External Documentation Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **External Documentation Object (`url`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **External Documentation Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`in`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`required`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`schema`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`type`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`format`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`allowEmptyValue`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`items`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`collectionFormat`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`default`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`maximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`minimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`maxLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`minLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`pattern`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`maxItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`minItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`uniqueItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`enum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`multipleOf`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameter Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`type`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`format`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`items`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`collectionFormat`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`default`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`maximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`minimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`maxLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`minLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`pattern`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`maxItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`minItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`uniqueItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`enum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`multipleOf`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Items Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Object (`default`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Object (`{HTTP Status Code}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object (`schema`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object (`headers`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object (`examples`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Response Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Headers Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Headers Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Example Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Example Object (`{mime type}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`type`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`format`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`items`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`collectionFormat`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`default`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`maximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`minimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`maxLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`minLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`pattern`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`maxItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`minItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`uniqueItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`enum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`multipleOf`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Header Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Tag Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Tag Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Tag Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Tag Object (`externalDocs`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Tag Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Reference Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Reference Object (`$ref`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`$ref`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`format`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`title`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`default`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`multipleOf`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`maximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`minimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`maxLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`minLength`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`pattern`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`maxItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`minItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`uniqueItems`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`maxProperties`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`minProperties`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`required`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`enum`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`type`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`items`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`allOf`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`properties`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`additionalProperties`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`discriminator`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`readOnly`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`xml`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`externalDocs`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`example`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Schema Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`namespace`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`prefix`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`attribute`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`wrapped`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **XML Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Definitions Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Definitions Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameters Definitions Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Parameters Definitions Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Definitions Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Responses Definitions Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Definitions Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Definitions Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`type`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`description`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`name`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`in`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`flow`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`authorizationUrl`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`tokenUrl`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`scopes`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Scheme Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Scopes Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Scopes Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Scopes Object (`^x-`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Requirement Object** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
-| **Security Requirement Object (`{name}`)** | `[x]` , `[x]` | `[ ]` , `[ ]` | `[ ]` , `[ ]` | TODO |
+| **Swagger Object (Root)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Unified `OpenAPIDocument` root supporting Swagger 2.0 and OpenAPI 3.2.0 |
+| **Swagger Object (`swagger`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Semantic version (`"2.0"`) on `OpenAPIDocument.swagger` |
+| **Swagger Object (`info`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Global `Info` metadata model (`OpenAPIDocument.info`) |
+| **Swagger Object (`host`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Target server host (`OpenAPIDocument.host`) |
+| **Swagger Object (`basePath`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Server route prefix (`OpenAPIDocument.basePath`) |
+| **Swagger Object (`schemes`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Transfer protocols (`http`, `https`, `ws`, `wss`) on `OpenAPIDocument.schemes` |
+| **Swagger Object (`consumes`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default request MIME types (`OpenAPIDocument.consumes`) |
+| **Swagger Object (`produces`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default response MIME types (`OpenAPIDocument.produces`) |
+| **Swagger Object (`paths`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Vapor route registration and `ServerVisitor` AST extraction (`OpenAPIDocument.paths`) |
+| **Swagger Object (`definitions`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Generates Codable structs, Fluent ORM models, DAOs, and migrations (`OpenAPIDocument.definitions`) |
+| **Swagger Object (`parameters`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Reusable Swagger 2.0 parameter definitions (`OpenAPIDocument.parameters`) |
+| **Swagger Object (`responses`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Reusable Swagger 2.0 response definitions (`OpenAPIDocument.responses`) |
+| **Swagger Object (`securityDefinitions`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Reusable `SecurityScheme` definitions wired into `emitAuthMiddlewares` (`OpenAPIDocument.securityDefinitions`) |
+| **Swagger Object (`security`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Global `[SecurityRequirement]` enforced via `--enforce-auth` middleware |
+| **Swagger Object (`tags`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Top-level `[Tag]` definitions (`OpenAPIDocument.tags`) |
+| **Swagger Object (`externalDocs`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Root `ExternalDocumentation` (`OpenAPIDocument.externalDocs`) |
+| **Swagger Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Specification extensions preserved on models |
+| **Info Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Server metadata (`Info`) |
+| **Info Object (`title`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | API title (`Info.title`) |
+| **Info Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | API description (`Info.description`) |
+| **Info Object (`termsOfService`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Terms of service URL (`Info.termsOfService`) |
+| **Info Object (`contact`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact metadata (`Info.contact`) |
+| **Info Object (`license`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | License metadata (`Info.license`) |
+| **Info Object (`version`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | API version (`Info.version`) |
+| **Info Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Info vendor extensions |
+| **Contact Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact model (`Contact`) |
+| **Contact Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact name (`Contact.name`) |
+| **Contact Object (`url`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact URL (`Contact.url`) |
+| **Contact Object (`email`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact email (`Contact.email`) |
+| **Contact Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Contact vendor extensions |
+| **License Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | License model (`License`) |
+| **License Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | License name (`License.name`) |
+| **License Object (`url`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | License URL (`License.url`) |
+| **License Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | License vendor extensions |
+| **Paths Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Vapor route registration (`Routes/Routes.swift`) |
+| **Paths Object (`/{path}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Converts `{param}` to `:param` Vapor route components and parses via `ServerVisitor` |
+| **Paths Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Paths vendor extensions |
+| **Path Item Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Route group (`PathItem`) |
+| **Path Item Object (`$ref`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | External/internal `PathItem` reference (`PathItem.ref`) |
+| **Path Item Object (`get`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `app.get(...)` Vapor route handler |
+| **Path Item Object (`put`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `app.put(...)` Vapor route handler |
+| **Path Item Object (`post`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `app.post(...)` Vapor route handler |
+| **Path Item Object (`delete`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `app.delete(...)` Vapor route handler |
+| **Path Item Object (`options`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Parsed and emitted on `PathItem.options` |
+| **Path Item Object (`head`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Parsed and emitted on `PathItem.head` |
+| **Path Item Object (`patch`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `app.patch(...)` Vapor route handler |
+| **Path Item Object (`parameters`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Shared path-level `[Parameter]` list (`PathItem.parameters`) |
+| **Path Item Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | PathItem vendor extensions |
+| **Operation Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Vapor route closure and DAO dispatch (`Operation`) |
+| **Operation Object (`tags`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation tag list (`Operation.tags`) |
+| **Operation Object (`summary`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation summary (`Operation.summary`) |
+| **Operation Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation description (`Operation.description`) |
+| **Operation Object (`externalDocs`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation `ExternalDocumentation` (`Operation.externalDocs`) |
+| **Operation Object (`operationId`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Unique handler identifier (`Operation.operationId`) |
+| **Operation Object (`consumes`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation request MIME types (`Operation.consumes`) |
+| **Operation Object (`produces`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation response MIME types (`Operation.produces`) |
+| **Operation Object (`parameters`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation `[Parameter]` list (`Operation.parameters`) |
+| **Operation Object (`responses`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation `Responses` map (`Operation.responses`) |
+| **Operation Object (`schemes`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation transfer protocol overrides (`Operation.schemes`) |
+| **Operation Object (`deprecated`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation deprecation flag (`Operation.deprecated`) |
+| **Operation Object (`security`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation `[SecurityRequirement]` overrides (`Operation.security`) |
+| **Operation Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Operation vendor extensions |
+| **External Documentation Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | External documentation (`ExternalDocumentation`) |
+| **External Documentation Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | External docs description (`ExternalDocumentation.description`) |
+| **External Documentation Object (`url`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | External docs URL (`ExternalDocumentation.url`) |
+| **External Documentation Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | ExternalDocs vendor extensions |
+| **Parameter Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `Parameter` supporting `body`, `formData`, `query`, `header`, `path` |
+| **Parameter Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Parameter key name (`Parameter.name`) |
+| **Parameter Object (`in`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `ParameterLocation` (`query`, `header`, `path`, `formData`, `body`) |
+| **Parameter Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Parameter description (`Parameter.description`) |
+| **Parameter Object (`required`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Enforces required parameter validation (`Parameter.required`) |
+| **Parameter Object (`schema`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Body parameter `Schema` decoded via `req.content.decode(...)` (`Parameter.schema`) |
+| **Parameter Object (`type`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Non-body parameter `SchemaType` (`string`, `number`, `integer`, `boolean`, `array`, `file`) |
+| **Parameter Object (`format`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Non-body parameter `OpenAPIFormat` (`Parameter.format`) |
+| **Parameter Object (`allowEmptyValue`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Empty value flag (`Parameter.allowEmptyValue`) |
+| **Parameter Object (`items`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Array parameter `SchemaItem` (`Parameter.items`) |
+| **Parameter Object (`collectionFormat`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `CollectionFormat` (`csv`, `ssv`, `tsv`, `pipes`, `multi`) |
+| **Parameter Object (`default`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default parameter value (`Parameter.default`) |
+| **Parameter Object (`maximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum numeric constraint (`Parameter.maximum`) |
+| **Parameter Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive maximum constraint (`Parameter.exclusiveMaximum`) |
+| **Parameter Object (`minimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum numeric constraint (`Parameter.minimum`) |
+| **Parameter Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive minimum constraint (`Parameter.exclusiveMinimum`) |
+| **Parameter Object (`maxLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum string length (`Parameter.maxLength`) |
+| **Parameter Object (`minLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum string length (`Parameter.minLength`) |
+| **Parameter Object (`pattern`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Regex validation pattern (`Parameter.pattern`) |
+| **Parameter Object (`maxItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum array items (`Parameter.maxItems`) |
+| **Parameter Object (`minItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum array items (`Parameter.minItems`) |
+| **Parameter Object (`uniqueItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Unique array items flag (`Parameter.uniqueItems`) |
+| **Parameter Object (`enum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Allowed enum values (`Parameter.enum`) |
+| **Parameter Object (`multipleOf`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Numeric divisor constraint (`Parameter.multipleOf`) |
+| **Parameter Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Parameter vendor extensions |
+| **Items Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Recursive `SchemaItem` model for Swagger 2.0 array parameters and headers |
+| **Items Object (`type`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `SchemaType` (`SchemaItem.type`) |
+| **Items Object (`format`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `OpenAPIFormat` (`SchemaItem.format`) |
+| **Items Object (`items`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Nested `Box<SchemaItem>` (`SchemaItem.items`) |
+| **Items Object (`collectionFormat`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `CollectionFormat` (`SchemaItem.collectionFormat`) |
+| **Items Object (`default`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default item value (`SchemaItem.default`) |
+| **Items Object (`maximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum numeric value (`SchemaItem.maximum`) |
+| **Items Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive maximum flag (`SchemaItem.exclusiveMaximum`) |
+| **Items Object (`minimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum numeric value (`SchemaItem.minimum`) |
+| **Items Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive minimum flag (`SchemaItem.exclusiveMinimum`) |
+| **Items Object (`maxLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum string length (`SchemaItem.maxLength`) |
+| **Items Object (`minLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum string length (`SchemaItem.minLength`) |
+| **Items Object (`pattern`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Regex pattern (`SchemaItem.pattern`) |
+| **Items Object (`maxItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum array items (`SchemaItem.maxItems`) |
+| **Items Object (`minItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum array items (`SchemaItem.minItems`) |
+| **Items Object (`uniqueItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Unique array items flag (`SchemaItem.uniqueItems`) |
+| **Items Object (`enum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Allowed item enum values (`SchemaItem.enum`) |
+| **Items Object (`multipleOf`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Numeric divisor constraint (`SchemaItem.multipleOf`) |
+| **Items Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Items vendor extensions |
+| **Responses Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Status code response map (`Responses`) |
+| **Responses Object (`default`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default fallback `Response` (`HTTPStatusCode.default`) |
+| **Responses Object (`{HTTP Status Code}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `HTTPStatusCode` (`200`, `201`, `404`, etc.) |
+| **Responses Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Responses vendor extensions |
+| **Response Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Outgoing response descriptor (`Response`) |
+| **Response Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Response description (`Response.description`) |
+| **Response Object (`schema`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 response payload schema mapped to `Response.content` |
+| **Response Object (`headers`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Response `[String: Header]` map (`Response.headers`) |
+| **Response Object (`examples`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Response MIME-keyed examples (`Example`) |
+| **Response Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Response vendor extensions |
+| **Headers Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of header names to `Header` definitions (`[String: Header]`) |
+| **Headers Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Header key mapped to `Header` struct |
+| **Example Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Example payload (`Example`) |
+| **Example Object (`{mime type}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | MIME-specific example payload (`Example.value`) |
+| **Header Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `Header` supporting Swagger 2.0 and OpenAPI 3.2.0 |
+| **Header Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Header description (`Header.description`) |
+| **Header Object (`type`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 header `SchemaType` (`Header.type`) |
+| **Header Object (`format`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 header `OpenAPIFormat` (`Header.format`) |
+| **Header Object (`items`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 array header `SchemaItem` (`Header.items`) |
+| **Header Object (`collectionFormat`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `CollectionFormat` (`Header.collectionFormat`) |
+| **Header Object (`default`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default header value (`Header.default`) |
+| **Header Object (`maximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum numeric value (`Header.maximum`) |
+| **Header Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive maximum constraint (`Header.exclusiveMaximum`) |
+| **Header Object (`minimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum numeric value (`Header.minimum`) |
+| **Header Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive minimum constraint (`Header.exclusiveMinimum`) |
+| **Header Object (`maxLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum string length (`Header.maxLength`) |
+| **Header Object (`minLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum string length (`Header.minLength`) |
+| **Header Object (`pattern`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Regex pattern (`Header.pattern`) |
+| **Header Object (`maxItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum array items (`Header.maxItems`) |
+| **Header Object (`minItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum array items (`Header.minItems`) |
+| **Header Object (`uniqueItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Unique array items flag (`Header.uniqueItems`) |
+| **Header Object (`enum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Allowed header enum values (`Header.enum`) |
+| **Header Object (`multipleOf`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Numeric divisor constraint (`Header.multipleOf`) |
+| **Header Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Header vendor extensions |
+| **Tag Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Route tag metadata (`Tag`) |
+| **Tag Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Tag name (`Tag.name`) |
+| **Tag Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Tag description (`Tag.description`) |
+| **Tag Object (`externalDocs`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Tag `ExternalDocumentation` (`Tag.externalDocs`) |
+| **Tag Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Tag vendor extensions |
+| **Reference Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Dedicated `Reference` model and `#/definitions/...` resolution |
+| **Reference Object (`$ref`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Resolves `#/definitions/<Model>` references across server generators |
+| **Schema Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Generates Codable structs, Fluent ORM models, DAOs, migrations, and seeders |
+| **Schema Object (`$ref`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Resolves `#/definitions/<Name>` to Swift model types (`Schema.ref`) |
+| **Schema Object (`format`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maps `int32`, `int64`, `float`, `double`, `date`, `date-time`, `uuid`, `byte` to Swift/Fluent types |
+| **Schema Object (`title`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Schema title (`Schema.title`) |
+| **Schema Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emitted as DocC comment on generated struct/enum (`Schema.description`) |
+| **Schema Object (`default`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Default property value (`Schema.default`) |
+| **Schema Object (`multipleOf`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@MultipleOf` validation property wrapper (`Schema.multipleOf`) |
+| **Schema Object (`maximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@Clamped` / `@RangeValidated` wrapper (`Schema.maximum`) |
+| **Schema Object (`exclusiveMaximum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive upper bound validation (`Schema.exclusiveMaximum`) |
+| **Schema Object (`minimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@Clamped` / `@RangeValidated` wrapper (`Schema.minimum`) |
+| **Schema Object (`exclusiveMinimum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Exclusive lower bound validation (`Schema.exclusiveMinimum`) |
+| **Schema Object (`maxLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@LengthValidated` wrapper (`Schema.maxLength`) |
+| **Schema Object (`minLength`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@LengthValidated` wrapper (`Schema.minLength`) |
+| **Schema Object (`pattern`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@RegexValidated` wrapper (`Schema.pattern`) |
+| **Schema Object (`maxItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@ArrayLengthValidated` wrapper (`Schema.maxItems`) |
+| **Schema Object (`minItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@ArrayLengthValidated` wrapper (`Schema.minItems`) |
+| **Schema Object (`uniqueItems`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `@UniqueItems` wrapper (`Schema.uniqueItems`) |
+| **Schema Object (`maxProperties`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maximum object property count (`Schema.maxProperties`) |
+| **Schema Object (`minProperties`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Minimum object property count (`Schema.minProperties`) |
+| **Schema Object (`required`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits non-optional Swift properties and `.required` Fluent migration constraints |
+| **Schema Object (`enum`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `String, Codable, Equatable, CaseIterable, Sendable` Swift enum |
+| **Schema Object (`type`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `SchemaType` (`string`, `number`, `integer`, `boolean`, `array`, `object`) |
+| **Schema Object (`items`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Element `Box<Schema>` for array properties (`Schema.items`) |
+| **Schema Object (`allOf`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Merges composed schemas in `ClassesEmit.swift` (`Schema.allOf`) |
+| **Schema Object (`properties`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of property names to `Schema` definitions (`Schema.properties`) |
+| **Schema Object (`additionalProperties`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Maps dictionary schemas to `[String: ValueType]` (`Schema.additionalProperties`) |
+| **Schema Object (`discriminator`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Polymorphic discriminator property (`Schema.discriminator`) |
+| **Schema Object (`readOnly`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Emits `/// @readOnly` docstring annotation (`Schema.readOnly`) |
+| **Schema Object (`xml`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML metadata (`Schema.xml`) |
+| **Schema Object (`externalDocs`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Schema `ExternalDocumentation` (`Schema.externalDocs`) |
+| **Schema Object (`example`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Used for `DatabaseSeeder` and mock generation (`Schema.example`) |
+| **Schema Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Schema vendor extensions |
+| **XML Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML serialization metadata (`XML`) |
+| **XML Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML element/attribute name (`XML.name`) |
+| **XML Object (`namespace`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML namespace URI (`XML.namespace`) |
+| **XML Object (`prefix`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML namespace prefix (`XML.prefix`) |
+| **XML Object (`attribute`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML attribute flag (`XML.attribute`) |
+| **XML Object (`wrapped`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML wrapped array flag (`XML.wrapped`) |
+| **XML Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | XML vendor extensions |
+| **Definitions Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of model names to `Schema` (`OpenAPIDocument.definitions`) |
+| **Definitions Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Generates `<Name>` struct, `Fluent<Name>`, `<Name>DAO`, and `Create<Name>` migration |
+| **Parameters Definitions Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of reusable `Parameter` definitions (`OpenAPIDocument.parameters`) |
+| **Parameters Definitions Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Named reusable `Parameter` entry |
+| **Responses Definitions Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of reusable `Response` definitions (`OpenAPIDocument.responses`) |
+| **Responses Definitions Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Named reusable `Response` entry |
+| **Security Definitions Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of scheme names to `SecurityScheme` (`OpenAPIDocument.securityDefinitions`) |
+| **Security Definitions Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Generates `<Name>AuthMiddleware` in `ServerRoutesEmit.swift` |
+| **Security Scheme Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `SecurityScheme` supporting Swagger 2.0 `basic`, `apiKey`, `oauth2` |
+| **Security Scheme Object (`type`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `SecuritySchemeType` (`basic`, `apiKey`, `oauth2`) |
+| **Security Scheme Object (`description`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Security scheme description (`SecurityScheme.description`) |
+| **Security Scheme Object (`name`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Header or query parameter name for `apiKey` (`SecurityScheme.name`) |
+| **Security Scheme Object (`in`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Strongly-typed `ParameterLocation` (`query`, `header`) |
+| **Security Scheme Object (`flow`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 OAuth2 flow (`implicit`, `password`, `application`, `accessCode`) |
+| **Security Scheme Object (`authorizationUrl`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 OAuth2 authorization URL (`SecurityScheme.authorizationUrl`) |
+| **Security Scheme Object (`tokenUrl`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 OAuth2 token URL (`SecurityScheme.tokenUrl`) |
+| **Security Scheme Object (`scopes`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Swagger 2.0 OAuth2 `[String: String]` scopes (`SecurityScheme.scopes`) |
+| **Security Scheme Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | SecurityScheme vendor extensions |
+| **Scopes Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Map of OAuth2 scope names to descriptions (`[String: String]`) |
+| **Scopes Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Scope identifier and description |
+| **Scopes Object (`^x-`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Scopes vendor extensions |
+| **Security Requirement Object** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Enforces required auth middleware on Vapor route groups (`SecurityRequirement`) |
+| **Security Requirement Object (`{name}`)** | `[x]` , `[x]` | `[x]` , `[x]` | `[x]` , `[x]` | Security scheme key mapped to required OAuth2 scopes `[String]` |

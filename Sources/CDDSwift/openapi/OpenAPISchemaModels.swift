@@ -417,7 +417,7 @@ public extension Schema {
         maxLength: Int? = nil,
         pattern: String? = nil
     ) -> Schema {
-        return Schema(
+        Schema(
             type: type, properties: properties, additionalProperties: additionalProperties, items: items,
             prefixItems: prefixItems, required: required, ref: ref, title: title,
             description: description ?? self.description, format: format, default_value: default_value, const_value: const_value,

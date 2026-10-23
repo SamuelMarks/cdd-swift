@@ -43,7 +43,7 @@ final class CDDSwiftTests: XCTestCase {
     ///
     /// - Returns: The raw OpenAPI JSON string.
     private func sampleOpenAPIJSON() -> String {
-        return """
+        """
         {
           "openapi": "3.2.0",
           "info": { "title": "Test API", "version": "1.0.0" },
@@ -150,5 +150,34 @@ final class CDDSwiftTests: XCTestCase {
         XCTAssertTrue(jsonString.contains("Sample CDD API"))
         XCTAssertTrue(jsonString.contains("getTest"))
         XCTAssertTrue(jsonString.contains("TestModel"))
+    }
+
+    /// Verifies that all conformance markdown tables and checklists have zero unchecked boxes (`[ ]`) and zero placeholder cells.
+    func testConformanceMarkdownMatricesHaveNoUncheckedItems() throws {
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let conformanceFiles = [
+            "conformance/arazzo-1.1.0/client-sdk-cli.md",
+            "conformance/arazzo-1.1.0/client-sdk.md",
+            "conformance/arazzo-1.1.0/servers.md",
+            "conformance/mcp-1.0.0/client-sdk-cli.md",
+            "conformance/mcp-1.0.0/client-sdk.md",
+            "conformance/mcp-1.0.0/servers.md",
+            "conformance/mock-server/mock-server-plan.md",
+            "conformance/openapi-3.2.0/client-sdk-cli.md",
+            "conformance/openapi-3.2.0/client-sdk.md",
+            "conformance/openapi-3.2.0/servers.md",
+            "conformance/swagger-2.0/client-sdk-cli.md",
+            "conformance/swagger-2.0/client-sdk.md",
+            "conformance/swagger-2.0/servers.md"
+        ]
+        for relativePath in conformanceFiles {
+            let fileURL = repoRoot.appendingPathComponent(relativePath)
+            let content = try String(contentsOf: fileURL, encoding: .utf8)
+            XCTAssertFalse(content.contains("[ ]"))
+            XCTAssertFalse(content.contains("| TODO |"))
+        }
     }
 }

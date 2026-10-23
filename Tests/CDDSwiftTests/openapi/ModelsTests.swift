@@ -45,7 +45,7 @@ final class ModelsTests: XCTestCase {
         let op = CDDSwift.Operation(operationId: "op1")
         let item = PathItem(get: op, put: op, post: op, delete: op, options: op, head: op, patch: op, trace: op, query: op)
         XCTAssertEqual(item.operationsByMethod.count, 9)
-        XCTAssertEqual(item.operationsByMethod.map { $0.0 }, HTTPMethod.allCases)
+        XCTAssertEqual(item.operationsByMethod.map(\.0), HTTPMethod.allCases)
         XCTAssertTrue(PathItem().operationsByMethod.isEmpty)
 
         let param = Parameter(name: "id", in: "query", style: "form")
@@ -53,6 +53,20 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(param.parameterStyle, .form)
         XCTAssertNil(Parameter(name: "id").location)
         XCTAssertNil(Parameter(name: "id").parameterStyle)
+        let paramWithCF = Parameter(name: "tags", in: "query", collectionFormat: .pipes)
+        XCTAssertEqual(paramWithCF.parameterStyle, .pipeDelimited)
+        let paramWithCFNoIn = Parameter(name: "tags", collectionFormat: .csv)
+        XCTAssertEqual(paramWithCFNoIn.parameterStyle, .form)
+
+        let headerExplicit = Header(style: .spaceDelimited, explode: true)
+        XCTAssertEqual(headerExplicit.effectiveStyle, .spaceDelimited)
+        XCTAssertEqual(headerExplicit.effectiveExplode, true)
+        let headerCF = Header(collectionFormat: .pipes)
+        XCTAssertEqual(headerCF.effectiveStyle, .pipeDelimited)
+        XCTAssertEqual(headerCF.effectiveExplode, false)
+        let headerDefault = Header()
+        XCTAssertEqual(headerDefault.effectiveStyle, .simple)
+        XCTAssertEqual(headerDefault.effectiveExplode, false)
 
         let scheme = SecurityScheme(type: "apiKey", name: "X-Key", in: "header")
         XCTAssertEqual(scheme.schemeType, .apiKey)
@@ -137,6 +151,30 @@ final class ModelsTests: XCTestCase {
             XCTAssertEqual(decoded, ct)
             XCTAssertEqual(decoded.description, ct.rawValue)
         }
+    }
+
+    /// Verifies `CollectionFormat` Codable round-trip, delimiters, and OpenAPI style/explode mappings.
+    func testCollectionFormat() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        for cf in CollectionFormat.allCases + [.custom("x-cf"), "csv"] {
+            let decoded = try decoder.decode(CollectionFormat.self, from: encoder.encode(cf))
+            XCTAssertEqual(decoded, cf)
+            XCTAssertEqual(decoded.description, cf.rawValue)
+        }
+        XCTAssertEqual(CollectionFormat.csv.delimiter, ",")
+        XCTAssertEqual(CollectionFormat.ssv.delimiter, " ")
+        XCTAssertEqual(CollectionFormat.tsv.delimiter, "\t")
+        XCTAssertEqual(CollectionFormat.pipes.delimiter, "|")
+        XCTAssertEqual(CollectionFormat.multi.delimiter, ",")
+        XCTAssertEqual(CollectionFormat.custom("x").delimiter, ",")
+        XCTAssertEqual(CollectionFormat.ssv.openAPIStyle(for: .query), .spaceDelimited)
+        XCTAssertEqual(CollectionFormat.tsv.openAPIStyle(for: .query), .custom("tabDelimited"))
+        XCTAssertEqual(CollectionFormat.pipes.openAPIStyle(for: .query), .pipeDelimited)
+        XCTAssertEqual(CollectionFormat.csv.openAPIStyle(for: .query), .form)
+        XCTAssertEqual(CollectionFormat.csv.openAPIStyle(for: .header), .simple)
+        XCTAssertTrue(CollectionFormat.multi.openAPIExplode)
+        XCTAssertFalse(CollectionFormat.csv.openAPIExplode)
     }
 }
 

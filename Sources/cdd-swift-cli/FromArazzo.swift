@@ -41,7 +41,7 @@ struct BaseFromArazzoOptions: ParsableArguments {
     ///
     /// - Returns: Resolved directory path string.
     func resolveOutputDir() -> String {
-        return outputPath ?? "."
+        outputPath ?? "."
     }
 
     /// Writes `Package.swift` scaffolding if `noInstallablePackage` is false.

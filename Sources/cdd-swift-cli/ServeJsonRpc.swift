@@ -114,7 +114,7 @@
         ///
         /// - Returns: The configured `CommandExecutor`.
         public func resolveExecutor() -> CommandExecutor {
-            return currentExecutor
+            currentExecutor
         }
 
         /// Records that the server on `port` has started listening and resumes any waiting continuations.
@@ -269,7 +269,7 @@
                     }
                 }
             } else if let params = paramsValue?.arrayValue {
-                args.append(contentsOf: params.compactMap { $0.stringValue })
+                args.append(contentsOf: params.compactMap(\.stringValue))
             }
             return args
         }

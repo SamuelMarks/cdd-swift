@@ -211,7 +211,7 @@ public class RouteVisitor: SyntaxVisitor {
     /// - Parameter returnClause: Optional `ReturnClauseSyntax` from the function signature.
     /// - Returns: Optional map of media type strings to `MediaType` definitions.
     private func extractResponseContent(from returnClause: ReturnClauseSyntax?) -> [String: MediaType]? {
-        guard let returnClause = returnClause else { return nil }
+        guard let returnClause else { return nil }
         let retText = returnClause.type.description.trimmingCharacters(in: .whitespacesAndNewlines)
         guard retText != "Void", retText != "()" else { return nil }
         let typeParser = ModelVisitor(viewMode: .sourceAccurate)

@@ -67,14 +67,14 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// - Throws: `CDDError` if reading or parsing an input file fails.
     func getDocuments() throws -> [(name: String, document: OpenAPIDocument)] {
         var results: [(String, OpenAPIDocument)] = []
-        if let inputPath = inputPath {
+        if let inputPath {
             let url = URL(fileURLWithPath: inputPath)
             let data = try WASIFileHelpers.readFile(at: inputPath)
             let json = String(decoding: data, as: UTF8.self)
             let document = try OpenAPIParser.parse(json: json)
             let name = url.deletingPathExtension().lastPathComponent
             results.append((name, document))
-        } else if let inputDir = inputDir {
+        } else if let inputDir {
             let files = try WASIFileHelpers.listDirectory(at: inputDir)
             for filePath in files where filePath.hasSuffix(".json") {
                 let data = try WASIFileHelpers.readFile(at: filePath)
@@ -91,7 +91,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     ///
     /// - Returns: The resolved output directory path string.
     func resolveOutputDir() -> String {
-        return outputPath ?? "."
+        outputPath ?? "."
     }
 
     /// Generates `Package.swift` and `.github/workflows/swift.yml` scaffolding in `outDir`.

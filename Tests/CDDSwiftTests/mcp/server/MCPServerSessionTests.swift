@@ -49,7 +49,7 @@ final class MockTransportForRouter: MCPTransport {
     ///
     /// - Parameter message: The `Encodable & Sendable` message to send.
     /// - Throws: `MCPServerSessionTests.GenericError` if configured to fail.
-    func send<T: Encodable & Sendable>(_ message: T) async throws {
+    func send(_ message: some Encodable & Sendable) async throws {
         try await state.recordSend(message)
     }
 

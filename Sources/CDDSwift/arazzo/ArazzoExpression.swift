@@ -266,7 +266,7 @@ public enum ArazzoExpressionEvaluator {
         nilError: String,
         pointerError: String
     ) throws -> AnyCodable {
-        guard let body = body else {
+        guard let body else {
             throw CDDError.arazzoExpressionEvaluationError(expression: original, context: nilError)
         }
         if let hashIdx = trimmed.firstIndex(of: "#") {

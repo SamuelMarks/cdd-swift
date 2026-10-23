@@ -17,7 +17,7 @@ public func emitMCPAdapter(document: OpenAPIDocument) -> String {
 ///
 /// - Returns: Generated Swift tool type definitions inside `MCPAdapter`.
 private func emitMCPAdapterToolTypes() -> String {
-    return """
+    """
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public struct MCPAdapter {
         public struct ToolInputSchema: Codable, Equatable, Sendable {
@@ -62,7 +62,7 @@ private func emitMCPAdapterToolTypes() -> String {
 ///
 /// - Returns: Generated Swift resource type definitions inside `MCPAdapter`.
 private func emitMCPAdapterResourceTypes() -> String {
-    return """
+    """
 
         public struct Resource: Codable, Equatable, Sendable {
             public let uri: String

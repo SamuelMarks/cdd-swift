@@ -113,7 +113,7 @@ private func emitFormDataParamsBody(
     bodyParamName: String,
     isOctetStream: Bool
 ) -> String {
-    let hasBinary = isOctetStream || formDataParams.contains(where: { $0.isBinary })
+    let hasBinary = isOctetStream || formDataParams.contains(where: \.isBinary)
     if hasBinary {
         return emitBinaryFormDataBody(formDataParams: formDataParams, bodyParamName: bodyParamName)
     }
@@ -143,7 +143,7 @@ private func emitBinaryFormDataBody(formDataParams: [RouteParamDescriptor], body
         )
         lines.append("        }")
     }
-    var fileVars = formDataParams.filter { $0.isBinary }.map { $0.swiftName }
+    var fileVars = formDataParams.filter(\.isBinary).map(\.swiftName)
     if !bodyParamName.isEmpty {
         fileVars.append(bodyParamName)
     }
@@ -204,13 +204,13 @@ func emitStandardRequestBody(
     operation: Operation
 ) -> String {
     if config.isFormUrlEncoded {
-        return emitFormUrlEncodedBodyEncoding(bodyParamName: config.bodyParamName)
+        emitFormUrlEncodedBodyEncoding(bodyParamName: config.bodyParamName)
     } else if config.isMultipart {
-        return emitMultipartBodyEncoding(bodyParamName: config.bodyParamName, multipartEncodings: config.multipartEncodings)
+        emitMultipartBodyEncoding(bodyParamName: config.bodyParamName, multipartEncodings: config.multipartEncodings)
     } else if config.isOctetStream {
-        return emitOctetStreamBodyEncoding(bodyParamName: config.bodyParamName, operation: operation)
+        emitOctetStreamBodyEncoding(bodyParamName: config.bodyParamName, operation: operation)
     } else {
-        return emitJsonBodyEncoding(bodyParamName: config.bodyParamName, operation: operation)
+        emitJsonBodyEncoding(bodyParamName: config.bodyParamName, operation: operation)
     }
 }
 
@@ -384,7 +384,7 @@ private func emitJsonBodyEncoding(bodyParamName: String, operation: Operation) -
 ///   - callbacks: Optional dictionary mapping callback names to `Callback` definitions.
 /// - Returns: Generated Swift callback protocol source code.
 public func emitCallbacks(operationId: String, callbacks: [String: Callback]?) -> String {
-    guard let callbacks = callbacks, !callbacks.isEmpty else { return "" }
+    guard let callbacks, !callbacks.isEmpty else { return "" }
     var output = ""
     let protocolName = "\(operationId.prefix(1).uppercased())\(operationId.dropFirst())Callbacks"
     output += "/// Callbacks for \(operationId)\n"

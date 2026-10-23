@@ -52,7 +52,7 @@ final class MockMCPTransport: MCPTransport {
     /// Records an outgoing message and signals `sendStream`.
     ///
     /// - Parameter message: The `Encodable & Sendable` message to send.
-    func send<T: Encodable & Sendable>(_ message: T) async throws {
+    func send(_ message: some Encodable & Sendable) async throws {
         await state.recordSend(message)
         sendContinuation.yield()
     }
@@ -95,7 +95,7 @@ final class MockMCPTransport: MCPTransport {
     ///
     /// - Returns: Array of sent messages.
     func sentMessages() async -> [any Sendable] {
-        return await state.messagesSent
+        await state.messagesSent
     }
 }
 

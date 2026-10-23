@@ -9,7 +9,7 @@ public func emitMockClient(paths: [String: PathItem]?) -> String {
     var output = "public class MockAPIClient {\n"
     output += "    public init() {}\n"
 
-    if let paths = paths {
+    if let paths {
         let sortedPaths = paths.sorted { $0.key < $1.key }
         for (path, item) in sortedPaths {
             for (httpMethod, op) in item.operationsByMethod {
@@ -52,7 +52,7 @@ private func emitMockMethod(path: String, method: String, op: Operation) -> Stri
 /// - Parameter responses: Optional dictionary of OpenAPI `Response` objects.
 /// - Returns: The mapped Swift return type string (defaults to `"Void"`).
 private func inferMockReturnType(from responses: [String: Response]?) -> String {
-    guard let responses = responses,
+    guard let responses,
           let okResponse = responses["200"] ?? responses["201"] ?? responses["default"],
           let jsonContent = okResponse.content?["application/json"],
           let schema = jsonContent.schema

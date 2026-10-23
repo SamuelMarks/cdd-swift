@@ -1,5 +1,114 @@
-/// Data models representing JSON-formatted executable API documentation snippets.
+/// Data models representing JSON-formatted executable API documentation snippets and legacy Swagger 2.0 `CollectionFormat`.
 import Foundation
+
+/// Legacy Swagger 2.0 `collectionFormat` values specifying array parameter, item, and header serialization.
+public enum CollectionFormat: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral,
+    CustomStringConvertible {
+    /// Comma-separated values (`"csv"`, e.g. `foo,bar`).
+    case csv
+    /// Space-separated values (`"ssv"`, e.g. `foo bar`).
+    case ssv
+    /// Tab-separated values (`"tsv"`, e.g. `foo\tbar`).
+    case tsv
+    /// Pipe-separated values (`"pipes"`, e.g. `foo|bar`).
+    case pipes
+    /// Multiple parameter instances rather than multiple values (`"multi"`, e.g. `foo=bar&foo=baz`).
+    case multi
+    /// Custom or extension collection format string.
+    case custom(String)
+
+    /// All standard Swagger 2.0 `CollectionFormat` cases.
+    public static var allCases: [CollectionFormat] {
+        [.csv, .ssv, .tsv, .pipes, .multi]
+    }
+
+    /// Lookup table mapping canonical raw values to standard `CollectionFormat` cases.
+    private static let byRawValue: [String: CollectionFormat] = Dictionary(
+        uniqueKeysWithValues: allCases.map { ($0.rawValue, $0) }
+    )
+
+    /// The raw string representation of the collection format.
+    public var rawValue: String {
+        switch self {
+        case .csv: "csv"
+        case .ssv: "ssv"
+        case .tsv: "tsv"
+        case .pipes: "pipes"
+        case .multi: "multi"
+        case let .custom(val): val
+        }
+    }
+
+    /// Textual description matching `rawValue`.
+    public var description: String {
+        rawValue
+    }
+
+    /// The element delimiter string used when joining array items for non-exploded serialization.
+    public var delimiter: String {
+        switch self {
+        case .csv, .multi, .custom: ","
+        case .ssv: " "
+        case .tsv: "\t"
+        case .pipes: "|"
+        }
+    }
+
+    /// Maps this Swagger 2.0 `CollectionFormat` to its equivalent OpenAPI 3.x `ParameterStyle` for a given parameter location.
+    ///
+    /// - Parameter location: The `ParameterLocation` where the parameter is transmitted.
+    /// - Returns: The corresponding `ParameterStyle`.
+    public func openAPIStyle(for location: ParameterLocation) -> ParameterStyle {
+        switch self {
+        case .ssv:
+            .spaceDelimited
+        case .tsv:
+            .custom("tabDelimited")
+        case .pipes:
+            .pipeDelimited
+        case .csv, .multi, .custom:
+            (location == .query || location == .cookie || location == .formData) ? .form : .simple
+        }
+    }
+
+    /// Whether this `CollectionFormat` expands array items into repeated key-value pairs (`true` only for `.multi`).
+    public var openAPIExplode: Bool {
+        self == .multi
+    }
+
+    /// Initializes a `CollectionFormat` from its raw string representation.
+    ///
+    /// - Parameter rawValue: The Swagger 2.0 collection format string.
+    public init(rawValue: String) {
+        self = Self.byRawValue[rawValue] ?? .custom(rawValue)
+    }
+
+    /// Initializes a `CollectionFormat` from a string literal.
+    ///
+    /// - Parameter value: The string literal value.
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+
+    /// Decodes a `CollectionFormat` from a single-value JSON container.
+    ///
+    /// - Parameter decoder: The decoder to read data from.
+    /// - Throws: `DecodingError` if the value is not a string.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        self.init(rawValue: raw)
+    }
+
+    /// Encodes this `CollectionFormat` into a single-value JSON container.
+    ///
+    /// - Parameter encoder: The encoder to write data to.
+    /// - Throws: `EncodingError` if encoding fails.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
 
 /// Represents the root object for documentation JSON output.
 public struct DocsJsonOutput: Codable, Equatable, Sendable {

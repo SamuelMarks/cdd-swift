@@ -36,9 +36,9 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable, CustomStringConve
     /// Returns the wrapped `Double` if this value is `.double`, or converts `.int` to `Double`, otherwise `nil`.
     public var doubleValue: Double? {
         switch self {
-        case let .double(val): return val
-        case let .int(val): return Double(val)
-        default: return nil
+        case let .double(val): val
+        case let .int(val): Double(val)
+        default: nil
         }
     }
 
@@ -80,7 +80,7 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable, CustomStringConve
         case let .string(s):
             return s
         case let .array(arr):
-            return "[" + arr.map { $0.description }.joined(separator: ", ") + "]"
+            return "[" + arr.map(\.description).joined(separator: ", ") + "]"
         case let .object(dict):
             let pairs = dict.sorted(by: { $0.key < $1.key }).map { "\($0.key): \($0.value.description)" }
             return "{" + pairs.joined(separator: ", ") + "}"
@@ -200,47 +200,47 @@ public struct AnyCodable: Codable, Equatable, Hashable, Sendable, CustomStringCo
 
     /// Strongly-typed `JSONValue` representation of this `AnyCodable`.
     public var value: JSONValue {
-        return jsonValue
+        jsonValue
     }
 
     /// Returns the wrapped `String` if this value is `.string`, otherwise `nil`.
     public var stringValue: String? {
-        return jsonValue.stringValue
+        jsonValue.stringValue
     }
 
     /// Returns the wrapped `Int` if this value is `.int`, otherwise `nil`.
     public var intValue: Int? {
-        return jsonValue.intValue
+        jsonValue.intValue
     }
 
     /// Returns the wrapped `Double` if this value is `.double` or `.int`, otherwise `nil`.
     public var doubleValue: Double? {
-        return jsonValue.doubleValue
+        jsonValue.doubleValue
     }
 
     /// Returns the wrapped `Bool` if this value is `.bool`, otherwise `nil`.
     public var boolValue: Bool? {
-        return jsonValue.boolValue
+        jsonValue.boolValue
     }
 
     /// Returns the wrapped `[JSONValue]` array if this value is `.array`, otherwise `nil`.
     public var arrayValue: [JSONValue]? {
-        return jsonValue.arrayValue
+        jsonValue.arrayValue
     }
 
     /// Returns the wrapped `[String: JSONValue]` dictionary if this value is `.object`, otherwise `nil`.
     public var objectValue: [String: JSONValue]? {
-        return jsonValue.objectValue
+        jsonValue.objectValue
     }
 
     /// Returns `true` if this value is `.null`, otherwise `false`.
     public var isNull: Bool {
-        return jsonValue.isNull
+        jsonValue.isNull
     }
 
     /// Human-readable string representation of the wrapped `JSONValue`.
     public var description: String {
-        return jsonValue.description
+        jsonValue.description
     }
 
     /// Initializes an `AnyCodable` directly from a strongly-typed `JSONValue`.
@@ -304,7 +304,7 @@ public struct AnyCodable: Codable, Equatable, Hashable, Sendable, CustomStringCo
     /// - Parameter value: The `[AnyCodable]` array.
     @_disfavoredOverload
     public init(_ value: [AnyCodable]) {
-        jsonValue = .array(value.map { $0.jsonValue })
+        jsonValue = .array(value.map(\.jsonValue))
     }
 
     /// Initializes an `AnyCodable` from an array of `String` elements.
@@ -382,7 +382,7 @@ public struct AnyCodable: Codable, Equatable, Hashable, Sendable, CustomStringCo
     ///
     /// - Parameter elements: The `AnyCodable` array elements.
     public init(arrayLiteral elements: AnyCodable...) {
-        jsonValue = .array(elements.map { $0.jsonValue })
+        jsonValue = .array(elements.map(\.jsonValue))
     }
 
     /// Initializes an `.object` `AnyCodable` from a dictionary literal.

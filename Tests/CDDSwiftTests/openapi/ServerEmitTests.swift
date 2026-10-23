@@ -90,60 +90,32 @@ final class ServerEmitTests: XCTestCase {
     /// routes.
     func testServerEmitWithComplexSchemas() {
         let components = makeComplexComponents()
+        let userArrSchema = Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/User"))
+        let userRefSchema = Schema(ref: "#/components/schemas/User")
+        let missingRefSchema = Schema(ref: "#/components/schemas/MissingSchema")
+        let missingArrSchema = Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/MissingSchema"))
         let paths: [String: PathItem] = [
             "/admin": PathItem(get: Operation(operationId: "getAdmin")),
             "/users": PathItem(
                 get: Operation(
                     operationId: "getUsers",
-                    responses: [
-                        "200": Response(
-                            description: "OK",
-                            content: ["application/json": MediaType(schema: Schema(
-                                type: "array",
-                                items: SchemaItem(ref: "#/components/schemas/User")
-                            ))]
-                        )
-                    ]
+                    responses: ["200": Response(description: "OK", content: ["application/json": MediaType(schema: userArrSchema)])]
                 ),
                 put: Operation(
                     operationId: "updateUser",
-                    responses: [
-                        "200": Response(
-                            description: "Updated",
-                            content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/User"))]
-                        )
-                    ]
+                    responses: ["200": Response(description: "Updated", content: ["application/json": MediaType(schema: userRefSchema)])]
                 ),
                 post: Operation(
                     operationId: "createUser",
-                    responses: [
-                        "201": Response(
-                            description: "Created",
-                            content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/User"))]
-                        )
-                    ]
+                    responses: ["201": Response(description: "Created", content: ["application/json": MediaType(schema: userRefSchema)])]
                 ),
                 delete: Operation(
                     operationId: "deleteUser",
-                    responses: [
-                        "200": Response(
-                            description: "Deleted",
-                            content: ["application/json": MediaType(schema: Schema(ref: "#/components/schemas/MissingSchema"))]
-                        )
-                    ]
+                    responses: ["200": Response(description: "Deleted", content: ["application/json": MediaType(schema: missingRefSchema)])]
                 ),
                 patch: Operation(
                     operationId: "patchUsers",
-                    responses: [
-                        "200": Response(
-                            description: "Patched",
-                            content: [
-                                "application/json": MediaType(
-                                    schema: Schema(type: "array", items: SchemaItem(ref: "#/components/schemas/MissingSchema"))
-                                )
-                            ]
-                        )
-                    ]
+                    responses: ["200": Response(description: "Patched", content: ["application/json": MediaType(schema: missingArrSchema)])]
                 )
             )
         ]
@@ -178,6 +150,8 @@ final class ServerEmitTests: XCTestCase {
         app.head("users") { req in return "ok" }
         app.post("_mock", "trigger-webhook", ":name") { req in return "ok" }
         app.post("auth", "login") { req in return "ok" }
+        app.get("mcp", "sse") { req in return "ok" }
+        app.post("mcp", "message") { req in return "ok" }
         """
         let syntax = Parser.parse(source: code)
         let visitor = ServerVisitor(viewMode: .all)
@@ -191,5 +165,8 @@ final class ServerEmitTests: XCTestCase {
         XCTAssertNotNil(visitor.paths["/users"]?.head)
         XCTAssertNil(visitor.paths["/_mock/trigger-webhook/{name}"])
         XCTAssertNil(visitor.paths["/auth/login"])
+        XCTAssertNil(visitor.paths["/mcp/sse"])
+        XCTAssertNil(visitor.paths["/mcp/message"])
+        XCTAssertTrue(visitor.hasMCPEndpoints)
     }
 }

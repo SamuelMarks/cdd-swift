@@ -102,7 +102,7 @@ enum WASIFileHelpers {
     /// - Parameter path: The filesystem path to check.
     /// - Returns: `true` if the path exists and is accessible, `false` otherwise.
     static func fileExists(at path: String) -> Bool {
-        return access(path, F_OK) == 0
+        access(path, F_OK) == 0
     }
 
     /// Creates a single directory at the specified path using POSIX `mkdir` with `0o755` permissions.

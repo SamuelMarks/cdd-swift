@@ -6,7 +6,7 @@ import XCTest
 final class FaultyOutputStream: OutputStream {
     /// Returns a fixed test error.
     override var streamError: Error? {
-        return NSError(domain: "test", code: 42, userInfo: nil)
+        NSError(domain: "test", code: 42, userInfo: nil)
     }
 
     /// Simulates a failed write by returning `-1`.
@@ -26,7 +26,7 @@ final class FaultyOutputStream: OutputStream {
 final class NullErrorOutputStream: OutputStream {
     /// Returns `nil` to exercise the fallback `CDDError.mcpTransportError` branch.
     override var streamError: Error? {
-        return nil
+        nil
     }
 
     /// Simulates a failed write by returning `-1`.
@@ -49,7 +49,7 @@ final class FaultyInputStream: InputStream {
 
     /// Always reports bytes available so `read` is invoked immediately.
     override var hasBytesAvailable: Bool {
-        return true
+        true
     }
 
     /// Simulates a read failure by returning `-1`.

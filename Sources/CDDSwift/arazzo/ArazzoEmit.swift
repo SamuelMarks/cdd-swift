@@ -201,7 +201,7 @@ public enum ArazzoEmitter {
     /// - Parameter components: Optional `ArazzoComponents`.
     /// - Returns: Array of YAML lines.
     private static func emitYAMLComponents(_ components: ArazzoComponents?) -> [String] {
-        guard let components = components, let params = components.parameters, !params.isEmpty else {
+        guard let components, let params = components.parameters, !params.isEmpty else {
             return []
         }
         var lines: [String] = ["components:", "  parameters:"]

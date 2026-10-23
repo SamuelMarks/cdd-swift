@@ -6,6 +6,8 @@ import SwiftSyntax
 public class ServerVisitor: SyntaxVisitor {
     /// Dictionary of inferred OpenAPI PathItems.
     public var paths: [String: PathItem] = [:]
+    /// Indicates whether Model Context Protocol (MCP) SSE and message endpoints (`/mcp/sse`, `/mcp/message`) were discovered.
+    public var hasMCPEndpoints: Bool = false
 
     /// Initializes the `ServerVisitor` with a syntax tree view mode.
     ///
@@ -31,6 +33,10 @@ public class ServerVisitor: SyntaxVisitor {
 
         let segments = extractPathSegments(from: node.arguments)
         let fullPath = "/" + segments.joined(separator: "/")
+        if fullPath.hasPrefix("/mcp/") {
+            hasMCPEndpoints = true
+            return .visitChildren
+        }
         if fullPath == "/_mock/trigger-webhook/{name}" || fullPath.hasPrefix("/auth/") {
             return .visitChildren
         }
@@ -51,7 +57,7 @@ public class ServerVisitor: SyntaxVisitor {
     /// - Parameter baseExpr: Trimmed Swift base expression string.
     /// - Returns: `true` if `baseExpr` is `"app"`, `"routes"`, or ends with `"Routes"`.
     private func isVaporRouterExpression(_ baseExpr: String) -> Bool {
-        return baseExpr == "app" || baseExpr == "routes" || baseExpr.hasSuffix("Routes")
+        baseExpr == "app" || baseExpr == "routes" || baseExpr.hasSuffix("Routes")
     }
 
     /// Extracts URL path segments from Vapor route registration string literal arguments.

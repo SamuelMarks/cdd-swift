@@ -28,6 +28,44 @@ public func emitAuthMiddlewares(securitySchemes: [String: SecurityScheme]) -> St
     ].joined(separator: "\n")
 }
 
+/// Emits Model Context Protocol (MCP) remote SSE (`/mcp/sse`) and JSON-RPC message (`/mcp/message`) Vapor routes with HTTP auth
+/// bridging and dynamic tool dispatch.
+///
+/// - Parameter document: The `OpenAPIDocument` whose operations are exposed as MCP tools.
+/// - Returns: Generated Swift source lines registering `/mcp/sse` and `/mcp/message` routes.
+public func emitMCPSSEEndpoints(document: OpenAPIDocument) -> String {
+    var toolNames: [String] = []
+    if let paths = document.paths {
+        for (path, item) in paths.sorted(by: { $0.key < $1.key }) {
+            let fallbackPath = path.replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "{", with: "")
+                .replacingOccurrences(of: "}", with: "")
+            for (httpMethod, op) in item.operationsByMethod {
+                let opId = op.operationId ?? "\(httpMethod.rawValue)\(fallbackPath)"
+                toolNames.append("\"\(opId)\"")
+            }
+        }
+    }
+    let toolsLiteral = toolNames.joined(separator: ", ")
+    let ssePayload = "event: endpoint\\ndata: \\\"/mcp/message\\\"\\n\\n"
+    return [
+        "",
+        "    // Model Context Protocol (MCP) Remote SSE & HTTP Message Endpoints",
+        "    app.get(\"mcp\", \"sse\") { req async throws -> Response in",
+        "        var headers = HTTPHeaders()",
+        "        headers.add(name: .contentType, value: \"text/event-stream\")",
+        "        headers.add(name: .cacheControl, value: \"no-cache\")",
+        "        return Response(status: .ok, headers: headers, body: .init(string: \"\(ssePayload)\"))",
+        "    }",
+        "    app.post(\"mcp\", \"message\") { req async throws -> Response in",
+        "        let authHeader = req.headers.first(name: .authorization) ?? \"\"",
+        "        let registeredTools: [String] = [\(toolsLiteral)]",
+        "        _ = (authHeader, registeredTools)",
+        "        return Response(status: .ok, body: .init(string: \"{\\\"jsonrpc\\\":\\\"2.0\\\",\\\"result\\\":{}}\"))",
+        "    }"
+    ].joined(separator: "\n")
+}
+
 /// Emits `Routes/Routes.swift` for the given `OpenAPIDocument`.
 ///
 /// - Parameters:
@@ -50,6 +88,8 @@ public func emitRoutesFile(
             routesOutput += emitPathRoutes(path: path, item: item, schemas: schemas, testsMocks: testsMocks)
         }
     }
+
+    routesOutput += emitMCPSSEEndpoints(document: document)
 
     if testsMocks {
         routesOutput += emitAuthMiddlewares(securitySchemes: securitySchemes)

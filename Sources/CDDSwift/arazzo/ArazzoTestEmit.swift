@@ -82,7 +82,7 @@ public enum ArazzoTestEmitter {
 
             if let criteria = step.successCriteria {
                 for crit in criteria {
-                    if crit.context == "$statusCode" && crit.condition.hasPrefix("== ") {
+                    if crit.context == "$statusCode", crit.condition.hasPrefix("== ") {
                         let expectedCode = String(crit.condition.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                         lines.append("        XCTAssertEqual(context_" + safeStep + ".statusCode, " + expectedCode + ")")
                     } else {

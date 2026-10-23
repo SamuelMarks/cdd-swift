@@ -9,7 +9,7 @@ public enum DocsJsonGenerator {
     ///   - document: The parsed `OpenAPIDocument`.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
     public static func generate(from document: OpenAPIDocument) -> String {
-        return generate(from: document, includeImports: true, includeWrapping: true)
+        generate(from: document, includeImports: true, includeWrapping: true)
     }
 
     /// Generates JSON documentation from an OpenAPI document.
@@ -19,7 +19,7 @@ public enum DocsJsonGenerator {
     ///   - includeImports: Whether to include Foundation imports in the generated code snippet.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
     public static func generate(from document: OpenAPIDocument, includeImports: Bool) -> String {
-        return generate(from: document, includeImports: includeImports, includeWrapping: true)
+        generate(from: document, includeImports: includeImports, includeWrapping: true)
     }
 
     /// Generates JSON documentation from an OpenAPI document.
@@ -29,7 +29,7 @@ public enum DocsJsonGenerator {
     ///   - includeWrapping: Whether to wrap the snippet in a class/function.
     /// - Returns: A JSON string representing an array of `DocsJsonOutput` objects.
     public static func generate(from document: OpenAPIDocument, includeWrapping: Bool) -> String {
-        return generate(from: document, includeImports: true, includeWrapping: includeWrapping)
+        generate(from: document, includeImports: true, includeWrapping: includeWrapping)
     }
 
     /// Generates JSON documentation from an OpenAPI document.

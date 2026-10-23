@@ -136,7 +136,7 @@ final class AnyCodableTests: XCTestCase {
         let codingPath: [CodingKey] = []
 
         /// Returns `false` so decoding proceeds to typed decode methods.
-        func decodeNil() -> Bool { return false }
+        func decodeNil() -> Bool { false }
 
         /// Throws a data-corrupted error when attempting to decode a `Bool`.
         /// - Parameter type: The `Bool` type to decode.
@@ -220,7 +220,7 @@ final class AnyCodableTests: XCTestCase {
 
         /// Returns a `FailingSingleValueDecodingContainer` that throws on all decode attempts.
         func singleValueContainer() throws -> SingleValueDecodingContainer {
-            return FailingSingleValueDecodingContainer()
+            FailingSingleValueDecodingContainer()
         }
     }
 

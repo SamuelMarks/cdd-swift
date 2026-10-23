@@ -39,32 +39,32 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
     public var description: String {
         switch self {
         case let .invalidJSON(reason):
-            return "Invalid JSON: \(reason)"
+            "Invalid JSON: \(reason)"
         case let .utf8DecodingFailed(path):
-            return "Could not decode file at \(path) as UTF-8."
+            "Could not decode file at \(path) as UTF-8."
         case let .fileIOError(path, operation, code, message):
-            return "File I/O error during \(operation) at \(path) (errno \(code)): \(message)"
+            "File I/O error during \(operation) at \(path) (errno \(code)): \(message)"
         case let .mcpTransportError(detail):
-            return "MCP transport error: \(detail)"
+            "MCP transport error: \(detail)"
         case let .processExecutionFailed(executable, message):
-            return "Process execution failed for \(executable): \(message)"
+            "Process execution failed for \(executable): \(message)"
         case let .validationFailed(field, reason):
-            return "Validation failed for '\(field)': \(reason)"
+            "Validation failed for '\(field)': \(reason)"
         case let .arazzoValidationError(message):
-            return "Arazzo validation error: \(message)"
+            "Arazzo validation error: \(message)"
         case let .arazzoExpressionEvaluationError(expression, context):
-            return "Arazzo expression evaluation error for '\(expression)' in context '\(context)'"
+            "Arazzo expression evaluation error for '\(expression)' in context '\(context)'"
         case let .arazzoStepExecutionFailed(stepId, reason):
-            return "Arazzo step execution failed for '\(stepId)': \(reason)"
+            "Arazzo step execution failed for '\(stepId)': \(reason)"
         case let .arazzoWorkflowNotFound(workflowId):
-            return "Arazzo workflow not found: '\(workflowId)'"
+            "Arazzo workflow not found: '\(workflowId)'"
         case let .arazzoCircularDependency(workflowId):
-            return "Arazzo circular dependency detected involving workflow '\(workflowId)'"
+            "Arazzo circular dependency detected involving workflow '\(workflowId)'"
         }
     }
 
     /// The localized description of the error for `LocalizedError` conformance.
     public var errorDescription: String? {
-        return description
+        description
     }
 }

@@ -25,7 +25,7 @@ public actor MCPServeRuntime {
     ///
     /// - Returns: The resolved `MCPTransport` instance.
     public func resolveTransport() -> MCPTransport {
-        return transportOverride ?? MCPStdioTransport()
+        transportOverride ?? MCPStdioTransport()
     }
 }
 
@@ -182,7 +182,7 @@ struct MCPServe: AsyncParsableCommand {
     ///
     /// - Returns: An `AnyCodable` dictionary containing the `resources` array.
     private static func buildResourcesListResponse() -> AnyCodable {
-        return AnyCodable([
+        AnyCodable([
             "resources": .array([
                 .object([
                     "uri": .string("cdd-swift://ast"),

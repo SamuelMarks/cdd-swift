@@ -161,7 +161,7 @@ public class ModelVisitor: SyntaxVisitor {
     ///   - targetTypes: Set of protocol or raw type names to match.
     /// - Returns: `true` if at least one inherited type matches `targetTypes`.
     private func hasInheritedType(_ clause: InheritanceClauseSyntax?, matching targetTypes: Set<String>) -> Bool {
-        guard let clause = clause else { return false }
+        guard let clause else { return false }
         for inherited in clause.inheritedTypes where targetTypes.contains(inherited.type.trimmedDescription) {
             return true
         }
@@ -284,6 +284,6 @@ public class ModelVisitor: SyntaxVisitor {
     /// - Parameter name: The Swift type identifier string.
     /// - Returns: The mapped OpenAPI `Schema`.
     public func mapPrimitive(_ name: String) -> Schema {
-        return Self.primitiveSchemaMap[name] ?? Schema(ref: "#/components/schemas/\(name)")
+        Self.primitiveSchemaMap[name] ?? Schema(ref: "#/components/schemas/\(name)")
     }
 }

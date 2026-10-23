@@ -78,8 +78,8 @@ public actor MCPClientSession {
     /// - Throws: An error if the transport fails to start.
     public func start() async throws {
         try await transport.start { [weak self] data in
-            guard let self = self else { return }
-            await self.processIncomingData(data)
+            guard let self else { return }
+            await processIncomingData(data)
         }
     }
 
@@ -101,7 +101,7 @@ public actor MCPClientSession {
     ///   - params: Optional structured parameters for the method.
     /// - Returns: The `AnyCodable` result returned by the server.
     /// - Throws: `JSONRPCErrorDetail` or a transport error if the request fails.
-    public func sendRequest<T: Codable & Sendable>(method: String, params: T?) async throws -> AnyCodable {
+    public func sendRequest(method: String, params: (some Codable & Sendable)?) async throws -> AnyCodable {
         let reqId = JSONRPCId.integer(nextRequestId)
         nextRequestId += 1
 
@@ -140,7 +140,7 @@ public actor MCPClientSession {
     ///   - method: The notification method name.
     ///   - params: Optional structured parameters for the notification.
     /// - Throws: An error if encoding or transmitting the notification fails.
-    public func sendNotification<T: Codable & Sendable>(method: String, params: T?) async throws {
+    public func sendNotification(method: String, params: (some Codable & Sendable)?) async throws {
         let notification = JSONRPCNotification(method: method, params: params)
         try await transport.send(notification)
     }

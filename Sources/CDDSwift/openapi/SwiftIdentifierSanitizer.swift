@@ -56,12 +56,12 @@ public enum SwiftIdentifierSanitizer {
         var result = ""
         for char in name {
             if char.isUppercase {
-                if !result.isEmpty && !result.hasSuffix("-") {
+                if !result.isEmpty, !result.hasSuffix("-") {
                     result.append("-")
                 }
                 result.append(char.lowercased())
-            } else if !char.isLetter && !char.isNumber {
-                if !result.isEmpty && !result.hasSuffix("-") {
+            } else if !char.isLetter, !char.isNumber {
+                if !result.isEmpty, !result.hasSuffix("-") {
                     result.append("-")
                 }
             } else {

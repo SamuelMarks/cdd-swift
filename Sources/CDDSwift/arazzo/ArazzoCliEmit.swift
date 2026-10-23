@@ -8,7 +8,7 @@ public enum ArazzoCliEmitter {
     /// - Parameter name: Input schema property name.
     /// - Returns: Kebab-case CLI option name.
     public static func kebabCase(_ name: String) -> String {
-        return SwiftIdentifierSanitizer.kebabCase(name, fallback: "arg")
+        SwiftIdentifierSanitizer.kebabCase(name, fallback: "arg")
     }
 
     /// Converts an identifier string into a PascalCase Swift command struct name.

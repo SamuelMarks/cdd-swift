@@ -1,5 +1,5 @@
 /// Strongly-typed OpenAPI 3.2.0 and Swagger 2.0 domain enums (`SchemaType`, `OpenAPIFormat`, `ParameterLocation`, `ParameterStyle`,
-/// `SecuritySchemeType`, `HTTPStatusCode`, `ContentType`, `HTTPMethod`).
+/// `CollectionFormat`, `SecuritySchemeType`, `HTTPStatusCode`, `ContentType`, `HTTPMethod`).
 import Foundation
 
 // MARK: - Domain Enums
@@ -27,7 +27,7 @@ public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable
 
     /// All standard `SchemaType` cases.
     public static var allCases: [SchemaType] {
-        return [.string, .number, .integer, .boolean, .array, .object, .null, .file]
+        [.string, .number, .integer, .boolean, .array, .object, .null, .file]
     }
 
     /// Lookup table mapping canonical raw values to standard `SchemaType` cases.
@@ -38,15 +38,15 @@ public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable
     /// The raw string representation of the schema type.
     public var rawValue: String {
         switch self {
-        case .string: return "string"
-        case .number: return "number"
-        case .integer: return "integer"
-        case .boolean: return "boolean"
-        case .array: return "array"
-        case .object: return "object"
-        case .null: return "null"
-        case .file: return "file"
-        case let .custom(val): return val
+        case .string: "string"
+        case .number: "number"
+        case .integer: "integer"
+        case .boolean: "boolean"
+        case .array: "array"
+        case .object: "object"
+        case .null: "null"
+        case .file: "file"
+        case let .custom(val): val
         }
     }
 
@@ -115,7 +115,7 @@ public enum OpenAPIFormat: RawRepresentable, Codable, Equatable, Hashable, Senda
 
     /// All standard `OpenAPIFormat` cases.
     public static var allCases: [OpenAPIFormat] {
-        return [.int32, .int64, .float, .double, .byte, .binary, .date, .dateTime, .password, .uuid, .uri, .email]
+        [.int32, .int64, .float, .double, .byte, .binary, .date, .dateTime, .password, .uuid, .uri, .email]
     }
 
     /// Lookup table mapping canonical raw values to standard `OpenAPIFormat` cases.
@@ -126,19 +126,19 @@ public enum OpenAPIFormat: RawRepresentable, Codable, Equatable, Hashable, Senda
     /// The raw string representation of the format.
     public var rawValue: String {
         switch self {
-        case .int32: return "int32"
-        case .int64: return "int64"
-        case .float: return "float"
-        case .double: return "double"
-        case .byte: return "byte"
-        case .binary: return "binary"
-        case .date: return "date"
-        case .dateTime: return "date-time"
-        case .password: return "password"
-        case .uuid: return "uuid"
-        case .uri: return "uri"
-        case .email: return "email"
-        case let .custom(val): return val
+        case .int32: "int32"
+        case .int64: "int64"
+        case .float: "float"
+        case .double: "double"
+        case .byte: "byte"
+        case .binary: "binary"
+        case .date: "date"
+        case .dateTime: "date-time"
+        case .password: "password"
+        case .uuid: "uuid"
+        case .uri: "uri"
+        case .email: "email"
+        case let .custom(val): val
         }
     }
 
@@ -196,7 +196,7 @@ public enum ParameterLocation: RawRepresentable, Codable, Equatable, Hashable, S
 
     /// All standard `ParameterLocation` cases.
     public static var allCases: [ParameterLocation] {
-        return [.query, .header, .path, .cookie, .body, .formData]
+        [.query, .header, .path, .cookie, .body, .formData]
     }
 
     /// Lookup table mapping canonical raw values to standard `ParameterLocation` cases.
@@ -207,19 +207,19 @@ public enum ParameterLocation: RawRepresentable, Codable, Equatable, Hashable, S
     /// The raw string representation of the parameter location.
     public var rawValue: String {
         switch self {
-        case .query: return "query"
-        case .header: return "header"
-        case .path: return "path"
-        case .cookie: return "cookie"
-        case .body: return "body"
-        case .formData: return "formData"
-        case let .custom(val): return val
+        case .query: "query"
+        case .header: "header"
+        case .path: "path"
+        case .cookie: "cookie"
+        case .body: "body"
+        case .formData: "formData"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes a `ParameterLocation` from its raw string representation.
@@ -278,7 +278,7 @@ public enum ParameterStyle: RawRepresentable, Codable, Equatable, Hashable, Send
 
     /// All standard `ParameterStyle` cases.
     public static var allCases: [ParameterStyle] {
-        return [.matrix, .label, .form, .simple, .spaceDelimited, .pipeDelimited, .deepObject]
+        [.matrix, .label, .form, .simple, .spaceDelimited, .pipeDelimited, .deepObject]
     }
 
     /// Lookup table mapping canonical raw values to standard `ParameterStyle` cases.
@@ -289,20 +289,20 @@ public enum ParameterStyle: RawRepresentable, Codable, Equatable, Hashable, Send
     /// The raw string representation of the parameter style.
     public var rawValue: String {
         switch self {
-        case .matrix: return "matrix"
-        case .label: return "label"
-        case .form: return "form"
-        case .simple: return "simple"
-        case .spaceDelimited: return "spaceDelimited"
-        case .pipeDelimited: return "pipeDelimited"
-        case .deepObject: return "deepObject"
-        case let .custom(val): return val
+        case .matrix: "matrix"
+        case .label: "label"
+        case .form: "form"
+        case .simple: "simple"
+        case .spaceDelimited: "spaceDelimited"
+        case .pipeDelimited: "pipeDelimited"
+        case .deepObject: "deepObject"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes a `ParameterStyle` from its raw string representation.
@@ -354,16 +354,16 @@ public enum HTTPStatusCode: RawRepresentable, Codable, Equatable, Hashable, Send
     /// The canonical OpenAPI string key for this status code.
     public var rawValue: String {
         switch self {
-        case let .status(code): return String(code)
-        case let .range(cls): return "\(cls)XX"
-        case .default: return "default"
-        case let .custom(val): return val
+        case let .status(code): String(code)
+        case let .range(cls): "\(cls)XX"
+        case .default: "default"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes an `HTTPStatusCode` from its raw string representation.

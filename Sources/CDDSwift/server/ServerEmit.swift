@@ -176,10 +176,10 @@ private func emitFluentToModelArg(propName: String, propSchema: Schema, isRequir
 /// - Returns: A Swift expression string producing the `id` value.
 private func emitFluentIdExpr(for modelType: String) -> String {
     switch modelType {
-    case "Int": return "1"
-    case "Int64": return "Int64(1)"
-    case "UUID": return "self.id ?? UUID()"
-    default: return "self.id?.uuidString ?? UUID().uuidString"
+    case "Int": "1"
+    case "Int64": "Int64(1)"
+    case "UUID": "self.id ?? UUID()"
+    default: "self.id?.uuidString ?? UUID().uuidString"
     }
 }
 
@@ -223,7 +223,7 @@ private func emitModelDAOAssignments(schema: Schema) -> String {
 /// - Parameter name: The PascalCase model name.
 /// - Returns: Generated Swift source code for the DAO protocol and stub implementation.
 private func emitDAOProtocolAndStub(name: String) -> String {
-    return [
+    [
         "import Vapor",
         "import Fluent",
         "",

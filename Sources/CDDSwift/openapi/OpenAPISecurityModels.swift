@@ -31,6 +31,30 @@ public struct Header: Codable, Equatable, Sendable {
     public let examples: [String: Example]?
     /// Map containing the representations for the header.
     public let content: [String: MediaType]?
+    /// Legacy Swagger 2.0 collection format (`"csv"`, `"ssv"`, `"tsv"`, `"pipes"`, `"multi"`).
+    public let collectionFormat: CollectionFormat?
+
+    /// Effective serialization style for the header, falling back to `collectionFormat` or `.simple`.
+    public var effectiveStyle: ParameterStyle {
+        if let style {
+            return style
+        }
+        if let cf = collectionFormat {
+            return cf.openAPIStyle(for: .header)
+        }
+        return .simple
+    }
+
+    /// Effective explode flag for the header, falling back to `collectionFormat` or `false`.
+    public var effectiveExplode: Bool {
+        if let explode {
+            return explode
+        }
+        if let cf = collectionFormat {
+            return cf.openAPIExplode
+        }
+        return false
+    }
 
     /// Coding keys mapping OpenAPI JSON properties to `Header` fields.
     enum CodingKeys: String, CodingKey {
@@ -60,6 +84,8 @@ public struct Header: Codable, Equatable, Sendable {
         case examples
         /// Key for `content`.
         case content
+        /// Key for `collectionFormat`.
+        case collectionFormat
     }
 
     /// Initializes a `Header`.
@@ -78,6 +104,7 @@ public struct Header: Codable, Equatable, Sendable {
     ///   - example: Optional single example value.
     ///   - examples: Optional map of named `Example` objects.
     ///   - content: Optional map of MIME types to `MediaType` descriptors.
+    ///   - collectionFormat: Optional legacy Swagger 2.0 `CollectionFormat`.
     public init(
         ref: String? = nil,
         summary: String? = nil,
@@ -91,7 +118,8 @@ public struct Header: Codable, Equatable, Sendable {
         schema: Schema? = nil,
         example: AnyCodable? = nil,
         examples: [String: Example]? = nil,
-        content: [String: MediaType]? = nil
+        content: [String: MediaType]? = nil,
+        collectionFormat: CollectionFormat? = nil
     ) {
         self.ref = ref
         self.summary = summary
@@ -106,6 +134,7 @@ public struct Header: Codable, Equatable, Sendable {
         self.example = example
         self.examples = examples
         self.content = content
+        self.collectionFormat = collectionFormat
     }
 }
 
@@ -208,7 +237,7 @@ public enum SecuritySchemeType: RawRepresentable, Codable, Equatable, Hashable, 
 
     /// All standard `SecuritySchemeType` cases.
     public static var allCases: [SecuritySchemeType] {
-        return [.apiKey, .http, .mutualTLS, .oauth2, .openIdConnect, .basic]
+        [.apiKey, .http, .mutualTLS, .oauth2, .openIdConnect, .basic]
     }
 
     /// Lookup table mapping canonical raw values to standard `SecuritySchemeType` cases.
@@ -219,19 +248,19 @@ public enum SecuritySchemeType: RawRepresentable, Codable, Equatable, Hashable, 
     /// The raw string representation of the security scheme type.
     public var rawValue: String {
         switch self {
-        case .apiKey: return "apiKey"
-        case .http: return "http"
-        case .mutualTLS: return "mutualTLS"
-        case .oauth2: return "oauth2"
-        case .openIdConnect: return "openIdConnect"
-        case .basic: return "basic"
-        case let .custom(val): return val
+        case .apiKey: "apiKey"
+        case .http: "http"
+        case .mutualTLS: "mutualTLS"
+        case .oauth2: "oauth2"
+        case .openIdConnect: "openIdConnect"
+        case .basic: "basic"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes a `SecuritySchemeType` from its raw string representation.
@@ -297,12 +326,12 @@ public struct SecurityScheme: Codable, Equatable, Sendable {
 
     /// Strongly-typed security scheme type enum derived from `type`.
     public var schemeType: SecuritySchemeType? {
-        return type
+        type
     }
 
     /// Strongly-typed API key parameter location derived from `in`.
     public var keyLocation: ParameterLocation? {
-        return self.in
+        self.in
     }
 
     /// Coding keys mapping OpenAPI JSON properties to `SecurityScheme` fields.

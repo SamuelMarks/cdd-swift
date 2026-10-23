@@ -122,7 +122,7 @@ private func emitCLISubcommand(
 ///
 /// - Returns: Generated Swift source code for the embedded MCP stdio subcommand.
 private func emitCLIMCPCommandFooter() -> String {
-    return """
+    """
     struct MCPStdioRequest: Codable, Sendable {
         let jsonrpc: String?
         let id: String?

@@ -76,7 +76,7 @@ public final class MCPSSETransport: MCPTransport {
     ///
     /// - Parameter message: The `Encodable & Sendable` JSON-RPC payload to transmit.
     /// - Throws: An error if encoding or emitting the SSE event fails.
-    public func send<T: Encodable & Sendable>(_ message: T) async throws {
+    public func send(_ message: some Encodable & Sendable) async throws {
         let data = try encoder.encode(message)
         try await state.emit(event: "message", data: data)
     }

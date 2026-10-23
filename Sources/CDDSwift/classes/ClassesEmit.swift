@@ -22,7 +22,7 @@ public func emitModel(name: String, schema: Schema, schemas: [String: Schema] = 
     var output = emitDocstring(schema.description, indent: 0)
     output += emitValidationDocComments(for: schema, indent: 0)
 
-    if schema.type == "string" && schema.enum_values != nil {
+    if schema.type == "string", schema.enum_values != nil {
         return output + emitStringEnumModel(name: name, schema: schema)
     }
 
@@ -282,11 +282,10 @@ private func collectStructProperties(schema: Schema, schemas: [String: Schema]) 
 
     if let allOf = schema.allOf {
         for subSchema in allOf {
-            let resolvedSub: Schema
-            if let ref = subSchema.ref ?? subSchema.dynamicRef, let target = schemas[lastPathSegment(ref)] {
-                resolvedSub = target
+            let resolvedSub: Schema = if let ref = subSchema.ref ?? subSchema.dynamicRef, let target = schemas[lastPathSegment(ref)] {
+                target
             } else {
-                resolvedSub = subSchema
+                subSchema
             }
             if let props = resolvedSub.properties {
                 for (propName, propSchema) in props {
@@ -344,10 +343,10 @@ public func mapType(schema: Schema) -> String {
 /// - Returns: `"Date"`, `"UUID"`, `"Data"`, or `"String"`.
 private func mapStringFormat(_ format: String?) -> String {
     switch format {
-    case "date-time": return "Date"
-    case "uuid": return "UUID"
-    case "binary": return "Data"
-    default: return "String"
+    case "date-time": "Date"
+    case "uuid": "UUID"
+    case "binary": "Data"
+    default: "String"
     }
 }
 

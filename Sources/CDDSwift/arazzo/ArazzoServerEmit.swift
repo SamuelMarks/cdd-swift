@@ -69,7 +69,7 @@ public enum ArazzoServerEmitter {
     ///
     /// - Returns: Array of Swift source lines defining `WorkflowProbeReport`.
     private static func emitProbeReportStructLines() -> [String] {
-        return [
+        [
             "import Foundation",
             "",
             "/// Diagnostic status report for a synthetic workflow healthcheck probe.",

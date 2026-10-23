@@ -62,7 +62,7 @@ public struct RouteParamDescriptor: Sendable, Equatable {
 /// - Parameter responses: Optional map of HTTP status code strings to `Response` definitions.
 /// - Returns: The mapped Swift return type string (defaults to `"Void"`).
 public func inferOperationReturnType(responses: [String: Response]?) -> String {
-    guard let responses = responses else { return "Void" }
+    guard let responses else { return "Void" }
     let twoXXKeys = responses.keys.filter { $0.hasPrefix("2") }.sorted()
     for code in twoXXKeys {
         if let resp = responses[code], let jsonMedia = resp.content?["application/json"], let schema = jsonMedia.schema {
@@ -131,6 +131,27 @@ public func interpolatePathParameter(path: String, param: RouteParamDescriptor) 
     }
 }
 
+/// Resolves the effective OpenAPI `ParameterStyle` and `explode` flag for a `Parameter`, falling back to Swagger 2.0 `collectionFormat`.
+///
+/// - Parameters:
+///   - param: The OpenAPI or Swagger 2.0 `Parameter`.
+///   - location: The resolved `ParameterLocation`.
+/// - Returns: A tuple containing the resolved `ParameterStyle` and `explode` flag.
+public func resolveParameterStyleAndExplode(
+    param: Parameter,
+    location: ParameterLocation
+) -> (style: ParameterStyle, explode: Bool) {
+    if let explicitStyle = param.style {
+        return (explicitStyle, param.explode ?? (explicitStyle == .form))
+    }
+    if let cf = param.collectionFormat ?? param.schema?.items?.collectionFormat {
+        let mappedStyle = cf.openAPIStyle(for: location)
+        return (mappedStyle, param.explode ?? cf.openAPIExplode)
+    }
+    let defaultStyle: ParameterStyle = (location == .query || location == .cookie) ? .form : .simple
+    return (defaultStyle, param.explode ?? (defaultStyle == .form))
+}
+
 /// Extracts and categorizes parameters from an OpenAPI `Operation` and URL path template.
 ///
 /// - Parameters:
@@ -154,8 +175,7 @@ public func extractRouteParameters(from operation: Operation, path: String) -> E
             let optionalSuffix = isRequired ? "" : "?"
             args.append("\(safePName): \(type)\(optionalSuffix)\(isRequired ? "" : " = nil")")
 
-            let style: ParameterStyle = param.style ?? (pIn == .query || pIn == .cookie ? .form : .simple)
-            let explode = param.explode ?? (style == .form)
+            let (style, explode) = resolveParameterStyleAndExplode(param: param, location: pIn)
             let isArray = param.schema?.type == "array"
             let isObject = param.schema?.type == "object"
             let isBin = param.schema?.format == "binary" || param.schema?.type == "file"
@@ -192,6 +212,27 @@ public func extractRouteParameters(from operation: Operation, path: String) -> E
     )
 }
 
+/// Emits Swift source code that serializes an array query parameter according to its `ParameterStyle` and `explode` flag.
+///
+/// - Parameters:
+///   - qp: The `RouteParamDescriptor` for the array query parameter.
+///   - valName: The bound Swift local variable name holding the array value.
+/// - Returns: Generated Swift statement appending one or more `URLQueryItem` values.
+private func emitArrayQueryParameterSerialization(for qp: RouteParamDescriptor, valName: String) -> String {
+    if qp.style == .form, qp.explode {
+        return "            for item in \(valName) { queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: item))) }\n"
+    } else if qp.style == .form, !qp.explode {
+        return "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \",\")))\n"
+    } else if qp.style == .spaceDelimited {
+        return "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \" \")))\n"
+    } else if qp.style == .pipeDelimited {
+        return "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \"|\")))\n"
+    } else if qp.style == .custom("tabDelimited") {
+        return "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \"\\t\")))\n"
+    }
+    return "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: \(valName))))\n"
+}
+
 /// Emits Swift source code that serializes query parameters into `queryItems`.
 ///
 /// - Parameter queryParams: Array of `RouteParamDescriptor` items located in the query string.
@@ -208,17 +249,7 @@ public func emitQueryParameterSerialization(for queryParams: [RouteParamDescript
             output += "        if let \(valName) = \(swiftParamName) {\n"
         }
         if qp.isArray {
-            if qp.style == .form && qp.explode {
-                output += "            for item in \(valName) { queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: item))) }\n"
-            } else if qp.style == .form && !qp.explode {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \",\")))\n"
-            } else if qp.style == .spaceDelimited {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \" \")))\n"
-            } else if qp.style == .pipeDelimited {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: \(valName).map { String(describing: $0) }.joined(separator: \"|\")))\n"
-            } else {
-                output += "            queryItems.append(URLQueryItem(name: \"\(qp.name)\", value: String(describing: \(valName))))\n"
-            }
+            output += emitArrayQueryParameterSerialization(for: qp, valName: valName)
         } else if qp.isObject {
             if qp.style == .deepObject {
                 output += "            if let dict = \(valName) as? [String: Any] {\n"

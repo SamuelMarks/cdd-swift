@@ -7,7 +7,7 @@ public protocol MCPTransport: Sendable {
     ///
     /// - Parameter message: The `Encodable & Sendable` message payload to transmit.
     /// - Throws: `CDDError.mcpTransportError` or an encoding error if transmission fails.
-    func send<T: Encodable & Sendable>(_ message: T) async throws
+    func send(_ message: some Encodable & Sendable) async throws
     /// Starts reading incoming messages from the transport and invokes the provided handler for each frame.
     ///
     /// - Parameter onMessage: An asynchronous closure invoked with the raw `Data` of each received message.
@@ -46,7 +46,7 @@ private actor StdioTransportState {
     ///
     /// - Returns: `true` if reading is active, `false` otherwise.
     func checkIsReading() -> Bool {
-        return isReading
+        isReading
     }
 
     /// Suspends until `stopReading()` is called or the task is cancelled.
@@ -93,7 +93,7 @@ public final class MCPStdioTransport: MCPTransport, @unchecked Sendable {
     ///
     /// - Parameter message: The `Encodable & Sendable` message to send.
     /// - Throws: `CDDError.mcpTransportError` if writing to the output stream fails.
-    public func send<T: Encodable & Sendable>(_ message: T) async throws {
+    public func send(_ message: some Encodable & Sendable) async throws {
         var data = try encoder.encode(message)
         data.append(contentsOf: [0x0A]) // Newline
         let count = data.count

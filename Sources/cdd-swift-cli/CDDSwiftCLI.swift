@@ -174,7 +174,7 @@ struct ToOpenAPI: AsyncParsableCommand {
         let data = try encoder.encode(document)
         let jsonString = String(decoding: data, as: UTF8.self)
 
-        if let outputPath = outputPath {
+        if let outputPath {
             try WASIFileHelpers.writeString(jsonString, to: outputPath)
             print("✅ OpenAPI JSON successfully written to \(outputPath)")
         } else {
@@ -224,7 +224,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
 
         let jsonString = try builder.serialize()
 
-        if let outputPath = outputPath {
+        if let outputPath {
             try WASIFileHelpers.writeString(jsonString, to: outputPath)
             print("✅ OpenAPI JSON successfully written to \(outputPath)")
         } else {
@@ -243,7 +243,7 @@ public enum CDDCLI {
     /// - Throws: An error if command execution fails.
     public static func generateFromOpenApi(subcommand: String? = nil, _ args: [String]) async throws {
         var commandArgs = ["from_openapi"]
-        if let subcommand = subcommand {
+        if let subcommand {
             commandArgs.append(subcommand)
         }
         commandArgs.append(contentsOf: args)
@@ -298,7 +298,7 @@ public enum CDDCLI {
     /// - Throws: An error if command execution fails.
     public static func generateFromArazzo(subcommand: String? = nil, _ args: [String]) async throws {
         var commandArgs = ["from_arazzo"]
-        if let subcommand = subcommand {
+        if let subcommand {
             commandArgs.append(subcommand)
         }
         commandArgs.append(contentsOf: args)

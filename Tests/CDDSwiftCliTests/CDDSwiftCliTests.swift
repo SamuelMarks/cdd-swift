@@ -50,7 +50,7 @@ final class CDDSwiftCliTests: XCTestCase {
     /// - Parameter relative: Relative file or directory name.
     /// - Returns: Absolute filesystem path inside `tempRoot`.
     func tempPath(_ relative: String) -> String {
-        return tempRoot.appendingPathComponent(relative).path
+        tempRoot.appendingPathComponent(relative).path
     }
 
     /// Verifies `CDDSwiftCLI` command parsing and `--help` behavior.

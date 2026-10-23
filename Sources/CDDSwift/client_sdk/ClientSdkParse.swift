@@ -125,7 +125,7 @@ public class SwiftASTParser {
     ///   - fallback: The fallback `PathItem`.
     /// - Returns: A merged `PathItem`.
     private static func mergePathItem(existing: PathItem, fallback: PathItem) -> PathItem {
-        return PathItem(
+        PathItem(
             ref: existing.ref ?? fallback.ref,
             summary: existing.summary ?? fallback.summary,
             description: existing.description ?? fallback.description,
@@ -205,7 +205,7 @@ public class SwiftASTParser {
     ///   - callbacks: The callbacks dictionary to attach.
     /// - Returns: A new `Operation` containing the callbacks.
     private static func withCallbacks(_ operation: Operation, callbacks: [String: Callback]) -> Operation {
-        return Operation(
+        Operation(
             tags: operation.tags,
             summary: operation.summary,
             description: operation.description,

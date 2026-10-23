@@ -8,7 +8,7 @@ public enum ArazzoSdkEmitter {
     /// - Parameter name: Input raw identifier.
     /// - Returns: Valid Swift identifier.
     public static func sanitizeIdentifier(_ name: String) -> String {
-        return SwiftIdentifierSanitizer.sanitizeCamelCase(name, fallback: "identifier")
+        SwiftIdentifierSanitizer.sanitizeCamelCase(name, fallback: "identifier")
     }
 
     /// Converts an identifier string into a PascalCase Swift struct or class type name.
@@ -16,7 +16,7 @@ public enum ArazzoSdkEmitter {
     /// - Parameter name: Input raw identifier.
     /// - Returns: Swift PascalCase type name.
     public static func pascalCase(_ name: String) -> String {
-        return SwiftIdentifierSanitizer.sanitizePascalCase(name, fallback: "WorkflowType")
+        SwiftIdentifierSanitizer.sanitizePascalCase(name, fallback: "WorkflowType")
     }
 
     /// Emits a complete Swift source file containing workflow orchestrator classes, DTOs, and runtime support.
@@ -181,8 +181,8 @@ public enum ArazzoSdkEmitter {
     /// - Returns: Generated step invocation code.
     private static func emitStepExecution(step: ArazzoStep) -> String {
         let opId = step.operationId ?? sanitizeIdentifier(step.stepId)
-        let maxRetries = step.onFailure?.compactMap { $0.retryLimit }.max() ?? 0
-        let retryDelay = step.onFailure?.compactMap { $0.retryAfter }.max() ?? 1.0
+        let maxRetries = step.onFailure?.compactMap(\.retryLimit).max() ?? 0
+        let retryDelay = step.onFailure?.compactMap(\.retryAfter).max() ?? 1.0
 
         var code = ""
         code += "        // Step: " + step.stepId + "\n"
@@ -239,17 +239,17 @@ public enum ArazzoSdkEmitter {
     private static func mapSchemaType(_ schema: Schema) -> String {
         switch schema.type {
         case "string":
-            return "String"
+            "String"
         case "integer":
-            return "Int"
+            "Int"
         case "number":
-            return "Double"
+            "Double"
         case "boolean":
-            return "Bool"
+            "Bool"
         case "array":
-            return "[AnyCodable]"
+            "[AnyCodable]"
         default:
-            return "AnyCodable"
+            "AnyCodable"
         }
     }
 }

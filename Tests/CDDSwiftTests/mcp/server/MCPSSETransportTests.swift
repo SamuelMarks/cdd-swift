@@ -34,17 +34,17 @@ private actor SSETestCapture {
 
     /// Returns all recorded SSE events.
     func events() -> [(String, Data)] {
-        return emittedEvents
+        emittedEvents
     }
 
     /// Returns all recorded POST messages.
     func messages() -> [Data] {
-        return receivedMessages
+        receivedMessages
     }
 
     /// Returns the current `count`.
     func currentCount() -> Int {
-        return count
+        count
     }
 }
 

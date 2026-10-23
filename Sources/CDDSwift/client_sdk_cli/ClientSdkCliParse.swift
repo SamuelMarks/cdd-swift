@@ -31,7 +31,7 @@ public class CliVisitor: SyntaxVisitor {
         let structName = node.name.text
         if structName == "APIClientCLI" {
             extractRootCLIMetadata(from: node.memberBlock.members)
-        } else if structName.hasSuffix("Command") && structName != "MCPCommand" {
+        } else if structName.hasSuffix("Command"), structName != "MCPCommand" {
             extractCommandOperation(structName: structName, members: node.memberBlock.members)
         }
 

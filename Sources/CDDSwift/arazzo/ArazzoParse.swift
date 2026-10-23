@@ -94,7 +94,7 @@ public final class ArazzoDocumentBuilder {
     /// - Returns: Formatted JSON string.
     /// - Throws: Encoding error if serialization fails.
     public func serialize() throws -> String {
-        return try ArazzoEmitter.emitJSON(from: build())
+        try ArazzoEmitter.emitJSON(from: build())
     }
 }
 
@@ -190,10 +190,10 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     /// - Returns: The corresponding JSON Schema type.
     private static func mapSwiftInputType(_ rawType: String) -> SchemaType {
         switch rawType {
-        case "Int": return .integer
-        case "Double", "Float": return .number
-        case "Bool": return .boolean
-        default: return .string
+        case "Int": .integer
+        case "Double", "Float": .number
+        case "Bool": .boolean
+        default: .string
         }
     }
 
@@ -325,7 +325,7 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
            let endTick = doc.range(of: "`", range: execRange.upperBound ..< doc.endIndex) {
             return String(doc[execRange.upperBound ..< endTick.lowerBound])
         }
-        if funcName.hasPrefix("test") && funcName.count > 4 {
+        if funcName.hasPrefix("test"), funcName.count > 4 {
             let dropped = funcName.dropFirst(4)
             return dropped.prefix(1).lowercased() + dropped.dropFirst()
         }

@@ -56,7 +56,7 @@ final class MockTransportForClient: MCPTransport {
     ///
     /// - Parameter message: The `Encodable & Sendable` message to send.
     /// - Throws: `JSONRPCErrorDetail` if configured to fail.
-    func send<T: Encodable & Sendable>(_ message: T) async throws {
+    func send(_ message: some Encodable & Sendable) async throws {
         try await state.recordSend(message)
     }
 
@@ -154,7 +154,7 @@ final class MCPClientSessionTests: XCTestCase {
             /// - Parameter request: Incoming JSON-RPC request.
             /// - Returns: `"success"` wrapped in `AnyCodable`.
             func handleRequest(request _: JSONRPCRequest<AnyCodable>) async throws -> AnyCodable {
-                return AnyCodable("success")
+                AnyCodable("success")
             }
 
             /// Handles an incoming server notification.

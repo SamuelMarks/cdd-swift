@@ -67,7 +67,7 @@ struct ToDocsJson: AsyncParsableCommand {
                 includeWrapping: !noWrapping
             )
 
-            if let outputPath = outputPath {
+            if let outputPath {
                 try WASIFileHelpers.writeString(resultJson, to: outputPath)
             } else {
                 print(resultJson)

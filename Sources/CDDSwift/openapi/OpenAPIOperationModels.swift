@@ -129,15 +129,23 @@ public struct Parameter: Codable, Equatable, Sendable {
     public let examples: [String: Example]?
     /// Map containing the representations for the parameter keyed by media type.
     public let content: [String: MediaType]?
+    /// Legacy Swagger 2.0 collection format (`"csv"`, `"ssv"`, `"tsv"`, `"pipes"`, `"multi"`).
+    public let collectionFormat: CollectionFormat?
 
     /// Strongly-typed parameter location enum derived from `in`.
     public var location: ParameterLocation? {
-        return self.in
+        self.in
     }
 
-    /// Strongly-typed parameter serialization style enum derived from `style`.
+    /// Strongly-typed parameter serialization style enum derived from `style`, falling back to `collectionFormat`.
     public var parameterStyle: ParameterStyle? {
-        return style
+        if let style {
+            return style
+        }
+        if let cf = collectionFormat {
+            return cf.openAPIStyle(for: self.in ?? .query)
+        }
+        return nil
     }
 
     /// Coding keys mapping OpenAPI JSON properties to `Parameter` fields.
@@ -172,6 +180,8 @@ public struct Parameter: Codable, Equatable, Sendable {
         case examples
         /// Key for `content`.
         case content
+        /// Key for `collectionFormat`.
+        case collectionFormat
     }
 
     /// Initializes a `Parameter`.
@@ -192,6 +202,7 @@ public struct Parameter: Codable, Equatable, Sendable {
     ///   - example: Optional single example value.
     ///   - examples: Optional map of named `Example` objects.
     ///   - content: Optional map of media types to `MediaType` definitions.
+    ///   - collectionFormat: Optional legacy Swagger 2.0 `CollectionFormat`.
     public init(
         ref: String? = nil,
         summary: String? = nil,
@@ -207,7 +218,8 @@ public struct Parameter: Codable, Equatable, Sendable {
         schema: Schema? = nil,
         example: AnyCodable? = nil,
         examples: [String: Example]? = nil,
-        content: [String: MediaType]? = nil
+        content: [String: MediaType]? = nil,
+        collectionFormat: CollectionFormat? = nil
     ) {
         self.ref = ref
         self.summary = summary
@@ -224,6 +236,7 @@ public struct Parameter: Codable, Equatable, Sendable {
         self.example = example
         self.examples = examples
         self.content = content
+        self.collectionFormat = collectionFormat
     }
 }
 
@@ -418,7 +431,7 @@ public final class EncodingObject: Codable, Equatable, Sendable {
     ///   - rhs: Right-hand side `EncodingObject`.
     /// - Returns: `true` if all properties are equal, `false` otherwise.
     public static func == (lhs: EncodingObject, rhs: EncodingObject) -> Bool {
-        return lhs.contentType == rhs.contentType && lhs.headers == rhs.headers && lhs.encoding == rhs.encoding && lhs.prefixEncoding == rhs
+        lhs.contentType == rhs.contentType && lhs.headers == rhs.headers && lhs.encoding == rhs.encoding && lhs.prefixEncoding == rhs
             .prefixEncoding && lhs.itemEncoding == rhs.itemEncoding && lhs.style == rhs.style && lhs.explode == rhs.explode && lhs
             .allowReserved == rhs.allowReserved
     }

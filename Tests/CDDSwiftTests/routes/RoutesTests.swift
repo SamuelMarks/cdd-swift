@@ -414,6 +414,45 @@ final class RoutesStylesAndSecurityTests: XCTestCase {
             .contains("JSONEncoder().encode"))
     }
 
+    /// Verifies Swagger 2.0 `collectionFormat` (`csv`, `ssv`, `tsv`, `pipes`, `multi`) serialization on parameters and array `items`.
+    func testSwaggerCollectionFormatSerialization() {
+        let op = Operation(
+            operationId: "searchWithCollectionFormats",
+            parameters: [
+                Parameter(
+                    name: "csvTags", in: "query", required: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string")),
+                    collectionFormat: .csv
+                ),
+                Parameter(
+                    name: "ssvTags", in: "query", required: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string")),
+                    collectionFormat: .ssv
+                ),
+                Parameter(
+                    name: "tsvTags", in: "query", required: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string")),
+                    collectionFormat: .tsv
+                ),
+                Parameter(
+                    name: "pipeTags", in: "query", required: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string")),
+                    collectionFormat: .pipes
+                ),
+                Parameter(
+                    name: "multiTags", in: "query", required: true,
+                    schema: Schema(type: "array", items: SchemaItem(type: "string", collectionFormat: .multi))
+                )
+            ]
+        )
+        let emitted = emitMethod(path: "/search", method: "GET", operation: op, documentSecurity: nil, securitySchemes: [:])
+        XCTAssertTrue(emitted.contains(".joined(separator: \",\")"))
+        XCTAssertTrue(emitted.contains(".joined(separator: \" \")"))
+        XCTAssertTrue(emitted.contains(".joined(separator: \"\\t\")"))
+        XCTAssertTrue(emitted.contains(".joined(separator: \"|\")"))
+        XCTAssertTrue(emitted.contains("for item in val_multiTags"))
+    }
+
     /// Verifies `RouteVisitor` parsing of function declarations, parameters, bodies, and `@link` annotations.
     func testRoutesParse() {
         let code = """

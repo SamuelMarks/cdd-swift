@@ -177,7 +177,7 @@ extension ToServer {
                 defer { Task { try? await app.asyncShutdown() } }
                 try routes(app)
         """
-        if let firstSchema = firstSchema {
+        if let firstSchema {
             code += """
 
                     try await app.test(.GET, "\(firstSchema.lowercased())s") { req async in
@@ -213,7 +213,7 @@ extension ToServer {
             code += nl + "        app.migrations.add(Create\(schema)())"
         }
         code += nl + "        try await app.autoMigrate()" + nl + "        try routes(app)"
-        if let firstSchema = firstSchema {
+        if let firstSchema {
             code += """
 
                     try await app.test(.GET, "\(firstSchema.lowercased())s") { req async in
@@ -254,7 +254,7 @@ extension ToServer {
         code += nl + "        try await app.autoMigrate()"
             + nl + "        try await DatabaseSeeder.seed(on: app.db)"
             + nl + "        try routes(app)"
-        if let firstSchema = firstSchema {
+        if let firstSchema {
             code += """
 
                     try await app.test(.GET, "\(firstSchema.lowercased())s") { req async in
@@ -272,7 +272,7 @@ extension ToServer {
     ///
     /// - Returns: The Swift source string for `AuthMiddlewareTests.swift`.
     private static func buildAuthMiddlewareTest() -> String {
-        return """
+        """
         import XCTVapor
         @testable import GeneratedServer
 

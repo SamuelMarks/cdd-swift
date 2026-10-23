@@ -184,7 +184,7 @@ public enum XMLNodeType: RawRepresentable, Codable, Equatable, Hashable, Sendabl
 
     /// All standard `XMLNodeType` cases.
     public static var allCases: [XMLNodeType] {
-        return [.attribute, .element, .text, .cdata, .none]
+        [.attribute, .element, .text, .cdata, .none]
     }
 
     /// Lookup table mapping canonical raw values to standard `XMLNodeType` cases.
@@ -195,18 +195,18 @@ public enum XMLNodeType: RawRepresentable, Codable, Equatable, Hashable, Sendabl
     /// The raw string representation of the XML node type.
     public var rawValue: String {
         switch self {
-        case .attribute: return "attribute"
-        case .element: return "element"
-        case .text: return "text"
-        case .cdata: return "cdata"
-        case .none: return "none"
-        case let .custom(val): return val
+        case .attribute: "attribute"
+        case .element: "element"
+        case .text: "text"
+        case .cdata: "cdata"
+        case .none: "none"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes an `XMLNodeType` from its raw string representation.
@@ -295,6 +295,8 @@ public struct SchemaItem: Codable, Equatable, Sendable {
     public let ref: String?
     /// Optional format modifier (e.g. `"int32"`, `"int64"`, `"date-time"`, `"uuid"`).
     public let format: String?
+    /// Legacy Swagger 2.0 collection format (`"csv"`, `"ssv"`, `"tsv"`, `"pipes"`, `"multi"`) for array items.
+    public let collectionFormat: CollectionFormat?
 
     /// Strongly-typed `SchemaType` enum derived from `type`.
     public var schemaType: SchemaType? {
@@ -316,6 +318,8 @@ public struct SchemaItem: Codable, Equatable, Sendable {
         case ref = "$ref"
         /// Key for `format`.
         case format
+        /// Key for `collectionFormat`.
+        case collectionFormat
     }
 
     /// Initializes a `SchemaItem`.
@@ -324,10 +328,12 @@ public struct SchemaItem: Codable, Equatable, Sendable {
     ///   - type: Optional JSON Schema type string.
     ///   - ref: Optional `$ref` pointer string.
     ///   - format: Optional format string.
-    public init(type: String? = nil, ref: String? = nil, format: String? = nil) {
+    ///   - collectionFormat: Optional legacy Swagger 2.0 `CollectionFormat`.
+    public init(type: String? = nil, ref: String? = nil, format: String? = nil, collectionFormat: CollectionFormat? = nil) {
         self.type = type
         self.ref = ref
         self.format = format
+        self.collectionFormat = collectionFormat
     }
 }
 
@@ -349,7 +355,7 @@ public enum ContentType: RawRepresentable, Codable, Equatable, Hashable, Sendabl
 
     /// All standard `ContentType` cases.
     public static var allCases: [ContentType] {
-        return [.applicationJson, .multipartFormData, .formUrlEncoded, .octetStream, .textPlain]
+        [.applicationJson, .multipartFormData, .formUrlEncoded, .octetStream, .textPlain]
     }
 
     /// Lookup table mapping canonical raw values to standard `ContentType` cases.
@@ -360,18 +366,18 @@ public enum ContentType: RawRepresentable, Codable, Equatable, Hashable, Sendabl
     /// The canonical MIME media type string.
     public var rawValue: String {
         switch self {
-        case .applicationJson: return "application/json"
-        case .multipartFormData: return "multipart/form-data"
-        case .formUrlEncoded: return "application/x-www-form-urlencoded"
-        case .octetStream: return "application/octet-stream"
-        case .textPlain: return "text/plain"
-        case let .custom(val): return val
+        case .applicationJson: "application/json"
+        case .multipartFormData: "multipart/form-data"
+        case .formUrlEncoded: "application/x-www-form-urlencoded"
+        case .octetStream: "application/octet-stream"
+        case .textPlain: "text/plain"
+        case let .custom(val): val
         }
     }
 
     /// Textual description matching `rawValue`.
     public var description: String {
-        return rawValue
+        rawValue
     }
 
     /// Initializes a `ContentType` from its raw MIME string.

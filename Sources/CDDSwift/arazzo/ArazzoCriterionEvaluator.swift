@@ -99,13 +99,13 @@ extension ArazzoExpressionEvaluator {
     private static func toDouble(_ val: JSONValue) -> Double? {
         switch val {
         case let .double(d):
-            return d
+            d
         case let .int(i):
-            return Double(i)
+            Double(i)
         case let .string(s):
-            return Double(s)
+            Double(s)
         default:
-            return nil
+            nil
         }
     }
 
