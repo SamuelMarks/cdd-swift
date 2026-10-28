@@ -1,5 +1,4 @@
 /// Default dictionary-backed router implementation for `MCPServerRouter`.
-import Foundation
 
 /// A configurable dictionary-backed router for handling incoming MCP server requests and notifications.
 public struct DefaultMCPServerRouter: MCPServerRouter {

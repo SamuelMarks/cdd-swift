@@ -1,5 +1,4 @@
 /// Property wrappers enforcing OpenAPI numeric and string validation constraints at runtime.
-import Foundation
 
 @propertyWrapper
 /// Property wrapper that validates a numeric or comparable value against an inclusive minimum boundary.
@@ -142,7 +141,7 @@ public struct Pattern: Codable, Equatable, Sendable {
     ///
     /// - Throws: `CDDError.validationFailed` if `wrappedValue` does not match `pattern`.
     public func validate() throws {
-        if wrappedValue.range(of: pattern, options: .regularExpression) == nil {
+        if (try? Regex(pattern)).map({ wrappedValue.contains($0) }) != true {
             throw CDDError.validationFailed(field: "Pattern", reason: "String '\(wrappedValue)' does not match pattern '\(pattern)'")
         }
     }

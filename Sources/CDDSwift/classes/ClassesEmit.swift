@@ -1,5 +1,4 @@
 /// Swift model, enum, and typealias code emitter for OpenAPI schemas.
-import Foundation
 
 /// Describes a resolved schema property used during Swift struct emission.
 private struct ModelPropertyDescriptor {

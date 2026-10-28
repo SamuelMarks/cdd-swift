@@ -1,7 +1,4 @@
 /// OpenAPI 3.2.0 and Swagger 2.0 header, tag, reference, security scheme, and OAuth 2.0 flow models.
-import Foundation
-
-// MARK: - Header Object
 
 /// Describes an HTTP header returned in a response or part of a multipart encoding.
 public struct Header: Codable, Equatable, Sendable {

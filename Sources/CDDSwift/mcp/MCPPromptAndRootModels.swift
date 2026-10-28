@@ -1,7 +1,4 @@
 /// Model Context Protocol (MCP) prompt template and workspace root domain models.
-import Foundation
-
-// MARK: - Prompts
 
 /// Describes a template argument accepted by an MCP `Prompt`.
 public struct PromptArgument: Codable, Equatable, Sendable {

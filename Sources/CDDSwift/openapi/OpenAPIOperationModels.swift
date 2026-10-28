@@ -1,7 +1,4 @@
 /// OpenAPI 3.2.0 and Swagger 2.0 operation, parameter, request body, media type, encoding, and response models.
-import Foundation
-
-// MARK: - Operation Object
 
 /// Describes a single API operation on a path.
 public struct Operation: Codable, Equatable, Sendable {

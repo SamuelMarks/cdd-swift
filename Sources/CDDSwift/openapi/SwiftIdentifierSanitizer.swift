@@ -1,5 +1,4 @@
 /// Shared Swift identifier sanitization and case-conversion utilities for code emitters.
-import Foundation
 
 /// Centralizes Swift identifier sanitization, keyword escaping, and case conversions across `CDDSwift` emitters.
 public enum SwiftIdentifierSanitizer {
@@ -20,11 +19,11 @@ public enum SwiftIdentifierSanitizer {
     ///   - fallback: Fallback identifier returned when `name` contains no alphanumeric characters.
     /// - Returns: A valid Swift identifier, backtick-escaped if it matches a Swift keyword.
     public static func sanitizeCamelCase(_ name: String, fallback: String = "identifier") -> String {
-        let parts = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
+        let parts = name.split { !$0.isLetter && !$0.isNumber }.map(String.init)
         guard let first = parts.first else { return fallback }
         let tail = parts.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() }
         var combined = String(first.prefix(1).lowercased() + first.dropFirst() + tail.joined())
-        if let firstScalar = combined.unicodeScalars.first, CharacterSet.decimalDigits.contains(firstScalar) {
+        if combined.first?.isNumber == true {
             combined = "_" + combined
         }
         return swiftKeywords.contains(combined) ? "`" + combined + "`" : combined
@@ -37,10 +36,10 @@ public enum SwiftIdentifierSanitizer {
     ///   - fallback: Fallback type name returned when `name` contains no alphanumeric characters.
     /// - Returns: A valid Swift PascalCase identifier.
     public static func sanitizePascalCase(_ name: String, fallback: String = "WorkflowType") -> String {
-        let parts = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
+        let parts = name.split { !$0.isLetter && !$0.isNumber }.map(String.init)
         guard !parts.isEmpty else { return fallback }
         var combined = parts.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined()
-        if let firstScalar = combined.unicodeScalars.first, CharacterSet.decimalDigits.contains(firstScalar) {
+        if combined.first?.isNumber == true {
             combined = "_" + combined
         }
         return combined

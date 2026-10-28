@@ -1,7 +1,6 @@
 /// Root CLI entrypoint, subcommand routing, and programmatic API for `cdd-swift`.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 @main
 /// Root command-line interface command for converting and synchronizing OpenAPI, Arazzo, and Swift code.

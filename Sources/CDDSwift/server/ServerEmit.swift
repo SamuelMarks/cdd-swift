@@ -1,5 +1,4 @@
 /// Vapor and Fluent model, DAO, migration, and database seeder emitter for OpenAPI documents.
-import Foundation
 
 /// Helper to map OpenAPI type to Vapor/Fluent field property wrapper.
 ///

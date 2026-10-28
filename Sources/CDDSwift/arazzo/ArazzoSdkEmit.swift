@@ -1,5 +1,4 @@
 /// Swift 6 workflow orchestrator SDK emitter for Arazzo 1.1.0 specifications.
-import Foundation
 
 /// Code emitter generating strongly typed Swift 6 workflow orchestrator SDK clients from Arazzo 1.1.0 specifications.
 public enum ArazzoSdkEmitter {

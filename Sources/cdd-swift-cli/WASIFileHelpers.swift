@@ -8,7 +8,6 @@
 #endif
 
 import CDDSwift
-import Foundation
 
 /// A set of helper methods for WASI-compatible file I/O operations using POSIX functions.
 enum WASIFileHelpers {

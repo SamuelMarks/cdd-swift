@@ -1,7 +1,4 @@
 /// OpenAPI 3.2.0 and JSON Schema Draft 2020-12 `Schema` model.
-import Foundation
-
-// MARK: - Schema Object
 
 /// Defines the input and output data types in an OpenAPI 3.2.0 or Swagger 2.0 specification.
 public struct Schema: Codable, Equatable, Sendable {

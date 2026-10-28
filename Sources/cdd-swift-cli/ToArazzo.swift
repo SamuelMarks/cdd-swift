@@ -1,7 +1,6 @@
 /// CLI command for parsing Swift workflow source files into an Arazzo 1.1.0 specification.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// CLI command to parse Swift workflow source code via AST and output an Arazzo 1.1.0 specification.
 struct ToArazzo: AsyncParsableCommand {

@@ -1,5 +1,4 @@
 /// Root specification, workflow, and reusable component models for Arazzo 1.1.0 documents.
-import Foundation
 
 /// Represents an executable multi-step workflow in an Arazzo specification.
 public struct ArazzoWorkflow: Codable, Sendable, Equatable {

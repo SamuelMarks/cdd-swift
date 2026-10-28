@@ -1,5 +1,4 @@
 /// Server-Sent Events (SSE) and HTTP POST transport for the Model Context Protocol (MCP).
-import Foundation
 
 /// Actor-isolated state container for `MCPSSETransport`, providing compile-time `Sendable` safety without `NSLock`.
 private actor SSETransportState {

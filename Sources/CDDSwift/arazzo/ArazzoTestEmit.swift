@@ -1,5 +1,4 @@
 /// XCTest and Swift Testing integration test suite emitter for Arazzo 1.1.0 workflows.
-import Foundation
 
 /// Code emitter generating executable `XCTestCase` and Swift Testing (`@Suite`, `@Test`) suites from Arazzo 1.1.0 workflows.
 public enum ArazzoTestEmitter {

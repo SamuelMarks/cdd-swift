@@ -1,5 +1,4 @@
 /// Swift API client method, parameter serializer, and security injector emitter for OpenAPI operations.
-import Foundation
 
 /// Describes a resolved OpenAPI operation parameter used during route method emission.
 public struct RouteParamDescriptor: Sendable, Equatable {

@@ -1,5 +1,4 @@
 /// Model Context Protocol (MCP) resource, resource template, content, and subscription models.
-import Foundation
 
 /// A known resource that the MCP server is capable of reading.
 public struct Resource: Codable, Equatable, Sendable {

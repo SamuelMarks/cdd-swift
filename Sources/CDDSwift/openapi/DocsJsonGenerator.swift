@@ -1,5 +1,4 @@
 /// Generator for producing JSON-formatted executable API code snippets from OpenAPI documents.
-import Foundation
 
 /// Generator for producing JSON-formatted API documentation.
 public enum DocsJsonGenerator {

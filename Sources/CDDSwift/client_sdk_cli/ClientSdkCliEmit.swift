@@ -1,5 +1,4 @@
 /// Swift ArgumentParser CLI SDK emitter for OpenAPI documents.
-import Foundation
 
 /// Emits Swift code for a CLI SDK.
 ///

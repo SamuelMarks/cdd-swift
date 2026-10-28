@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor extracting OpenAPI paths, operations, and security schemes from APIClient structs.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

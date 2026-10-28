@@ -1,5 +1,4 @@
 /// XCTest suite and deterministic dummy JSON payload emitter for OpenAPI documents.
-import Foundation
 
 /// Context encapsulating the schema parameters needed to generate deterministic dummy JSON payloads.
 public struct DummyJSONContext: Sendable {

@@ -1,5 +1,4 @@
 /// Criterion evaluation and payload replacement helpers for Arazzo 1.1.0 runtime expressions.
-import Foundation
 
 extension ArazzoExpressionEvaluator {
     /// Evaluates an Arazzo assertion criterion condition against the execution context.
@@ -19,11 +18,10 @@ extension ArazzoExpressionEvaluator {
             let pattern = condition.hasPrefix("/") && condition.hasSuffix("/")
                 ? String(condition.dropFirst().dropLast())
                 : condition
-            guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            guard let regex = try? Regex(pattern) else {
                 return false
             }
-            let range = NSRange(location: 0, length: valStr.utf16.count)
-            return regex.firstMatch(in: valStr, options: [], range: range) != nil
+            return valStr.contains(regex)
 
         case .simple, .none, .jsonpath, .xpath:
             return evaluateSimpleCondition(condition, value: value)

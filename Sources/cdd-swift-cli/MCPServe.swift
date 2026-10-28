@@ -1,7 +1,6 @@
 /// CLI subcommand starting the Model Context Protocol (MCP) server over standard I/O.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// Thread-safe actor container managing transport dependency injection for `MCPServe`.
 public actor MCPServeRuntime {

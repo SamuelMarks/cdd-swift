@@ -1,7 +1,4 @@
 /// OpenAPI 3.2.0 and Swagger 2.0 example, link, discriminator, XML, and schema item metadata models.
-import Foundation
-
-// MARK: - Example Object
 
 /// Represents an example value for an operation parameter, request body, or response media type.
 public struct Example: Codable, Equatable, Sendable {

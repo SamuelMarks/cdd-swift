@@ -1,7 +1,4 @@
 /// Core OpenAPI 3.2.0 and Swagger 2.0 specification root, info, server, component, and path models.
-import Foundation
-
-// MARK: - Root Object
 
 /// Represents an OpenAPI 3.x or Swagger 2.0 root document.
 public struct OpenAPIDocument: Codable, Equatable, Sendable {

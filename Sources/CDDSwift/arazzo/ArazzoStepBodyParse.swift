@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor reconstructing Arazzo 1.1.0 workflow steps, criteria, retry loops, and outputs from Swift function bodies.
-import Foundation
 import SwiftSyntax
 
 /// AST `SyntaxVisitor` that traverses a workflow function's `CodeBlockSyntax` to reconstruct `ArazzoStep` definitions, criteria, retry

@@ -26,7 +26,11 @@ Run the provided Make task:
 make build_wasm
 ```
 
-This executes `scripts/build_wasm.py`, which invokes `swift build --swift-sdk <wasm-sdk> -c release` and copies the compiled WebAssembly binary to `bin/cdd-swift.wasm`.
+This executes `scripts/build_wasm.py`, which compiles and optimizes `bin/cdd-swift.wasm` (~12 MB, reduced from ~97 MB unoptimized):
+
+1. **`FoundationEssentials` on WASI (no ICU / `FoundationInternationalization`):** On `#if os(WASI)`, `CDDSwift` exports `FoundationEssentials` rather than the full `Foundation` umbrella and uses native Swift `Regex` instead of `NSRegularExpression`, avoiding linking `lib_FoundationICU.a` (~40 MB static ICU locale/collation tables), `libFoundationInternationalization.a`, `libCoreFoundation.a`, and `libFoundationNetworking.a`.
+2. **Compiler & Linker Size Flags:** Invokes `swift build --swift-sdk <wasm-sdk> -c release -Xswiftc -Osize -Xswiftc -gnone -Xlinker --gc-sections -Xlinker --strip-all` to optimize for code size, omit DWARF debug sections (~35 MB), and garbage-collect unused sections.
+3. **Post-Link Stripping & Binaryen Optimization:** Automatically runs `wasm-strip` (from `wabt`) and `wasm-opt -Oz` (from `binaryen`) when available on `PATH`.
 
 ## Running the WASM Binary
 

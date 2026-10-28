@@ -1,7 +1,6 @@
 /// CLI command group for generating Swift SDKs, CLIs, tests, and servers from Arazzo 1.1.0 specifications.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// Command group to generate Swift code from an Arazzo 1.1.0 specification.
 struct FromArazzo: AsyncParsableCommand {

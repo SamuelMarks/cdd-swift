@@ -1,5 +1,9 @@
 /// Unified error domain and `$ref` helper utilities for `CDDSwift` and `cdd-swift-cli`.
-import Foundation
+#if os(WASI)
+    @_exported import FoundationEssentials
+#else
+    @_exported import Foundation
+#endif
 
 /// Extracts the trailing identifier from an OpenAPI `$ref` pointer (e.g., `"#/components/schemas/User"` -> `"User"`).
 ///
@@ -68,3 +72,84 @@ public enum CDDError: Error, Equatable, CustomStringConvertible, LocalizedError,
         description
     }
 }
+
+#if os(WASI)
+    /// Lightweight character set descriptor used on WASI when compiling against `FoundationEssentials` without ICU.
+    public enum WASICharacterSet: Sendable {
+        /// Horizontal whitespace characters (`" "` and `"\t"`).
+        case whitespaces
+        /// Line break characters (`"\n"` and `"\r"`).
+        case newlines
+        /// Whitespace and newline characters (`" "`, `"\t"`, `"\n"`, and `"\r"`).
+        case whitespacesAndNewlines
+
+        /// Evaluates whether the given `Character` belongs to this character set.
+        ///
+        /// - Parameter char: The character to test.
+        /// - Returns: `true` if `char` is a member of this set, `false` otherwise.
+        public func contains(_ char: Character) -> Bool {
+            switch self {
+            case .whitespaces:
+                char == " " || char == "\t"
+            case .newlines:
+                char.isNewline
+            case .whitespacesAndNewlines:
+                char.isWhitespace || char.isNewline
+            }
+        }
+    }
+
+    public extension StringProtocol {
+        /// Returns a new string made by removing characters contained in `set` from both ends of the receiver.
+        ///
+        /// - Parameter set: The `WASICharacterSet` of characters to trim.
+        /// - Returns: The trimmed `String`.
+        func trimmingCharacters(in set: WASICharacterSet) -> String {
+            guard let start = firstIndex(where: { !set.contains($0) }),
+                  let end = lastIndex(where: { !set.contains($0) })
+            else {
+                return ""
+            }
+            return String(self[start ... end])
+        }
+
+        /// Returns an array containing substrings from the receiver that have been divided by characters in `set`.
+        ///
+        /// - Parameter set: The `WASICharacterSet` delimiter set.
+        /// - Returns: An array of substrings converted to `String`.
+        func components(separatedBy set: WASICharacterSet) -> [String] {
+            String(self).split(omittingEmptySubsequences: false, whereSeparator: { set.contains($0) }).map(String.init)
+        }
+
+        /// Returns a new string in which all occurrences of a target string in the receiver are replaced by another string.
+        ///
+        /// - Parameters:
+        ///   - target: The substring to replace.
+        ///   - replacement: The replacement string.
+        /// - Returns: A new string with all occurrences of `target` replaced by `replacement`.
+        func replacingOccurrences(of target: some StringProtocol, with replacement: some StringProtocol) -> String {
+            components(separatedBy: target).joined(separator: String(replacement))
+        }
+
+        /// Finds and returns the range of the first occurrence of a given string within the optional search range.
+        ///
+        /// - Parameters:
+        ///   - target: The substring to search for.
+        ///   - searchRange: Optional range within the receiver to search.
+        /// - Returns: The `Range<Index>` of the first match, or `nil` if not found.
+        func range(of target: some StringProtocol, range searchRange: Range<Index>? = nil) -> Range<Index>? {
+            let slice = searchRange.map { self[$0] } ?? self[startIndex ..< endIndex]
+            return slice.firstRange(of: target)
+        }
+    }
+
+    public extension Error {
+        /// Returns a human-readable description of the error on WASI without linking `Foundation` ICU tables.
+        var localizedDescription: String {
+            if let localized = self as? LocalizedError, let desc = localized.errorDescription {
+                return desc
+            }
+            return String(describing: self)
+        }
+    }
+#endif

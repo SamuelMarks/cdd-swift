@@ -1,7 +1,6 @@
 /// CLI command for emitting an example Arazzo 1.1.0 workflow specification document.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// CLI command to emit an example/template Arazzo 1.1.0 workflow specification document.
 struct GenerateArazzo: AsyncParsableCommand {

@@ -1,5 +1,4 @@
 /// OpenAPI JSON parser and SwiftSyntax AST document reconstructor.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

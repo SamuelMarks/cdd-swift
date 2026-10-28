@@ -14,10 +14,10 @@ let package = Package(
     name: "CDDSwift",
     platforms: [
         .macOS(.v13),
-        .macCatalyst(.v13),
-        .iOS(.v13),
-        .tvOS(.v13),
-        .watchOS(.v6)
+        .macCatalyst(.v16),
+        .iOS(.v16),
+        .tvOS(.v16),
+        .watchOS(.v9)
     ],
     products: [
         .library(name: "CDDSwift", targets: ["CDDSwift"]),

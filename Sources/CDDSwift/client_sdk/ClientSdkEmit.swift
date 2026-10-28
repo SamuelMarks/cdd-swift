@@ -1,5 +1,4 @@
 /// OpenAPI document builder and Swift SDK generator.
-import Foundation
 
 /// A builder to construct an OpenAPI Document in Swift.
 public class OpenAPIDocumentBuilder {

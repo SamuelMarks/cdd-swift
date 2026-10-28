@@ -1,7 +1,4 @@
 /// Model Context Protocol (MCP) argument auto-completion and LLM sampling models.
-import Foundation
-
-// MARK: - Completion
 
 /// Parameters for a `completion/complete` request requesting argument auto-completion suggestions.
 public struct CompleteRequestParams: Codable, Equatable, Sendable {

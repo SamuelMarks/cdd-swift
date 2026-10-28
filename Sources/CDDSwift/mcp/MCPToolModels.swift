@@ -1,5 +1,4 @@
 /// Model Context Protocol (MCP) tool definition, invocation, and listing models.
-import Foundation
 
 /// Definition for a tool the client can call on an MCP server.
 public struct Tool: Codable, Equatable, Sendable {

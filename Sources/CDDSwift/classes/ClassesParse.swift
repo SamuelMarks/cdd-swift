@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor extracting Codable structs, enums, and typealiases into OpenAPI schemas.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

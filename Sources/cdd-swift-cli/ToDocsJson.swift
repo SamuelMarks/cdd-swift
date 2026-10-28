@@ -1,8 +1,7 @@
 /// CLI command for generating JSON-formatted API documentation snippets from OpenAPI specifications.
 import ArgumentParser
 import CDDSwift
-import Foundation
-#if canImport(FoundationNetworking)
+#if canImport(FoundationNetworking) && !os(WASI)
     import FoundationNetworking
 #endif
 

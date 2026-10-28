@@ -1,5 +1,4 @@
 /// Model Context Protocol (MCP) server session actor and server-side routing protocol.
-import Foundation
 
 /// A router for handling incoming client JSON-RPC requests and notifications on an MCP server.
 public protocol MCPServerRouter: Sendable {

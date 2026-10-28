@@ -1,5 +1,4 @@
 /// Swift mock API client code emitter for OpenAPI paths.
-import Foundation
 
 /// Emits Mock API client code.
 ///

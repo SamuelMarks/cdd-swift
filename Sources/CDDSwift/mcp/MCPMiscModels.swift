@@ -1,7 +1,4 @@
 /// Model Context Protocol (MCP) content, logging, prompt, root, completion, and sampling models.
-import Foundation
-
-// MARK: - Core Types
 
 /// Opaque pagination cursor token used across paginated MCP requests and responses.
 public typealias Cursor = String

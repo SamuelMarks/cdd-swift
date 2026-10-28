@@ -1,5 +1,4 @@
 /// HTTP authentication context and dynamic API-to-Tool proxy abstractions for MCP servers.
-import Foundation
 
 /// Defines an interface for authentication and client metadata extracted from an HTTP request
 /// and bridged into an active Model Context Protocol (MCP) session.

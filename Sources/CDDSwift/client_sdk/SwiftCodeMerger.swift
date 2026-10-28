@@ -1,5 +1,4 @@
 /// SwiftSyntax AST code merger for preserving existing declarations and trivia when regenerating SDK files.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

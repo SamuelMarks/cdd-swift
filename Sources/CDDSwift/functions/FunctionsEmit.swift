@@ -1,5 +1,4 @@
 /// Swift protocol emitter for OpenAPI webhooks and callbacks.
-import Foundation
 
 /// Emits Webhook and Callback protocols.
 ///

@@ -1,5 +1,4 @@
 /// Data models representing JSON-formatted executable API documentation snippets and legacy Swagger 2.0 `CollectionFormat`.
-import Foundation
 
 /// Legacy Swagger 2.0 `collectionFormat` values specifying array parameter, item, and header serialization.
 public enum CollectionFormat: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral,

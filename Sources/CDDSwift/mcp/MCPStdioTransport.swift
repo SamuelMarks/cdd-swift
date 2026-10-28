@@ -1,5 +1,82 @@
 /// Standard I/O newline-delimited JSON-RPC transport for the Model Context Protocol (MCP).
-import Foundation
+
+#if os(WASI)
+    /// Minimal in-memory input stream used on WASI when compiling against `FoundationEssentials`.
+    public final class InputStream: @unchecked Sendable {
+        /// Underlying buffer of unread bytes.
+        private let storage: [UInt8]
+        /// Current read cursor index within `storage`.
+        private var offset: Int = 0
+
+        /// Initializes an `InputStream` reading from the given `Data` buffer.
+        ///
+        /// - Parameter data: The `Data` payload to read from.
+        public init(data: Data) {
+            storage = Array(data)
+        }
+
+        /// Opens the stream for reading.
+        public func open() {}
+
+        /// Closes the stream.
+        public func close() {}
+
+        /// Indicates whether unread bytes remain in the stream buffer.
+        public var hasBytesAvailable: Bool {
+            offset < storage.count
+        }
+
+        /// Reads up to `len` bytes into `buffer`.
+        ///
+        /// - Parameters:
+        ///   - buffer: Destination byte buffer pointer.
+        ///   - len: Maximum number of bytes to read.
+        /// - Returns: Number of bytes actually read, or `0` at end of stream.
+        public func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
+            let available = storage.count - offset
+            guard available > 0, len > 0 else { return 0 }
+            let count = min(available, len)
+            for idx in 0 ..< count {
+                buffer[idx] = storage[offset + idx]
+            }
+            offset += count
+            return count
+        }
+    }
+
+    /// Minimal in-memory output stream used on WASI when compiling against `FoundationEssentials`.
+    public final class OutputStream: @unchecked Sendable {
+        /// Optional error recorded by the output stream.
+        public var streamError: Error?
+
+        /// Initializes an in-memory `OutputStream`.
+        public init() {}
+
+        /// Creates and returns an in-memory `OutputStream`.
+        ///
+        /// - Returns: A new in-memory `OutputStream` instance.
+        public static func toMemory() -> OutputStream {
+            OutputStream()
+        }
+
+        /// Opens the stream for writing.
+        public func open() {}
+
+        /// Closes the stream.
+        public func close() {}
+
+        /// Writes up to `len` bytes from `buffer` into the stream.
+        ///
+        /// - Parameters:
+        ///   - buffer: Source byte buffer pointer.
+        ///   - len: Number of bytes to write.
+        /// - Returns: Number of bytes written.
+        public func write(_ buffer: UnsafePointer<UInt8>, maxLength len: Int) -> Int {
+            _ = buffer
+            return len
+        }
+    }
+#endif
 
 /// A protocol defining an asynchronous bidirectional transport for Model Context Protocol (MCP) JSON-RPC messages.
 public protocol MCPTransport: Sendable {

@@ -1,5 +1,4 @@
 /// Model Context Protocol (MCP) adapter emitter for generated Swift API clients.
-import Foundation
 
 /// Emits a Swift `MCPAdapter` struct wrapping `APIClient` operations as Model Context Protocol tools and resources.
 ///

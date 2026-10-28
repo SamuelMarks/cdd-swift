@@ -1,5 +1,4 @@
 /// Programmatic document builder and SwiftSyntax AST parser for Arazzo 1.1.0 specifications.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

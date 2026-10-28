@@ -1,5 +1,4 @@
 /// Arazzo 1.1.0 Swift ArgumentParser CLI code emitter.
-import Foundation
 
 /// Code emitter generating Swift ArgumentParser CLI subcommands and runners for Arazzo 1.1.0 workflows.
 public enum ArazzoCliEmitter {

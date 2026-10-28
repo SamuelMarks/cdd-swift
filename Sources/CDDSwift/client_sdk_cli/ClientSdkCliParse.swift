@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor parsing ArgumentParser CLI commands into OpenAPI paths and operations.
-import Foundation
 import SwiftParser
 import SwiftSyntax
 

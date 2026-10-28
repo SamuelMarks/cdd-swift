@@ -87,7 +87,22 @@ def main():
     for sdk in available_sdks:
         print(f"Trying Swift SDK: {sdk}")
         result = subprocess.run(
-            [swift_bin, "build", "--swift-sdk", sdk, "-c", "release"]
+            [
+                swift_bin,
+                "build",
+                "--swift-sdk",
+                sdk,
+                "-c",
+                "release",
+                "-Xswiftc",
+                "-Osize",
+                "-Xswiftc",
+                "-gnone",
+                "-Xlinker",
+                "--gc-sections",
+                "-Xlinker",
+                "--strip-all",
+            ]
         )
         if result.returncode == 0:
             success = True
@@ -103,6 +118,13 @@ def main():
 
     base_build = ".build"
     possible_outputs = [
+        os.path.join(
+            base_build,
+            "out",
+            "Products",
+            "Release-webassembly-wasm32",
+            "cdd-swift.wasm",
+        ),
         os.path.join(base_build, "wasm32-unknown-wasip1", "release", "cdd-swift.wasm"),
         os.path.join(base_build, "wasm32-unknown-wasip1", "release", "cdd-swift"),
         os.path.join(base_build, "wasm32-unknown-wasi", "release", "cdd-swift.wasm"),
@@ -119,7 +141,29 @@ def main():
         if os.path.exists(p):
             out_path = os.path.join("bin", "cdd-swift.wasm")
             shutil.copy(p, out_path)
-            print(f"Copied {p} to {out_path}")
+            wasm_strip = shutil.which("wasm-strip")
+            if wasm_strip:
+                run_cmd([wasm_strip, out_path], check=False)
+            wasm_opt = shutil.which("wasm-opt")
+            if wasm_opt:
+                opt_path = out_path + ".opt"
+                opt_res = subprocess.run(
+                    [
+                        wasm_opt,
+                        "-Oz",
+                        "--enable-bulk-memory",
+                        "--enable-sign-ext",
+                        "--enable-mutable-globals",
+                        "--enable-nontrapping-float-to-int",
+                        out_path,
+                        "-o",
+                        opt_path,
+                    ]
+                )
+                if opt_res.returncode == 0 and os.path.exists(opt_path):
+                    shutil.move(opt_path, out_path)
+            size_mb = os.path.getsize(out_path) / (1024 * 1024)
+            print(f"Copied and optimized {p} -> {out_path} ({size_mb:.2f} MB)")
             sys.exit(0)
 
     print("Could not find the built WASM binary.")

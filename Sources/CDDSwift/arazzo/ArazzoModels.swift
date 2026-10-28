@@ -1,5 +1,4 @@
 /// Data models representing Arazzo 1.1.0 workflow specifications, steps, criteria, and actions.
-import Foundation
 
 /// Defines the source type for target APIs linked in an Arazzo document.
 public enum ArazzoSourceType: String, Codable, Sendable, Equatable {

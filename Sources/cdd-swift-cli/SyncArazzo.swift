@@ -1,7 +1,6 @@
 /// CLI command for bidirectionally synchronizing Swift workflow classes and Arazzo 1.1.0 specifications.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// CLI command to bidirectionally synchronize Swift workflow classes and Arazzo 1.1.0 JSON definitions.
 struct SyncArazzo: AsyncParsableCommand {

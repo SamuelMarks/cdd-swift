@@ -1,5 +1,4 @@
 /// Embedded Swift source code template for `JSONValue` and `AnyCodable` used by generated client SDK packages.
-import Foundation
 
 public extension AnyCodable {
     /// Canonical Swift source code template for embedding `AnyCodable` inside generated client SDK packages.

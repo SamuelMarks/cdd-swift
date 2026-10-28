@@ -1,5 +1,4 @@
 /// Swift DocC comment emitter for OpenAPI descriptions.
-import Foundation
 
 /// Emits a docstring for Swift code generation.
 /// - Parameters:

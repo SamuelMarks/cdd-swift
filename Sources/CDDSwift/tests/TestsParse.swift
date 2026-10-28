@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor extracting test method metadata from XCTestCase subclasses.
-import Foundation
 import SwiftSyntax
 
 /// Extracts test case metadata from `XCTestCase` subclasses to augment OpenAPI documentation or examples.

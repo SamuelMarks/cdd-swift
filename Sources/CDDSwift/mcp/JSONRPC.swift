@@ -1,5 +1,4 @@
 /// JSON-RPC 2.0 protocol message envelopes, identifiers, and error descriptors.
-import Foundation
 
 /// A type representing a JSON-RPC ID (string or integer).
 public enum JSONRPCId: Codable, Equatable, Hashable, Sendable {

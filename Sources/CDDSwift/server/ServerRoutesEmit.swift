@@ -1,5 +1,4 @@
 /// Vapor route handler, authentication middleware, entrypoint, and unified server file emitter.
-import Foundation
 
 /// Emits integrated identity provider (`auth/register`, `auth/login`, `auth/refresh`, `auth/logout`) routes and middleware helpers.
 ///

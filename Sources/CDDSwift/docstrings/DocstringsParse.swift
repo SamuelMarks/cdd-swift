@@ -1,5 +1,4 @@
 /// SwiftSyntax leading trivia docstring parser.
-import Foundation
 import SwiftSyntax
 
 /// Parses a doc comment from a SwiftSyntax node.

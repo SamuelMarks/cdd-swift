@@ -1,7 +1,6 @@
 /// CLI command group for generating Swift SDKs, CLI clients, and Vapor servers from OpenAPI specifications.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// Creates a directory and all intermediate parent directories recursively using `WASIFileHelpers`.
 ///

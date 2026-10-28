@@ -1,8 +1,5 @@
 /// Strongly-typed OpenAPI 3.2.0 and Swagger 2.0 domain enums (`SchemaType`, `OpenAPIFormat`, `ParameterLocation`, `ParameterStyle`,
 /// `CollectionFormat`, `SecuritySchemeType`, `HTTPStatusCode`, `ContentType`, `HTTPMethod`).
-import Foundation
-
-// MARK: - Domain Enums
 
 /// Standard JSON Schema / OpenAPI data types.
 public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral {

@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor extracting OpenAPI path items from Vapor server route registrations.
-import Foundation
 import SwiftSyntax
 
 /// Parses Vapor server routes into OpenAPI definitions.

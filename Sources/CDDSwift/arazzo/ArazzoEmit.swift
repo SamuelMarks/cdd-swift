@@ -1,5 +1,4 @@
 /// JSON and YAML serializer and parser for Arazzo 1.1.0 specifications.
-import Foundation
 
 /// Parses and serializes Arazzo 1.1.0 documents between JSON/YAML text and strongly typed `ArazzoSpecification` models.
 public enum ArazzoEmitter {

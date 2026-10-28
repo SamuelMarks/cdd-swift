@@ -1,7 +1,6 @@
 /// CLI subcommand that generates a Vapor server stub, Fluent models/DAOs, and XCTVapor test suites from an OpenAPI specification.
 import ArgumentParser
 import CDDSwift
-import Foundation
 
 /// CLI subcommand that generates a Vapor server stub, Fluent models/DAOs, and XCTVapor test suites from an OpenAPI specification.
 struct ToServer: AsyncParsableCommand {

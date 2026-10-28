@@ -1,5 +1,4 @@
 /// Type-safe, `Sendable`, `Equatable`, `Hashable`, and `Codable` JSON value representation (`JSONValue` and `AnyCodable`).
-import Foundation
 
 /// Strongly-typed recursive JSON value enum with full `Sendable`, `Equatable`, `Hashable`, and `Codable` support.
 public enum JSONValue: Codable, Equatable, Hashable, Sendable, CustomStringConvertible,

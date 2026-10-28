@@ -1,5 +1,4 @@
 /// SwiftSyntax visitor extracting OpenAPI path items from mock API client classes.
-import Foundation
 import SwiftSyntax
 
 /// Extracts mock structures to update OpenAPI.

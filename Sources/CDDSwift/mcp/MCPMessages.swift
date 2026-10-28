@@ -1,5 +1,4 @@
 /// Model Context Protocol (MCP) initialization, capability, and base message models.
-import Foundation
 
 /// A progress token used to associate progress notifications with an in-flight request.
 public enum ProgressToken: Codable, Equatable, Hashable, Sendable {

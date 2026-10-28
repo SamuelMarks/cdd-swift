@@ -1,5 +1,4 @@
 /// Request body serialization and OpenAPI callback delegate emission helpers for API client routes.
-import Foundation
 
 /// Configuration describing the content type and parameter name of an operation's request body.
 struct RequestBodyEmitConfig {
