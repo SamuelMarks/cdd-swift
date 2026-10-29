@@ -115,15 +115,50 @@ public struct DocsJsonOutput: Codable, Equatable, Sendable {
     public let language: String
     /// The list of API operations documented.
     public let operations: [DocsJsonOperation]
+    /// Optional list of incoming OpenAPI webhooks documented.
+    public let webhooks: [DocsJsonOperation]?
+    /// Optional list of Arazzo workflows documented.
+    public let workflows: [DocsJsonWorkflow]?
 
     /// Initializes a `DocsJsonOutput` root container.
     ///
     /// - Parameters:
     ///   - language: The programming language identifier (e.g. `"swift"`).
     ///   - operations: The list of documented API operations.
-    public init(language: String, operations: [DocsJsonOperation]) {
+    ///   - webhooks: Optional list of documented incoming OpenAPI webhooks.
+    ///   - workflows: Optional list of documented Arazzo workflows.
+    public init(
+        language: String,
+        operations: [DocsJsonOperation],
+        webhooks: [DocsJsonOperation]? = nil,
+        workflows: [DocsJsonWorkflow]? = nil
+    ) {
         self.language = language
         self.operations = operations
+        self.webhooks = webhooks
+        self.workflows = workflows
+    }
+}
+
+/// Represents a single documented Arazzo workflow.
+public struct DocsJsonWorkflow: Codable, Equatable, Sendable {
+    /// The unique workflow identifier.
+    public let workflowId: String
+    /// Optional short summary of the workflow.
+    public let summary: String?
+    /// The code snippet parts.
+    public let code: DocsJsonCode
+
+    /// Initializes a `DocsJsonWorkflow` entry.
+    ///
+    /// - Parameters:
+    ///   - workflowId: The unique workflow identifier.
+    ///   - summary: Optional short summary of the workflow.
+    ///   - code: The structured code snippet components.
+    public init(workflowId: String, summary: String? = nil, code: DocsJsonCode) {
+        self.workflowId = workflowId
+        self.summary = summary
+        self.code = code
     }
 }
 

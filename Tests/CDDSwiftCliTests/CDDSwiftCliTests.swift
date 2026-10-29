@@ -57,6 +57,8 @@ final class CDDSwiftCliTests: XCTestCase {
     func testCDDSwiftCLI() throws {
         let cli = try CDDSwiftCLI.parse([])
         XCTAssertNotNil(cli)
+        XCTAssertEqual(CDDSwiftCLI.configuration.version, CDDVersion.current)
+        XCTAssertEqual(CDDVersion.current, "0.0.4")
         XCTAssertThrowsError(try CDDSwiftCLI.parse(["--help"]))
     }
 
@@ -315,7 +317,7 @@ final class CDDSwiftCliTests: XCTestCase {
 }
 
 extension CDDSwiftCliTests {
-    /// Verifies `ToDocsJson` command execution from local files and HTTP URLs.
+    /// Verifies `ToDocsJson` command execution from local files, directories, Arazzo specs, and HTTP URLs.
     func testToDocsJson() async throws {
         let emptyJson = tempPath("cdd_test_empty.json")
         let outJson = tempPath("cdd-test-out.json")
@@ -323,6 +325,34 @@ extension CDDSwiftCliTests {
         try await cmd.run()
         let outContent = try WASIFileHelpers.readString(at: outJson)
         XCTAssertTrue(outContent.contains("operations"))
+
+        let outDir = tempPath("cdd_docs_out_dir")
+        try WASIFileHelpers.createDirectoryRecursive(at: outDir)
+        var cmdDir = try ToDocsJson.parse(["--input", emptyJson, "-o", outDir])
+        try await cmdDir.run()
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: outDir + "/docs.json"))
+
+        let outDirSlash = tempPath("cdd_docs_out_dir_slash")
+        try WASIFileHelpers.createDirectoryRecursive(at: outDirSlash)
+        var cmdDirSlash = try ToDocsJson.parse(["--input", emptyJson, "-o", outDirSlash + "/"])
+        try await cmdDirSlash.run()
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: outDirSlash + "/docs.json"))
+
+        let arazzoPath = tempPath("cdd_test_arazzo.json")
+        let arazzoJson = """
+        {
+          "arazzo": "1.1.0",
+          "info": { "title": "Flows", "version": "1.0.0" },
+          "sourceDescriptions": [{ "name": "api", "url": "https://api.example.com", "type": "openapi" }],
+          "workflows": [{ "workflowId": "onboardUser", "steps": [{ "stepId": "step1", "operationId": "createUser" }] }]
+        }
+        """
+        try WASIFileHelpers.writeString(arazzoJson, to: arazzoPath)
+        let arazzoOut = tempPath("cdd-arazzo-docs.json")
+        var cmdArazzo = try ToDocsJson.parse(["--input", arazzoPath, "-o", arazzoOut])
+        try await cmdArazzo.run()
+        let arazzoDocsContent = try WASIFileHelpers.readString(at: arazzoOut)
+        XCTAssertTrue(arazzoDocsContent.contains("onboardUser"))
 
         var cmdStdout = try ToDocsJson.parse(["--input", emptyJson])
         try await cmdStdout.run()

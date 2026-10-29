@@ -240,7 +240,7 @@ public actor MCPClientSession {
         let params = InitializeRequestParams(
             protocolVersion: serverVersion,
             capabilities: capabilities ?? defaultCaps,
-            clientInfo: Implementation(name: "cdd-swift-client", version: "1.0.0")
+            clientInfo: Implementation(name: "cdd-swift-client", version: CDDVersion.current)
         )
         let response = try await sendRequest(method: "initialize", params: params)
         let data = try encoder.encode(response)

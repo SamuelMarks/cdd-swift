@@ -58,16 +58,29 @@ struct ToDocsJson: AsyncParsableCommand {
 
         do {
             let json = String(decoding: data, as: UTF8.self)
-            let document = try OpenAPIParser.parse(json: json)
-
-            let resultJson = DocsJsonGenerator.generate(
-                from: document,
-                includeImports: !noImports,
-                includeWrapping: !noWrapping
-            )
+            let resultJson: String
+            if let arazzoSpec = try? ArazzoEmitter.parse(json: json), !arazzoSpec.workflows.isEmpty {
+                resultJson = DocsJsonGenerator.generate(
+                    from: arazzoSpec,
+                    includeImports: !noImports,
+                    includeWrapping: !noWrapping
+                )
+            } else {
+                let document = try OpenAPIParser.parse(json: json)
+                resultJson = DocsJsonGenerator.generate(
+                    from: document,
+                    includeImports: !noImports,
+                    includeWrapping: !noWrapping
+                )
+            }
 
             if let outputPath {
-                try WASIFileHelpers.writeString(resultJson, to: outputPath)
+                let resolvedOutputPath: String = if WASIFileHelpers.isDirectory(at: outputPath) {
+                    outputPath.hasSuffix("/") ? "\(outputPath)docs.json" : "\(outputPath)/docs.json"
+                } else {
+                    outputPath
+                }
+                try WASIFileHelpers.writeString(resultJson, to: resolvedOutputPath)
             } else {
                 print(resultJson)
             }

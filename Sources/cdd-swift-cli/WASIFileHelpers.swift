@@ -104,6 +104,18 @@ enum WASIFileHelpers {
         access(path, F_OK) == 0
     }
 
+    /// Checks whether the specified path exists and is a directory using POSIX `stat`.
+    ///
+    /// - Parameter path: The filesystem path to check.
+    /// - Returns: `true` if the path exists and is a directory, `false` otherwise.
+    static func isDirectory(at path: String) -> Bool {
+        var st = stat()
+        guard stat(path, &st) == 0 else {
+            return false
+        }
+        return (st.st_mode & S_IFMT) == S_IFDIR
+    }
+
     /// Creates a single directory at the specified path using POSIX `mkdir` with `0o755` permissions.
     ///
     /// - Parameter path: The directory path to create.

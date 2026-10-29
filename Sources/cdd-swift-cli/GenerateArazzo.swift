@@ -20,7 +20,7 @@ struct GenerateArazzo: AsyncParsableCommand {
     mutating func run() async throws {
         let builder = ArazzoDocumentBuilder(
             title: "Sample CDD Arazzo Workflows",
-            version: "1.0.0",
+            version: CDDVersion.current,
             summary: "Example multi-step API workflow specification"
         )
         .addSourceDescription(name: "petstoreApi", url: "./openapi.json", type: .openapi)

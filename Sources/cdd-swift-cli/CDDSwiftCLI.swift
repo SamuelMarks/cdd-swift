@@ -63,7 +63,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "cdd-swift",
         abstract: "A utility to convert between OpenAPI and Swift.",
-        version: "0.0.4",
+        version: CDDVersion.current,
         subcommands: {
             #if os(WASI)
                 return [
@@ -198,7 +198,7 @@ struct GenerateOpenAPI: AsyncParsableCommand {
     ///
     /// - Throws: An error if JSON serialization or file writing fails.
     mutating func run() async throws {
-        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: "0.0.4")
+        let builder = OpenAPIDocumentBuilder(title: "Sample CDD API", version: CDDVersion.current)
             .addPath("/users", item: PathItem(
                 get: Operation(
                     summary: "Get all users",

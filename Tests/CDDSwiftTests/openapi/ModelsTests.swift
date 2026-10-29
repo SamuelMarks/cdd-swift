@@ -21,14 +21,18 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(decoded, doc)
     }
 
-    /// Verifies encoding and decoding of `DocsJsonOutput`, `DocsJsonOperation`, and `DocsJsonCode`.
+    /// Verifies encoding and decoding of `DocsJsonOutput`, `DocsJsonOperation`, `DocsJsonWorkflow`, and `DocsJsonCode`.
     func testDocsJsonModels() throws {
         let code = DocsJsonCode(imports: "import Foundation", wrapper_start: "class Wrapper {", snippet: "print(1)", wrapper_end: "}")
         let operation = DocsJsonOperation(method: "GET", path: "/test", operationId: "testOp", code: code)
-        let output = DocsJsonOutput(language: "swift", operations: [operation])
+        let workflow = DocsJsonWorkflow(workflowId: "wf1", summary: "Run flow", code: code)
+        let output = DocsJsonOutput(language: "swift", operations: [operation], webhooks: [operation], workflows: [workflow])
 
         XCTAssertEqual(output.language, "swift")
         XCTAssertEqual(output.operations.count, 1)
+        XCTAssertEqual(output.webhooks?.count, 1)
+        XCTAssertEqual(output.workflows?.first?.workflowId, "wf1")
+        XCTAssertEqual(output.workflows?.first?.summary, "Run flow")
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(output)
@@ -37,6 +41,8 @@ final class ModelsTests: XCTestCase {
 
         XCTAssertEqual(decoded.language, "swift")
         XCTAssertEqual(decoded.operations.first?.method, "GET")
+        XCTAssertEqual(decoded.webhooks?.first?.path, "/test")
+        XCTAssertEqual(decoded.workflows?.first?.workflowId, "wf1")
     }
 
     /// Verifies `HTTPMethod`, `ParameterLocation`, `ParameterStyle`, `SecuritySchemeType`, `SchemaType`, `OpenAPIFormat`, and

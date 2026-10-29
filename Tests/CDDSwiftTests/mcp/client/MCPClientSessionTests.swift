@@ -257,6 +257,7 @@ final class MCPClientSessionTests: XCTestCase {
         XCTAssertEqual(messages.count, 1)
 
         let req = try XCTUnwrap(messages.first as? JSONRPCRequest<InitializeRequestParams>)
+        XCTAssertEqual(req.params?.clientInfo.version, CDDVersion.current)
 
         let initResult = InitializeResult(
             _meta: nil,

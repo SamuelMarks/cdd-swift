@@ -50,7 +50,7 @@ struct MCPServe: AsyncParsableCommand {
     /// - Throws: An error if the transport or server session fails to start.
     func run(using transport: MCPTransport) async throws {
         var router = DefaultMCPServerRouter()
-        let serverInfo = Implementation(name: "cdd-swift", version: "0.0.4")
+        let serverInfo = Implementation(name: "cdd-swift", version: CDDVersion.current)
 
         router.requestHandlers["initialize"] = { _ in
             AnyCodable([
