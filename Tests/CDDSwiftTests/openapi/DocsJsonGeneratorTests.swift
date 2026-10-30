@@ -273,4 +273,61 @@ extension DocsJsonGeneratorTests {
             ["let outputs = try await workflows.pingFlow(inputs: PingFlowInputs())", "print(outputs)"].joined(separator: "\n")
         )
     }
+
+    /// Verifies Swagger 2.0 `host`/`basePath`/`schemes` base URL fallback, `additionalOperations`, and `PathItem.parameters` merging.
+    func testDocsJsonSwaggerHostAdditionalOperationsAndPathParameters() throws {
+        let swaggerDoc = OpenAPIDocument(
+            swagger: "2.0",
+            info: Info(title: "Legacy API", version: "1.0.0"),
+            paths: [
+                "/items/{id}": PathItem(
+                    get: Operation(
+                        operationId: "getItem",
+                        parameters: [Parameter(name: "id", in: "path", required: true, schema: Schema(type: "integer"))]
+                    ),
+                    additionalOperations: [
+                        "PURGE": Operation(
+                            operationId: "purgeItem",
+                            parameters: [Parameter(ref: "#/components/parameters/SharedRef")]
+                        ),
+                        "COPY": Operation(operationId: "copyItem")
+                    ],
+                    parameters: [
+                        Parameter(name: "id", in: "path", required: true, schema: Schema(type: "string")),
+                        Parameter(name: "tenant", in: "header", required: true, schema: Schema(type: "string")),
+                        Parameter()
+                    ]
+                )
+            ],
+            host: "legacy.example.com",
+            basePath: "/v1",
+            schemes: ["http"]
+        )
+        let jsonStr = DocsJsonGenerator.generate(from: swaggerDoc)
+        let outputs = try JSONDecoder().decode([DocsJsonOutput].self, from: Data(jsonStr.utf8))
+        XCTAssertEqual(outputs[0].operations.count, 3)
+        XCTAssertTrue(outputs[0].operations[0].code.wrapper_start?.contains("http://legacy.example.com/v1") == true)
+        XCTAssertTrue(
+            outputs[0].operations[0].code.snippet.contains(
+                #"let response = try await client.getItem(tenant: "test_string", unknown: "test_string", id: 1)"#
+            )
+        )
+        XCTAssertEqual(outputs[0].operations[1].method, "copy")
+        XCTAssertEqual(outputs[0].operations[2].method, "purge")
+        let expectedPurgeCall = #"let response = try await client.purgeItem("#
+            + #"id: "test_string", tenant: "test_string", unknown: "test_string", SharedRef: "test_string")"#
+        XCTAssertTrue(outputs[0].operations[2].code.snippet.contains(expectedPurgeCall))
+
+        let defaultSchemeDoc = OpenAPIDocument(
+            swagger: "2.0",
+            info: Info(title: "Default Scheme", version: "1.0.0"),
+            paths: ["/ping": PathItem(get: Operation(operationId: "ping"))],
+            host: "secure.example.com"
+        )
+        let defaultSchemeOutputs = try JSONDecoder().decode(
+            [DocsJsonOutput].self,
+            from: Data(DocsJsonGenerator.generate(from: defaultSchemeDoc).utf8)
+        )
+        XCTAssertTrue(defaultSchemeOutputs[0].operations[0].code.wrapper_start?.contains("https://secure.example.com") == true)
+    }
 }

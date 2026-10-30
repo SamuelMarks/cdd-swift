@@ -79,7 +79,7 @@ public enum DocsJsonGenerator {
         includeImports: Bool = true,
         includeWrapping: Bool = true
     ) -> String {
-        let baseUrl = document.servers?.first?.url ?? "https://api.example.com"
+        let baseUrl = resolveBaseUrl(from: document)
         let operations = buildPathOperations(
             from: document,
             baseUrl: baseUrl,
@@ -110,6 +110,23 @@ public enum DocsJsonGenerator {
         return encodeDocsJsonOutputs([output])
     }
 
+    /// Resolves the server base URL from an `OpenAPIDocument`, falling back to Swagger 2.0 `schemes`/`host`/`basePath` or
+    /// `"https://api.example.com"`.
+    ///
+    /// - Parameter document: The `OpenAPIDocument`.
+    /// - Returns: The resolved base URL string.
+    private static func resolveBaseUrl(from document: OpenAPIDocument) -> String {
+        if let serverUrl = document.servers?.first?.url, !serverUrl.isEmpty {
+            return serverUrl
+        }
+        if let host = document.host, !host.isEmpty {
+            let scheme = document.schemes?.first ?? "https"
+            let basePath = document.basePath ?? ""
+            return "\(scheme)://\(host)\(basePath)"
+        }
+        return "https://api.example.com"
+    }
+
     /// Builds `DocsJsonOperation` entries for all paths and operations in an OpenAPI document.
     ///
     /// - Parameters:
@@ -126,12 +143,13 @@ public enum DocsJsonGenerator {
     ) -> [DocsJsonOperation] {
         var operations = [DocsJsonOperation]()
         for (path, pathItem) in (document.paths ?? [:]).sorted(by: { $0.key < $1.key }) {
-            for (httpMethod, op) in pathItem.operationsByMethod {
-                let method = httpMethod.rawValue
+            let allOps = collectPathItemOperations(from: pathItem)
+            for (method, op) in allOps {
                 let opName = resolveOperationMethodName(method: method, path: path, operationId: op.operationId)
+                let callArgs = buildOperationCallArguments(for: op, pathParameters: pathItem.parameters)
                 let code = buildOperationCode(
-                    op: op,
                     opName: opName,
+                    callArgs: callArgs,
                     baseUrl: baseUrl,
                     includeImports: includeImports,
                     includeWrapping: includeWrapping
@@ -159,13 +177,14 @@ public enum DocsJsonGenerator {
         guard let webhooks = document.webhooks, !webhooks.isEmpty else { return [] }
         var webhookOps = [DocsJsonOperation]()
         for (name, item) in webhooks.sorted(by: { $0.key < $1.key }) {
-            for (httpMethod, op) in item.operationsByMethod {
-                let method = httpMethod.rawValue
+            let allOps = collectPathItemOperations(from: item)
+            for (method, op) in allOps {
                 let funcName = op.operationId.map { SwiftIdentifierSanitizer.sanitizeCamelCase($0) }
                     ?? SwiftIdentifierSanitizer.sanitizeCamelCase("on-" + name)
+                let callArgs = buildOperationCallArguments(for: op, pathParameters: item.parameters)
                 let code = buildOperationCode(
-                    op: op,
                     opName: funcName,
+                    callArgs: callArgs,
                     baseUrl: baseUrl,
                     includeImports: includeImports,
                     includeWrapping: includeWrapping
@@ -174,6 +193,20 @@ public enum DocsJsonGenerator {
             }
         }
         return webhookOps
+    }
+
+    /// Collects all standard and OpenAPI 3.2.0 `additionalOperations` from a `PathItem`.
+    ///
+    /// - Parameter pathItem: The `PathItem` to inspect.
+    /// - Returns: Ordered array of `(lowercaseMethod, Operation)` pairs.
+    private static func collectPathItemOperations(from pathItem: PathItem) -> [(String, Operation)] {
+        var result = pathItem.operationsByMethod.map { ($0.0.rawValue, $0.1) }
+        if let additional = pathItem.additionalOperations {
+            for (methodName, op) in additional.sorted(by: { $0.key < $1.key }) {
+                result.append((methodName.lowercased(), op))
+            }
+        }
+        return result
     }
 }
 
@@ -226,15 +259,15 @@ extension DocsJsonGenerator {
     /// Builds the `DocsJsonCode` components for an individual OpenAPI operation or webhook.
     ///
     /// - Parameters:
-    ///   - op: The OpenAPI `Operation`.
     ///   - opName: The resolved Swift SDK method name.
+    ///   - callArgs: Named argument expressions for the method call.
     ///   - baseUrl: Resolved server base URL string.
     ///   - includeImports: Whether to include imports.
     ///   - includeWrapping: Whether to include the `@main` wrapper.
     /// - Returns: The constructed `DocsJsonCode`.
     private static func buildOperationCode(
-        op: Operation,
         opName: String,
+        callArgs: [String],
         baseUrl: String,
         includeImports: Bool,
         includeWrapping: Bool
@@ -251,8 +284,8 @@ extension DocsJsonGenerator {
         let wrapperEnd: String? = includeWrapping ? ["    }", "}"].joined(separator: "\n") : nil
         let indent = includeWrapping ? "        " : ""
 
-        let callArgs = buildOperationCallArguments(for: op).joined(separator: ", ")
-        let snippet = ["\(indent)let response = try await client.\(opName)(\(callArgs))", "\(indent)print(response)"]
+        let joinedArgs = callArgs.joined(separator: ", ")
+        let snippet = ["\(indent)let response = try await client.\(opName)(\(joinedArgs))", "\(indent)print(response)"]
             .joined(separator: "\n")
 
         return DocsJsonCode(
@@ -283,30 +316,57 @@ extension DocsJsonGenerator {
 
     /// Builds named Swift argument expressions for an operation's parameters and request body.
     ///
-    /// - Parameter op: The OpenAPI `Operation` to inspect.
+    /// - Parameters:
+    ///   - op: The OpenAPI `Operation` to inspect.
+    ///   - pathParameters: Optional shared `Parameter` list defined on the enclosing `PathItem`.
     /// - Returns: Array of `"label: value"` argument strings.
-    private static func buildOperationCallArguments(for op: Operation) -> [String] {
+    private static func buildOperationCallArguments(
+        for op: Operation,
+        pathParameters: [Parameter]?
+    ) -> [String] {
         var args = [String]()
-        if let params = op.parameters {
-            for param in params {
-                let pIn: ParameterLocation = param.in ?? .query
-                if pIn == .body, let schema = param.schema {
-                    let bodyLabel = param.name ?? "body"
-                    let literal = synthesizeSchemaLiteral(schema: schema, example: param.example)
-                    args.append("\(bodyLabel): \(literal)")
-                    continue
-                }
-                let rawName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
-                let safeName = rawName.replacingOccurrences(of: "-", with: "_")
-                let swiftType = param.schema.map { mapType(schema: $0) } ?? "String"
-                let literal = synthesizeDummyParameterLiteral(param: param, swiftType: swiftType)
-                args.append("\(safeName): \(literal)")
+        let mergedParams = mergeParameters(pathParameters: pathParameters, operationParameters: op.parameters)
+        for param in mergedParams {
+            let pIn: ParameterLocation = param.in ?? .query
+            if pIn == .body, let schema = param.schema {
+                let bodyLabel = param.name ?? "body"
+                let literal = synthesizeSchemaLiteral(schema: schema, example: param.example)
+                args.append("\(bodyLabel): \(literal)")
+                continue
             }
+            let rawName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
+            let safeName = rawName.replacingOccurrences(of: "-", with: "_")
+            let swiftType = param.schema.map { mapType(schema: $0) } ?? "String"
+            let literal = synthesizeDummyParameterLiteral(param: param, swiftType: swiftType)
+            args.append("\(safeName): \(literal)")
         }
         if let bodyArg = buildRequestBodyArgument(from: op.requestBody) {
             args.append(bodyArg)
         }
         return args
+    }
+
+    /// Merges path-level and operation-level parameters, allowing operation-level parameters to override path-level ones with the same
+    /// name.
+    ///
+    /// - Parameters:
+    ///   - pathParameters: Optional parameters defined on the `PathItem`.
+    ///   - operationParameters: Optional parameters defined on the `Operation`.
+    /// - Returns: Merged array of `Parameter` definitions.
+    private static func mergeParameters(
+        pathParameters: [Parameter]?,
+        operationParameters: [Parameter]?
+    ) -> [Parameter] {
+        let opParams = operationParameters ?? []
+        guard let pathParams = pathParameters, !pathParams.isEmpty else {
+            return opParams
+        }
+        let opNames = Set(opParams.compactMap { $0.name ?? $0.ref })
+        let inherited = pathParams.filter { param in
+            guard let key = param.name ?? param.ref else { return true }
+            return !opNames.contains(key)
+        }
+        return inherited + opParams
     }
 
     /// Builds a named Swift argument string for an operation's `RequestBody`, if present.
