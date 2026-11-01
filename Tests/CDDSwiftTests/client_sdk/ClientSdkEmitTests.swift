@@ -37,6 +37,14 @@ final class ClientSdkEmitTests: XCTestCase {
 
         XCTAssertTrue(emitSDKCLI(document: OpenAPIDocument(openapi: "3.2.0", info: Info(title: "x", version: "1")))
             .contains("struct APIClientCLI"))
+
+        let mcpServerOnly = emitMCPServerFile(document: doc, includeAdapter: false)
+        XCTAssertTrue(mcpServerOnly.contains("public struct GeneratedMCPServer"))
+        XCTAssertFalse(Parser.parse(source: mcpServerOnly).hasError)
+
+        let mcpServerWithAdapter = emitMCPServerFile(document: doc, includeAdapter: true)
+        XCTAssertTrue(mcpServerWithAdapter.contains("public struct MCPAdapter"))
+        XCTAssertFalse(Parser.parse(source: mcpServerWithAdapter).hasError)
     }
 
     /// Verifies `OpenAPIDocumentBuilder` construction and JSON serialization.

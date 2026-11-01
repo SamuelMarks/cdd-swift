@@ -66,13 +66,13 @@ struct CDDSwiftCLI: AsyncParsableCommand {
         version: CDDVersion.current,
         subcommands: {
             #if os(WASI)
-                return [
+                [
                     FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self,
                     ToDocsJson.self, MCPServe.self, SyncOpenAPI.self,
                     FromArazzo.self, ToArazzo.self, GenerateArazzo.self, SyncArazzo.self
                 ]
             #else
-                return [
+                [
                     FromOpenAPI.self, GenerateOpenAPI.self, ToOpenAPI.self, MergeSwift.self,
                     ToDocsJson.self, ServeJsonRpc.self, MCPServe.self, SyncOpenAPI.self,
                     FromArazzo.self, ToArazzo.self, GenerateArazzo.self, SyncArazzo.self

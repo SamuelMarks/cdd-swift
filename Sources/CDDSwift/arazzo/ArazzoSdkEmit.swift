@@ -23,9 +23,14 @@ public enum ArazzoSdkEmitter {
     /// - Parameters:
     ///   - specification: The parsed Arazzo 1.1.0 specification.
     ///   - clientClassName: Name of the underlying HTTP client class. Defaults to `"APIClient"`.
+    ///   - sourceDocuments: Optional dictionary of resolved `OpenAPIDocument` models keyed by `sourceDescription.name`.
     /// - Returns: Generated Swift source code string.
-    public static func emitWorkflowClient(from specification: ArazzoSpecification, clientClassName: String = "APIClient") -> String {
-        var output = ""
+    public static func emitWorkflowClient(
+        from specification: ArazzoSpecification,
+        clientClassName: String = "APIClient",
+        sourceDocuments: [String: OpenAPIDocument] = [:]
+    ) -> String {
+        var output = "/// Generated Arazzo 1.1.0 workflow orchestrator client and DTOs for \(specification.info.title).\n"
         output += "import Foundation\n"
         output += "#if canImport(FoundationNetworking)\n"
         output += "import FoundationNetworking\n"
@@ -37,8 +42,39 @@ public enum ArazzoSdkEmitter {
             output += "\n"
         }
 
-        output += emitWorkflowClientClass(specification: specification, clientClassName: clientClassName)
+        output += emitWorkflowClientClass(
+            specification: specification,
+            clientClassName: clientClassName,
+            sourceDocuments: sourceDocuments
+        )
         return output
+    }
+
+    /// Emits a Model Context Protocol (MCP) workflow adapter exposing Arazzo workflows as MCP tools.
+    ///
+    /// - Parameter specification: The parsed Arazzo 1.1.0 specification.
+    /// - Returns: Generated Swift source code for `WorkflowsMCPAdapter`.
+    public static func emitWorkflowMCP(from specification: ArazzoSpecification) -> String {
+        let q = String(UnicodeScalar(34))
+        let toolIds = specification.workflows.map { q + $0.workflowId + q }.joined(separator: ", ")
+        return """
+        /// Model Context Protocol (MCP) workflow adapter for \(specification.info.title).
+        import Foundation
+
+        /// Model Context Protocol (MCP) adapter exposing Arazzo 1.1.0 workflows as invokable tools.
+        public struct WorkflowsMCPAdapter: Sendable {
+            /// Identifiers of the exposed workflow tools.
+            public let workflowToolNames: [String]
+
+            /// Initializes a new `WorkflowsMCPAdapter`.
+            ///
+            /// - Parameter workflowToolNames: Exposed workflow tool identifiers.
+            public init(workflowToolNames: [String] = [\(toolIds)]) {
+                self.workflowToolNames = workflowToolNames
+            }
+        }
+
+        """
     }
 
     /// Emits input and output DTO struct models for a specific workflow.
@@ -60,6 +96,12 @@ public enum ArazzoSdkEmitter {
             }
 
             code += "\n    /// Initializes workflow input arguments.\n"
+            code += "    ///\n"
+            code += "    /// - Parameters:\n"
+            for key in props.keys.sorted() {
+                let propId = sanitizeIdentifier(key)
+                code += "    ///   - " + propId + ": The `" + key + "` input value.\n"
+            }
             code += "    public init(\n"
             let initArgs = props.sorted(by: { $0.key < $1.key }).map { key, propSchema in
                 let propId = sanitizeIdentifier(key)
@@ -76,6 +118,8 @@ public enum ArazzoSdkEmitter {
             code += "    /// Dynamic payload parameters.\n"
             code += "    public let parameters: [String: AnyCodable]\n\n"
             code += "    /// Initializes empty or dictionary-backed parameters.\n"
+            code += "    ///\n"
+            code += "    /// - Parameter parameters: Dynamic input parameters map.\n"
             code += "    public init(parameters: [String: AnyCodable] = [:]) {\n"
             code += "        self.parameters = parameters\n"
             code += "    }\n"
@@ -100,8 +144,19 @@ public enum ArazzoSdkEmitter {
     /// - Parameters:
     ///   - specification: The Arazzo specification.
     ///   - clientClassName: Underlying client class name.
+    ///   - sourceDocuments: Resolved `OpenAPIDocument` models keyed by `sourceDescription.name`.
     /// - Returns: Swift class definition.
-    private static func emitWorkflowClientClass(specification: ArazzoSpecification, clientClassName: String) -> String {
+    private static func emitWorkflowClientClass(
+        specification: ArazzoSpecification,
+        clientClassName: String,
+        sourceDocuments: [String: OpenAPIDocument]
+    ) -> String {
+        let q = String(UnicodeScalar(34))
+        let defaultSourcesEntries = specification.sourceDescriptions
+            .map { q + $0.name + q + ": " + q + $0.url + q }
+            .joined(separator: ", ")
+        let defaultSourcesLiteral = defaultSourcesEntries.isEmpty ? "[:]" : "[" + defaultSourcesEntries + "]"
+
         var code = ""
         code += "/// Strongly typed orchestrator executing Arazzo 1.1.0 workflows.\n"
         code += "public class WorkflowsClient: @unchecked Sendable {\n"
@@ -120,7 +175,7 @@ public enum ArazzoSdkEmitter {
         code += "    ///   - operationRunner: Custom step operation dispatcher.\n"
         code += "    public init(\n"
         code += "        client: " + clientClassName + " = " + clientClassName + "(),\n"
-        code += "        sourceDescriptions: [String: String] = [:],\n"
+        code += "        sourceDescriptions: [String: String] = " + defaultSourcesLiteral + ",\n"
         code += "        operationRunner: @escaping @Sendable (String, [String: [String: AnyCodable]])"
             + " async throws -> ArazzoExecutionContext = { _, steps in ArazzoExecutionContext(statusCode: 200, steps: steps) }\n"
         code += "    ) {\n"
@@ -129,8 +184,9 @@ public enum ArazzoSdkEmitter {
         code += "        self.operationRunner = operationRunner\n"
         code += "    }\n\n"
 
+        let resolvedOperations = collectResolvedOperationIds(from: sourceDocuments)
         for workflow in specification.workflows {
-            code += emitWorkflowMethod(workflow: workflow)
+            code += emitWorkflowMethod(workflow: workflow, resolvedOperations: resolvedOperations)
             code += "\n"
         }
 
@@ -138,11 +194,32 @@ public enum ArazzoSdkEmitter {
         return code
     }
 
+    /// Collects all known `operationId` strings from a map of resolved `OpenAPIDocument` specifications.
+    ///
+    /// - Parameter sourceDocuments: Dictionary mapping source names to `OpenAPIDocument` models.
+    /// - Returns: Set of discovered `operationId` identifiers (including `<sourceName>.<operationId>` qualified forms).
+    private static func collectResolvedOperationIds(from sourceDocuments: [String: OpenAPIDocument]) -> Set<String> {
+        var ids: Set<String> = []
+        for (sourceName, doc) in sourceDocuments {
+            for (_, item) in doc.paths ?? [:] {
+                for (_, op) in item.operationsByMethod {
+                    if let opId = op.operationId {
+                        ids.insert(opId)
+                        ids.insert(sourceName + "." + opId)
+                    }
+                }
+            }
+        }
+        return ids
+    }
+
     /// Emits an individual workflow execution async method.
     ///
-    /// - Parameter workflow: Workflow to generate.
+    /// - Parameters:
+    ///   - workflow: Workflow to generate.
+    ///   - resolvedOperations: Known `operationId` values from linked OpenAPI source documents.
     /// - Returns: Swift async method string.
-    private static func emitWorkflowMethod(workflow: ArazzoWorkflow) -> String {
+    private static func emitWorkflowMethod(workflow: ArazzoWorkflow, resolvedOperations: Set<String>) -> String {
         let methodName = sanitizeIdentifier(workflow.workflowId)
         let baseName = pascalCase(workflow.workflowId)
 
@@ -156,7 +233,7 @@ public enum ArazzoSdkEmitter {
         code += "        var stepOutputs: [String: [String: AnyCodable]] = [:]\n\n"
 
         for step in workflow.steps {
-            code += emitStepExecution(step: step)
+            code += emitStepExecution(step: step, resolvedOperations: resolvedOperations)
         }
 
         code += "        var finalOutputs: [String: AnyCodable] = [:]\n"
@@ -176,9 +253,11 @@ public enum ArazzoSdkEmitter {
 
     /// Emits execution code for an individual step inside a workflow method.
     ///
-    /// - Parameter step: The step definition.
+    /// - Parameters:
+    ///   - step: The step definition.
+    ///   - resolvedOperations: Known `operationId` values from linked OpenAPI source documents.
     /// - Returns: Generated step invocation code.
-    private static func emitStepExecution(step: ArazzoStep) -> String {
+    private static func emitStepExecution(step: ArazzoStep, resolvedOperations: Set<String>) -> String {
         let opId = step.operationId ?? sanitizeIdentifier(step.stepId)
         let maxRetries = step.onFailure?.compactMap(\.retryLimit).max() ?? 0
         let retryDelay = step.onFailure?.compactMap(\.retryAfter).max() ?? 1.0
@@ -190,6 +269,12 @@ public enum ArazzoSdkEmitter {
         code += "            while attempt <= " + String(maxRetries) + " {\n"
         code += "                do {\n"
         code += "                    // Operation dispatch: " + opId + "\n"
+        if resolvedOperations.contains(opId) {
+            let parts = opId.components(separatedBy: ".")
+            let unqualifiedOp = parts[parts.count - 1]
+            let clientFunc = sanitizeIdentifier(unqualifiedOp)
+            code += "                    // Resolved OpenAPI client operation: client." + clientFunc + "\n"
+        }
         code += "                    let context = try await self.operationRunner(\"" + opId + "\", stepOutputs)\n"
 
         if let criteria = step.successCriteria, !criteria.isEmpty {

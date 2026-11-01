@@ -32,6 +32,9 @@ public extension AnyCodable {
         }
 
         /// Decodes a `JSONValue` from a single-value JSON container.
+        ///
+        /// - Parameter decoder: The decoder to read data from.
+        /// - Throws: `DecodingError` if the value cannot be decoded.
         public init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
             if let bool = try? container.decode(Bool.self) {
@@ -54,6 +57,9 @@ public extension AnyCodable {
         }
 
         /// Encodes this `JSONValue` into a single-value JSON container.
+        ///
+        /// - Parameter encoder: The encoder to write data to.
+        /// - Throws: `EncodingError` if the value cannot be encoded.
         public func encode(to encoder: Encoder) throws {
             var container = encoder.singleValueContainer()
             switch self {
@@ -77,46 +83,66 @@ public extension AnyCodable {
         public var description: String { return value.description }
 
         /// Initializes an `AnyCodable` from a `JSONValue`.
+        ///
+        /// - Parameter value: The `JSONValue` to wrap.
         public init(_ value: JSONValue = .null) {
             self.value = value
         }
 
         /// Initializes an `AnyCodable` from a `String`.
+        ///
+        /// - Parameter string: The `String` value to wrap.
         public init(_ string: String) {
             self.value = .string(string)
         }
 
         /// Initializes an `AnyCodable` from an `Int`.
+        ///
+        /// - Parameter int: The `Int` value to wrap.
         public init(_ int: Int) {
             self.value = .int(int)
         }
 
         /// Initializes an `AnyCodable` from a `Double`.
+        ///
+        /// - Parameter double: The `Double` value to wrap.
         public init(_ double: Double) {
             self.value = .double(double)
         }
 
         /// Initializes an `AnyCodable` from a `Bool`.
+        ///
+        /// - Parameter bool: The `Bool` value to wrap.
         public init(_ bool: Bool) {
             self.value = .bool(bool)
         }
 
         /// Initializes an `AnyCodable` from a `[JSONValue]` array.
+        ///
+        /// - Parameter array: The `[JSONValue]` array to wrap.
         public init(_ array: [JSONValue]) {
             self.value = .array(array)
         }
 
         /// Initializes an `AnyCodable` from a `[String: JSONValue]` dictionary.
+        ///
+        /// - Parameter object: The `[String: JSONValue]` dictionary to wrap.
         public init(_ object: [String: JSONValue]) {
             self.value = .object(object)
         }
 
         /// Decodes an `AnyCodable` from a single-value container.
+        ///
+        /// - Parameter decoder: The decoder to read data from.
+        /// - Throws: `DecodingError` if the value cannot be decoded.
         public init(from decoder: Decoder) throws {
             self.value = try JSONValue(from: decoder)
         }
 
         /// Encodes this value into the given encoder.
+        ///
+        /// - Parameter encoder: The encoder to write data to.
+        /// - Throws: `EncodingError` if the value cannot be encoded.
         public func encode(to encoder: Encoder) throws {
             try value.encode(to: encoder)
         }

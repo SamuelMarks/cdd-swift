@@ -10,6 +10,116 @@ func createDirRecursive(_ path: String) throws {
     try WASIFileHelpers.createDirectoryRecursive(at: path)
 }
 
+/// Resolves the target repository name from explicit CLI options or GitHub organization naming conventions.
+///
+/// - Parameters:
+///   - repoName: Explicit `--repo-name` option value, if provided.
+///   - githubOrg: Optional `--github-org` organization name.
+///   - monorepo: Whether monorepo naming (`<org>-sdk`) is enabled instead of polyrepo (`<org>-sdk-swift`).
+///   - defaultName: Fallback repository name when neither `repoName` nor `githubOrg` is specified.
+/// - Returns: The resolved repository name string.
+func resolveRepositoryName(repoName: String?, githubOrg: String?, monorepo: Bool, defaultName: String) -> String {
+    if let repoName, !repoName.isEmpty {
+        return repoName
+    }
+    if let githubOrg, !githubOrg.isEmpty {
+        return monorepo ? "\(githubOrg)-sdk" : "\(githubOrg)-sdk-swift"
+    }
+    return defaultName
+}
+
+/// Emits a `.spi.yml` configuration file for Swift Package Index automatic DocC documentation hosting.
+///
+/// - Parameter documentationTargets: Array of Swift Package Manager target names to document.
+/// - Returns: Formatted `.spi.yml` YAML string.
+func emitSpiYml(documentationTargets: [String]) -> String {
+    let targetsList = documentationTargets.joined(separator: ", ")
+    return """
+    version: 1
+    builder:
+      configs:
+        - documentation_targets: [\(targetsList)]
+    """
+}
+
+/// Emits a `.github/workflows/ci.yml` workflow with `swift test`, GPG `.asc` release signing, and DocC GitHub Pages deployment.
+///
+/// - Parameters:
+///   - packageName: The primary Swift Package target name.
+///   - repoName: The resolved GitHub repository name used for `--hosting-base-path`.
+/// - Returns: Formatted GitHub Actions YAML workflow string.
+func emitGithubActionsWorkflow(packageName: String, repoName: String) -> String {
+    """
+    name: CI
+
+    on:
+      push:
+        branches: [ main, master ]
+        tags: [ 'v*' ]
+      pull_request:
+        branches: [ main, master ]
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v4
+        - name: Build
+          run: swift build -v
+        - name: Run tests
+          run: swift test -v
+
+      release:
+        needs: build
+        if: startsWith(github.ref, 'refs/tags/v')
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+        - uses: actions/checkout@v4
+        - name: Package & Sign Release Artifact
+          env:
+            GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+            GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          run: |
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            ARCHIVE="\(repoName)-${TAG_NAME}.tar.gz"
+            git archive --format=tar.gz --prefix="\(repoName)-${TAG_NAME}/" -o "${ARCHIVE}" HEAD
+            sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+            if [ -n "${GPG_PRIVATE_KEY}" ]; then
+              echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+              gpg --batch --yes --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" --armor --detach-sign "${ARCHIVE}"
+            fi
+        - name: Publish GitHub Release
+          uses: softprops/action-gh-release@v3
+          with:
+            files: |
+              *.tar.gz
+              *.sha256
+              *.asc
+
+      docs:
+        needs: build
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+        - uses: actions/checkout@v4
+        - name: Generate DocC Static Site
+          run: |
+            REPO_NAME="\(repoName)"
+            swift package --allow-writing-to-directory ./docs generate-documentation --target \(
+                packageName
+            ) --disable-indexing --transform-for-static-hosting --hosting-base-path ${REPO_NAME} --output-path ./docs
+        - name: Deploy DocC to GitHub Pages
+          uses: peaceiris/actions-gh-pages@v4
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: ./docs
+    """
+}
+
 /// Command group to generate Swift code from an OpenAPI document.
 struct FromOpenAPI: AsyncParsableCommand {
     /// Command configuration for `from_openapi`.
@@ -50,6 +160,32 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
     /// Flag enabling generation of a Model Context Protocol (MCP) server adapter.
     @Flag(name: .customLong("mcp"), help: "Generate Model Context Protocol (MCP) server and adapter.")
     var mcp: Bool = false
+
+    /// GitHub organization or user name used for repository and CI metadata.
+    @Option(name: .customLong("github-org"), help: "GitHub organization or user name for repository and CI metadata.")
+    var githubOrg: String?
+
+    /// Explicit repository name override for CI and DocC hosting base path.
+    @Option(
+        name: .customLong("repo-name"),
+        help: "GitHub repository name (defaults to '<github-org>-sdk-swift' or '<github-org>-sdk' in monorepo mode)."
+    )
+    var repoName: String?
+
+    /// Uses monorepo naming (`<github-org>-sdk`) instead of polyrepo naming (`<github-org>-sdk-swift`).
+    @Flag(
+        name: .customLong("monorepo"),
+        help: "Use monorepo repository naming convention ('<github-org>-sdk' instead of '<github-org>-sdk-swift')."
+    )
+    var monorepo: Bool = false
+
+    /// Resolves the target repository name using `--repo-name`, `--github-org`, and `--monorepo`.
+    ///
+    /// - Parameter defaultName: Fallback repository name.
+    /// - Returns: The resolved repository name string.
+    func resolvedRepoName(defaultName: String) -> String {
+        resolveRepositoryName(repoName: repoName, githubOrg: githubOrg, monorepo: monorepo, defaultName: defaultName)
+    }
 
     /// Validates that either `--input` or `--input-dir` was supplied.
     ///
@@ -139,29 +275,19 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             try createDirRecursive(outDir)
             let pkgUrl = URL(fileURLWithPath: outDir).appendingPathComponent("Package.swift")
             try WASIFileHelpers.writeString(packageSwift, to: pkgUrl.path)
+            let docTargets = (testsMocks && !isExecutable) ? [packageName, "\(packageName)Mocks"] : [packageName]
+            let spiUrl = URL(fileURLWithPath: outDir).appendingPathComponent(".spi.yml")
+            try WASIFileHelpers.writeString(emitSpiYml(documentationTargets: docTargets), to: spiUrl.path)
         }
 
         if !noGithubActions {
             let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
             try createDirRecursive(workflowDir.path)
-            let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
-            let workflow = """
-            name: Swift
-            on: [push, pull_request]
-            jobs:
-              build:
-                runs-on: ubuntu-latest
-                steps:
-                - uses: actions/checkout@v6
-                - name: Set up Swift
-                  uses: swift-actions/setup-swift@v2
-                  with:
-                    swift-version: "6.0.3"
-                - name: Build
-                  run: swift build
-                - name: Run tests
-                  run: swift test
-            """
+            let workflowUrl = workflowDir.appendingPathComponent("ci.yml")
+            let workflow = emitGithubActionsWorkflow(
+                packageName: packageName,
+                repoName: resolvedRepoName(defaultName: packageName)
+            )
             try WASIFileHelpers.writeString(workflow, to: workflowUrl.path)
         }
     }
@@ -216,6 +342,10 @@ struct ToSDK: AsyncParsableCommand {
                 let fileUrl = targetDir.appendingPathComponent(filename)
                 try WASIFileHelpers.writeString(code, to: fileUrl.path)
             }
+            if options.mcp {
+                let mcpUrl = docDir.appendingPathComponent("MCPServer.swift")
+                try WASIFileHelpers.writeString(emitMCPServerFile(document: doc, includeAdapter: false), to: mcpUrl.path)
+            }
         }
     }
 }
@@ -256,6 +386,10 @@ struct ToSDKCLI: AsyncParsableCommand {
             let code = emitSDKCLI(document: doc)
             let fileUrl = srcDir.appendingPathComponent("\(name).swift") // using name instead of main if multiple
             try WASIFileHelpers.writeString(code, to: fileUrl.path)
+            if options.mcp {
+                let mcpUrl = srcDir.appendingPathComponent("\(name)_MCPServer.swift")
+                try WASIFileHelpers.writeString(emitMCPServerFile(document: doc, includeAdapter: false), to: mcpUrl.path)
+            }
         }
     }
 }

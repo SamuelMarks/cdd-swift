@@ -1,4 +1,4 @@
-.PHONY: install_base install_deps deps docs build_docs build build_wasm build_docker run_docker test run help all
+.PHONY: install_base install_deps deps docs check_docs build_docs build build_wasm build_docker run_docker test run help all
 
 PYTHON ?= $(shell command -v python3 || command -v python)
 
@@ -16,11 +16,15 @@ deps: install_deps
 docs:
 	@echo "Building docs to .build/docs..."
 	@rm -rf .build/docs
-	swift package --allow-writing-to-directory .build/docs generate-documentation --target CDDSwift --output-path .build/docs
+	swift package --allow-writing-to-directory .build/docs generate-documentation --target CDDSwift --target cdd-swift-cli --output-path .build/docs
 	@mkdir -p docs
 	@cd docs && ln -sfn ../.build/docs html
 
 build_docs: docs
+
+check_docs:
+	@echo "Checking 100% documentation coverage..."
+	@$(PYTHON) scripts/find_missing_docs.py
 
 build:
 	@echo "Building CLI binary..."

@@ -118,6 +118,10 @@ public final class SwiftASTArazzoParser {
             summary: visitor.extractedSummary
         )
 
+        for src in visitor.sourceDescriptions {
+            builder.addSourceDescription(name: src.name, url: src.url, type: src.type)
+        }
+
         for wf in visitor.workflows {
             builder.addWorkflow(wf)
         }
@@ -134,6 +138,8 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     public var extractedSummary: String?
     /// Extracted workflows from methods.
     public var workflows: [ArazzoWorkflow] = []
+    /// Extracted source descriptions from `WorkflowsClient.init` defaults.
+    public var sourceDescriptions: [ArazzoSourceDescription] = []
     /// Discovered input DTO schemas keyed by struct name.
     public var inputSchemas: [String: Schema] = [:]
 
@@ -142,6 +148,29 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     /// - Parameter viewMode: Syntax tree traversal mode.
     override public init(viewMode: SyntaxTreeViewMode) {
         super.init(viewMode: viewMode)
+    }
+
+    /// Visits initializer declarations to capture default `sourceDescriptions` dictionary literals.
+    ///
+    /// - Parameter node: The `InitializerDeclSyntax` node.
+    /// - Returns: `.visitChildren` to continue traversal.
+    override public func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
+        for param in node.signature.parameterClause.parameters where param.firstName.text == "sourceDescriptions" {
+            if let defaultVal = param.defaultValue?.value.as(DictionaryExprSyntax.self),
+               case let .elements(elements) = defaultVal.content {
+                for elem in elements {
+                    if let keyLit = elem.key.as(StringLiteralExprSyntax.self),
+                       let keySeg = keyLit.segments.first?.as(StringSegmentSyntax.self),
+                       let valLit = elem.value.as(StringLiteralExprSyntax.self),
+                       let valSeg = valLit.segments.first?.as(StringSegmentSyntax.self) {
+                        sourceDescriptions.append(
+                            ArazzoSourceDescription(name: keySeg.content.text, url: valSeg.content.text, type: .openapi)
+                        )
+                    }
+                }
+            }
+        }
+        return .visitChildren
     }
 
     /// Visits struct declarations to capture `*Inputs` DTOs or `@Suite` workflow structs.
@@ -177,7 +206,7 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
                 let rawType = typeAnn.type.description
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .replacingOccurrences(of: "?", with: "")
-                properties[ident.identifier.text] = Schema(type: mapSwiftInputType(rawType).rawValue)
+                properties[ident.identifier.text] = Schema(type: mapSwiftInputType(rawType))
             }
         }
         return properties

@@ -2,7 +2,8 @@
 /// `CollectionFormat`, `SecuritySchemeType`, `HTTPStatusCode`, `ContentType`, `HTTPMethod`).
 
 /// Standard JSON Schema / OpenAPI data types.
-public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral {
+public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral,
+    CustomStringConvertible {
     /// UTF-8 character string type (`"string"`).
     case string
     /// Floating-point or arbitrary-precision numeric type (`"number"`).
@@ -47,6 +48,11 @@ public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable
         }
     }
 
+    /// Textual description matching `rawValue`.
+    public var description: String {
+        rawValue
+    }
+
     /// Initializes a `SchemaType` from its raw string representation.
     ///
     /// - Parameter rawValue: The JSON Schema type string.
@@ -82,7 +88,8 @@ public enum SchemaType: RawRepresentable, Codable, Equatable, Hashable, Sendable
 }
 
 /// Standard OpenAPI and JSON Schema data format modifiers.
-public enum OpenAPIFormat: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral {
+public enum OpenAPIFormat: RawRepresentable, Codable, Equatable, Hashable, Sendable, CaseIterable, ExpressibleByStringLiteral,
+    CustomStringConvertible {
     /// Signed 32-bit integer (`"int32"`).
     case int32
     /// Signed 64-bit integer (`"int64"`).
@@ -137,6 +144,11 @@ public enum OpenAPIFormat: RawRepresentable, Codable, Equatable, Hashable, Senda
         case .email: "email"
         case let .custom(val): val
         }
+    }
+
+    /// Textual description matching `rawValue`.
+    public var description: String {
+        rawValue
     }
 
     /// Initializes an `OpenAPIFormat` from its raw string representation.

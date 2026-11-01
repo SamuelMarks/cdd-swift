@@ -26,7 +26,7 @@ public enum ArazzoCliEmitter {
     ///   - rootCommandName: Command name for the root CLI tool. Defaults to `"workflow"`.
     /// - Returns: Generated Swift source code string.
     public static func emitWorkflowCLI(from specification: ArazzoSpecification, rootCommandName: String = "workflow") -> String {
-        var output = ""
+        var output = "/// Generated ArgumentParser CLI for \(specification.info.title) Arazzo workflows.\n"
         output += "import ArgumentParser\n"
         output += "import Foundation\n\n"
 
@@ -92,6 +92,8 @@ public enum ArazzoCliEmitter {
         code += "    public init() {}\n\n"
 
         code += "    /// Executes the workflow CLI command.\n"
+        code += "    ///\n"
+        code += "    /// - Throws: An error if workflow execution fails.\n"
         code += "    public mutating func run() async throws {\n"
         code += "        print(\"🚀 Executing workflow: " + workflow.workflowId + "...\")\n"
         code += "        let startTime = Date()\n"

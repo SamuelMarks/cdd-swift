@@ -5,15 +5,15 @@
 Swift packages and CLI binaries are distributed via Git tags and GitHub Releases (`https://github.com/SamuelMarks/cdd-swift`). To publish a new release:
 
 ```bash
-git tag v0.0.4
-git push origin v0.0.4
+git tag v0.0.5
+git push origin v0.0.5
 ```
 
 Consumers can then depend on the tagged version in `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/SamuelMarks/cdd-swift.git", from: "0.0.4")
+    .package(url: "https://github.com/SamuelMarks/cdd-swift.git", from: "0.0.5")
 ]
 ```
 

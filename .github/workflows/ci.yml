@@ -95,6 +95,14 @@ jobs:
       if: runner.os == 'Linux'
       run: python3 scripts/test_generated_server_openapi.py
 
+    - name: Arazzo 1.1.0 E2E roundtrip test
+      run: python3 scripts/test_arazzo_1_1_0.py
+
+    - name: Verify 100% Doc & Test Coverage
+      run: |
+        python3 scripts/find_missing_docs.py
+        python3 scripts/update_badges.py
+
     - name: Upload Linux Artifact
       if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/v')
       uses: actions/upload-artifact@v7
@@ -146,11 +154,21 @@ jobs:
         with:
           path: artifacts
 
-      - name: Rename binaries
+      - name: Rename & Sign Binaries
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           mv artifacts/cdd-swift-linux/cdd-swift cdd-swift-linux
           mv artifacts/cdd-swift-macos/cdd-swift cdd-swift-macos
           mv artifacts/cdd-swift-wasm/cdd-swift.wasm .
+          sha256sum cdd-swift-linux cdd-swift-macos cdd-swift.wasm > SHA256SUMS.txt
+          if [ -n "${GPG_PRIVATE_KEY}" ]; then
+            echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+            for f in cdd-swift-linux cdd-swift-macos cdd-swift.wasm SHA256SUMS.txt; do
+              gpg --batch --yes --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" --armor --detach-sign "$f"
+            done
+          fi
 
       - name: Release Version
         if: github.event_name == 'push'
@@ -160,5 +178,39 @@ jobs:
             cdd-swift-linux
             cdd-swift-macos
             cdd-swift.wasm
+            SHA256SUMS.txt
+            *.asc
           generate_release_notes: true
           make_latest: true
+
+  docs:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0.3"
+
+      - name: Generate DocC Static Hosting Bundle
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          swift package --allow-writing-to-directory ./docs generate-documentation \
+            --target CDDSwift \
+            --target cdd-swift-cli \
+            --disable-indexing \
+            --transform-for-static-hosting \
+            --hosting-base-path "${REPO_NAME}" \
+            --output-path ./docs
+
+      - name: Deploy DocC to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs

@@ -13,6 +13,7 @@ public enum ArazzoTestEmitter {
         let nl = String(UnicodeScalar(10))
         let q = String(UnicodeScalar(34))
         var lines: [String] = []
+        lines.append("/// Generated XCTest and Swift Testing suite for " + specification.info.title + ".")
         lines.append("import Foundation")
         lines.append("import XCTest")
         lines.append("")
@@ -71,6 +72,8 @@ public enum ArazzoTestEmitter {
 
         var lines: [String] = []
         lines.append("    /// " + summary)
+        lines.append("    ///")
+        lines.append("    /// - Throws: An error if any step assertion fails.")
         lines.append("    public func test" + methodSuffix + "() async throws {")
         lines.append("        var stepOutputs: [String: [String: AnyCodable]] = [:]")
 
@@ -136,6 +139,8 @@ public enum ArazzoTestEmitter {
             lines.append("")
             lines.append("    // @Test(" + q + (workflow.summary ?? workflow.workflowId) + q + ")")
             lines.append("    /// Executes workflow `" + workflow.workflowId + "` using `#expect` assertions.")
+            lines.append("    ///")
+            lines.append("    /// - Throws: An error if workflow execution fails.")
             lines.append("    public func " + funcName + "() async throws {")
             lines.append("        let client = WorkflowsClient()")
             lines.append("        let outputs = try await client." + funcName + "(inputs: " + baseName + "Inputs())")

@@ -3,7 +3,7 @@
 /// Defines the input and output data types in an OpenAPI 3.2.0 or Swagger 2.0 specification.
 public struct Schema: Codable, Equatable, Sendable {
     /// Primary JSON Schema data type (`"string"`, `"number"`, `"integer"`, `"boolean"`, `"array"`, `"object"`, `"null"`).
-    public let type: String?
+    public let type: SchemaType?
     /// Child property schemas keyed by property name for `"object"` schemas.
     public let properties: [String: Schema]?
     /// Schema describing additional dynamic dictionary properties on an `"object"` schema.
@@ -21,7 +21,7 @@ public struct Schema: Codable, Equatable, Sendable {
     /// CommonMark-compatible explanation of the purpose of the schema.
     public let description: String?
     /// Fine-grained data format modifier (e.g. `"int32"`, `"int64"`, `"float"`, `"double"`, `"date-time"`, `"uuid"`, `"binary"`).
-    public let format: String?
+    public let format: OpenAPIFormat?
     /// Default value used when an instance property is omitted.
     public let default_value: AnyCodable?
     /// Exact constant value that an instance must equal.
@@ -121,14 +121,12 @@ public struct Schema: Codable, Equatable, Sendable {
 
     /// Strongly-typed `SchemaType` enum derived from `type`.
     public var schemaType: SchemaType? {
-        guard let t = type else { return nil }
-        return SchemaType(rawValue: t)
+        type
     }
 
     /// Strongly-typed `OpenAPIFormat` enum derived from `format`.
     public var openAPIFormat: OpenAPIFormat? {
-        guard let f = format else { return nil }
-        return OpenAPIFormat(rawValue: f)
+        format
     }
 
     /// Coding keys mapping JSON Schema and OpenAPI keywords to `Schema` fields.
@@ -313,9 +311,9 @@ public struct Schema: Codable, Equatable, Sendable {
     ///   - readOnly: Optional read-only flag.
     ///   - writeOnly: Optional write-only flag.
     public init(
-        type: String? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil,
+        type: SchemaType? = nil, properties: [String: Schema]? = nil, additionalProperties: SchemaItem? = nil, items: SchemaItem? = nil,
         prefixItems: [Schema]? = nil, required: [String]? = nil, ref: String? = nil,
-        title: String? = nil, description: String? = nil, format: String? = nil, default_value: AnyCodable? = nil,
+        title: String? = nil, description: String? = nil, format: OpenAPIFormat? = nil, default_value: AnyCodable? = nil,
         const_value: AnyCodable? = nil,
         multipleOf: Double? = nil, maximum: Double? = nil, exclusiveMaximum: Double? = nil, minimum: Double? = nil,
         exclusiveMinimum: Double? = nil,

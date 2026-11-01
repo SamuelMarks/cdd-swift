@@ -267,7 +267,7 @@ Add `CDDSwift` as a dependency in your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/SamuelMarks/cdd-swift.git", from: "0.0.4")
+    .package(url: "https://github.com/SamuelMarks/cdd-swift.git", from: "0.0.5")
 ],
 targets: [
     .target(

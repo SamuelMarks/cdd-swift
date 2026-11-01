@@ -438,6 +438,19 @@ def scan_sources(root_dir: str = "Sources") -> Tuple[int, int, List[str]]:
     dirs_to_scan = [root_dir]
     if root_dir == "Sources" and os.path.isdir("Tests"):
         dirs_to_scan.append("Tests")
+        for docc_path in (
+            os.path.join("Sources", "CDDSwift", "CDDSwift.docc", "CDDSwift.md"),
+            os.path.join(
+                "Sources", "cdd-swift-cli", "CDDSwiftCLI.docc", "CDDSwiftCLI.md"
+            ),
+        ):
+            total += 1
+            if os.path.isfile(docc_path) and os.path.getsize(docc_path) > 0:
+                documented += 1
+            else:
+                all_issues.append(
+                    f"{docc_path}:1:Missing module-level DocC catalog documentation"
+                )
 
     for scan_dir in dirs_to_scan:
         for root, _, files in sorted(os.walk(scan_dir)):

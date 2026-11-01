@@ -42,11 +42,11 @@ public func emitModel(name: String, schema: Schema, schemas: [String: Schema] = 
 /// - Parameter schema: The OpenAPI `Schema` to inspect.
 /// - Returns: `true` if the schema represents a primitive, array, or dictionary typealias.
 private func isTypealiasSchema(_ schema: Schema) -> Bool {
-    let primitiveTypes: Set<String?> = ["array", "string", "integer", "number", "boolean"]
+    let primitiveTypes: Set<SchemaType?> = [.array, .string, .integer, .number, .boolean]
     if primitiveTypes.contains(schema.type) {
         return true
     }
-    return schema.type == "object" && schema.properties == nil && schema.additionalProperties != nil
+    return schema.type == .object && schema.properties == nil && schema.additionalProperties != nil
 }
 
 /// Emits validation constraint lines (`Minimum`, `Maximum`, `Minimum Length`, `Maximum Length`, `Pattern`) as doc comments.
@@ -340,11 +340,11 @@ public func mapType(schema: Schema) -> String {
 ///
 /// - Parameter format: Optional `OpenAPIFormat` value.
 /// - Returns: `"Date"`, `"UUID"`, `"Data"`, or `"String"`.
-private func mapStringFormat(_ format: String?) -> String {
+private func mapStringFormat(_ format: OpenAPIFormat?) -> String {
     switch format {
-    case "date-time": "Date"
-    case "uuid": "UUID"
-    case "binary": "Data"
+    case .dateTime: "Date"
+    case .uuid: "UUID"
+    case .binary: "Data"
     default: "String"
     }
 }

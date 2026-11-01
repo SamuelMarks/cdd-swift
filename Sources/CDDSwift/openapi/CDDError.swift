@@ -8,7 +8,7 @@
 /// Canonical semantic version metadata for the `CDDSwift` library and `cdd-swift` CLI package.
 public enum CDDVersion {
     /// Current semantic version string of the `CDDSwift` package (without the leading `v` tag prefix).
-    public static let current = "0.0.4"
+    public static let current = "0.0.5"
 }
 
 /// Extracts the trailing identifier from an OpenAPI `$ref` pointer (e.g., `"#/components/schemas/User"` -> `"User"`).

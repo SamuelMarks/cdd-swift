@@ -87,5 +87,34 @@ final class ArazzoSdkEmitTests: XCTestCase {
 
         let parsedSyntax = Parser.parse(source: emitted)
         XCTAssertFalse(parsedSyntax.hasError)
+
+        let openAPIDoc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "API", version: "1.0"),
+            paths: ["/users": PathItem(post: Operation(operationId: "createUser"))]
+        )
+        let emptyOpenAPIDoc = OpenAPIDocument(
+            openapi: "3.2.0",
+            info: Info(title: "Empty", version: "1.0"),
+            paths: nil
+        )
+        let emittedWithSourceDocs = ArazzoSdkEmitter.emitWorkflowClient(
+            from: spec,
+            sourceDocuments: ["api": openAPIDoc, "empty": emptyOpenAPIDoc]
+        )
+        XCTAssertTrue(emittedWithSourceDocs.contains("// Resolved OpenAPI client operation: client.createUser"))
+        XCTAssertFalse(Parser.parse(source: emittedWithSourceDocs).hasError)
+
+        let noSourcesSpec = ArazzoSpecification(
+            arazzo: "1.1.0",
+            info: ArazzoInfo(title: "NoSources", version: "1.0.0"),
+            sourceDescriptions: [],
+            workflows: spec.workflows
+        )
+        XCTAssertTrue(ArazzoSdkEmitter.emitWorkflowClient(from: noSourcesSpec).contains("sourceDescriptions: [String: String] = [:]"))
+
+        let mcpCode = ArazzoSdkEmitter.emitWorkflowMCP(from: spec)
+        XCTAssertTrue(mcpCode.contains("public struct WorkflowsMCPAdapter"))
+        XCTAssertFalse(Parser.parse(source: mcpCode).hasError)
     }
 }

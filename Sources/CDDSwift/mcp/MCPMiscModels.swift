@@ -37,7 +37,7 @@ public struct Annotated: Codable, Equatable, Sendable {
 }
 
 /// Conversational participant role in MCP prompts and sampling messages.
-public enum Role: String, Codable, Equatable, Sendable {
+public enum Role: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
     /// Human user participant role.
     case user
     /// AI assistant participant role.
@@ -216,7 +216,7 @@ public struct EmbeddedResource: Codable, Equatable, Sendable {
 // MARK: - Logging
 
 /// Syslog-style severity levels for MCP server log messages.
-public enum LoggingLevel: String, Codable, Equatable, Sendable {
+public enum LoggingLevel: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
     /// Detailed debugging information.
     case debug
     /// General informational messages.

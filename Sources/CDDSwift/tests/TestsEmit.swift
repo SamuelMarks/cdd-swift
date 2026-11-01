@@ -3,9 +3,9 @@
 /// Context encapsulating the schema parameters needed to generate deterministic dummy JSON payloads.
 public struct DummyJSONContext: Sendable {
     /// The OpenAPI type name.
-    public let type: String?
+    public let type: SchemaType?
     /// Optional format hint (e.g. `"uuid"`, `"date-time"`, `"email"`, `"uri"`).
-    public let format: String?
+    public let format: OpenAPIFormat?
     /// Optional `$ref` pointer to another schema definition.
     public let ref: String?
     /// Object property definitions keyed by property name.
@@ -27,7 +27,7 @@ public struct DummyJSONContext: Sendable {
     ///
     /// - Parameters:
     ///   - type: The OpenAPI type name.
-    ///   - format: Optional format modifier string.
+    ///   - format: Optional format modifier.
     ///   - ref: Optional `$ref` pointer string.
     ///   - properties: Object property schemas keyed by name.
     ///   - required: Required property names.
@@ -37,8 +37,8 @@ public struct DummyJSONContext: Sendable {
     ///   - schemas: Component schema registry for resolving `$ref` pointers.
     ///   - visited: Set of visited schema names to guard against cycles.
     public init(
-        type: String? = nil,
-        format: String? = nil,
+        type: SchemaType? = nil,
+        format: OpenAPIFormat? = nil,
         ref: String? = nil,
         properties: [String: Schema]? = nil,
         required: [String]? = nil,
@@ -163,14 +163,14 @@ private func generateReferencedDummyJSON(ref: String, context: DummyJSONContext)
 
 /// Generates a dummy JSON string literal for an OpenAPI `"string"` schema based on its format.
 ///
-/// - Parameter format: Optional format string (`"uuid"`, `"date-time"`, etc.).
+/// - Parameter format: Optional format (`"uuid"`, `"date-time"`, etc.).
 /// - Returns: Quoted JSON string literal.
-private func generateDummyStringJSON(format: String?) -> String {
+private func generateDummyStringJSON(format: OpenAPIFormat?) -> String {
     let q = String(UnicodeScalar(34))
-    if format == "uuid" {
+    if format == .uuid {
         return "\(q)00000000-0000-0000-0000-000000000000\(q)"
     }
-    if format == "date-time" {
+    if format == .dateTime {
         return "\(q)2026-01-01T00:00:00Z\(q)"
     }
     return "\(q)test_string\(q)"

@@ -58,7 +58,7 @@ final class CDDSwiftCliTests: XCTestCase {
         let cli = try CDDSwiftCLI.parse([])
         XCTAssertNotNil(cli)
         XCTAssertEqual(CDDSwiftCLI.configuration.version, CDDVersion.current)
-        XCTAssertEqual(CDDVersion.current, "0.0.4")
+        XCTAssertEqual(CDDVersion.current, "0.0.5")
         XCTAssertThrowsError(try CDDSwiftCLI.parse(["--help"]))
     }
 
@@ -183,9 +183,42 @@ final class CDDSwiftCliTests: XCTestCase {
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliNoPkgOut + "/cdd_test_empty.swift"))
 
         let noPkgOut = tempPath("cdd-test-no-pkg")
-        var cmdNoInstallable = try ToSDK.parse(["--input", emptyJson, "-o", noPkgOut, "--no-installable-package"])
+        var cmdNoInstallable = try ToSDK.parse([
+            "--input", emptyJson,
+            "-o", noPkgOut,
+            "--no-installable-package",
+            "--mcp",
+            "--github-org", "myorg"
+        ])
         try await cmdNoInstallable.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: noPkgOut + "/client.swift"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: noPkgOut + "/MCPServer.swift"))
+        let polyCi = try WASIFileHelpers.readString(at: noPkgOut + "/.github/workflows/ci.yml")
+        XCTAssertTrue(polyCi.contains("myorg-sdk-swift"))
+
+        let monoCliOut = tempPath("cdd-test-cli-mono")
+        var cmdCliMono = try ToSDKCLI.parse([
+            "--input", emptyJson,
+            "-o", monoCliOut,
+            "--mcp",
+            "--github-org", "myorg",
+            "--monorepo"
+        ])
+        try await cmdCliMono.run()
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: monoCliOut + "/.spi.yml"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: monoCliOut + "/Sources/GeneratedSDKCLI/cdd_test_empty_MCPServer.swift"))
+        let monoCi = try WASIFileHelpers.readString(at: monoCliOut + "/.github/workflows/ci.yml")
+        XCTAssertTrue(monoCi.contains("myorg-sdk"))
+
+        let customRepoOut = tempPath("cdd-test-custom-repo")
+        var cmdCustomRepo = try ToSDK.parse([
+            "--input", emptyJson,
+            "-o", customRepoOut,
+            "--repo-name", "explicit-repo-name"
+        ])
+        try await cmdCustomRepo.run()
+        let customCi = try WASIFileHelpers.readString(at: customRepoOut + "/.github/workflows/ci.yml")
+        XCTAssertTrue(customCi.contains("explicit-repo-name"))
     }
 
     /// Verifies `ToSDK --tests` and `ToServer` commands across single files, directories, and flags.
@@ -227,9 +260,12 @@ final class CDDSwiftCliTests: XCTestCase {
         try await cmdServerNoPkg.run()
 
         let outDir = tempPath("cdd-test-server-coverage")
-        var cmdServerFull = try ToServer.parse(["--input", "comprehensive-openapi.json", "-o", outDir, "--tests"])
+        var cmdServerFull = try ToServer.parse(["--input", "comprehensive-openapi.json", "-o", outDir, "--tests", "--mcp"])
         try await cmdServerFull.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/Package.swift"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/.spi.yml"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/.github/workflows/ci.yml"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/Sources/GeneratedServer/MCPServer.swift"))
         XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/Sources/GeneratedServer/Entrypoint.swift"))
         XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/Sources/GeneratedServer/Routes/Routes.swift"))
         XCTAssertTrue(WASIFileHelpers.fileExists(at: "\(outDir)/Sources/GeneratedServer/Mocks/DatabaseSeeder.swift"))

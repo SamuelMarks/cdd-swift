@@ -28,6 +28,11 @@ final class ArazzoCliTests: XCTestCase {
     /// Verifies `GenerateArazzo`, `FromArazzo`, `ToArazzo`, `SyncArazzo`, and programmatic `CDDCLI` entrypoints.
     func testGenerateFromAndToArazzoCommands() async throws {
         let specPath = tempDir + "/sample_arazzo.json"
+        let localOpenApiPath = tempDir + "/openapi.json"
+        try WASIFileHelpers.writeString(
+            #"{"openapi":"3.2.0","info":{"title":"Local","version":"1.0"},"paths":{"/users":{"post":{"operationId":"createUser","responses":{"200":{"description":"OK"}}}}}}"#,
+            to: localOpenApiPath
+        )
 
         // 1. GenerateArazzo to file and stdout
         var genFileCmd = try GenerateArazzo.parse(["-o", specPath])
@@ -42,15 +47,18 @@ final class ArazzoCliTests: XCTestCase {
 
         // 2. FromArazzo -> to_sdk (with and without package scaffolding, default output dir)
         let sdkDir = tempDir + "/sdk_out"
-        var toSdkCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkDir])
+        var toSdkCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkDir, "--mcp", "--github-org", "myorg"])
         try await toSdkCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/Package.swift"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/.spi.yml"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/.github/workflows/ci.yml"))
         let sdkClientPath = sdkDir + "/Sources/GeneratedWorkflowsSDK/WorkflowsClient.swift"
         XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkClientPath))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkDir + "/Sources/GeneratedWorkflowsSDK/WorkflowsMCPAdapter.swift"))
         XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: sdkClientPath)).hasError)
 
         let sdkNoPkgDir = tempDir + "/sdk_nopkg"
-        var toSdkNoPkgCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkNoPkgDir, "--no-installable-package"])
+        var toSdkNoPkgCmd = try ArazzoToSDK.parse(["-i", specPath, "-o", sdkNoPkgDir, "--no-installable-package", "--no-github-actions"])
         try await toSdkNoPkgCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: sdkNoPkgDir + "/WorkflowsClient.swift"))
         XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: sdkNoPkgDir + "/WorkflowsClient.swift")).hasError)
@@ -60,11 +68,13 @@ final class ArazzoCliTests: XCTestCase {
 
         // 3. FromArazzo -> to_sdk_cli (with and without package scaffolding)
         let cliDir = tempDir + "/cli_out"
-        var toCliCmd = try ArazzoToSDKCLI.parse(["-i", specPath, "-o", cliDir])
+        var toCliCmd = try ArazzoToSDKCLI.parse(["-i", specPath, "-o", cliDir, "--mcp", "--github-org", "myorg", "--monorepo"])
         try await toCliCmd.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliDir + "/Package.swift"))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: cliDir + "/.spi.yml"))
         let cliPath = cliDir + "/Sources/GeneratedWorkflowsCLI/WorkflowCLI.swift"
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliPath))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: cliDir + "/Sources/GeneratedWorkflowsCLI/WorkflowsMCPAdapter.swift"))
         XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: cliPath)).hasError)
 
         let cliNoPkgDir = tempDir + "/cli_nopkg"
@@ -83,10 +93,11 @@ final class ArazzoCliTests: XCTestCase {
 
         // 5. FromArazzo -> to_server
         let serverDir = tempDir + "/server_out"
-        var toServerCmd = try ArazzoToServer.parse(["-i", specPath, "-o", serverDir])
+        var toServerCmd = try ArazzoToServer.parse(["-i", specPath, "-o", serverDir, "--mcp"])
         try await toServerCmd.run()
         let serverOrchPath = serverDir + "/ServerWorkflowOrchestrator.swift"
         XCTAssertTrue(WASIFileHelpers.fileExists(at: serverOrchPath))
+        XCTAssertTrue(WASIFileHelpers.fileExists(at: serverDir + "/WorkflowsMCPAdapter.swift"))
         XCTAssertFalse(try Parser.parse(source: WASIFileHelpers.readString(at: serverOrchPath)).hasError)
     }
 

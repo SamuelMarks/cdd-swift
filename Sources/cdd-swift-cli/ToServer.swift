@@ -23,10 +23,12 @@ struct ToServer: AsyncParsableCommand {
 
         if !options.noInstallablePackage {
             try Self.writePackageSwift(outDir: outDir, testsMocks: options.testsMocks)
+            let spiUrl = URL(fileURLWithPath: outDir).appendingPathComponent(".spi.yml")
+            try WASIFileHelpers.writeString(emitSpiYml(documentationTargets: ["GeneratedServer"]), to: spiUrl.path)
         }
 
         if !options.noGithubActions {
-            try Self.writeGithubWorkflow(outDir: outDir)
+            try Self.writeGithubWorkflow(outDir: outDir, repoName: options.resolvedRepoName(defaultName: "GeneratedServer"))
         }
 
         let docs = try options.getDocuments()
@@ -99,31 +101,17 @@ extension ToServer {
         try WASIFileHelpers.writeString(packageSwift, to: pkgUrl.path)
     }
 
-    /// Writes the GitHub Actions workflow `.github/workflows/swift.yml` for the generated server.
+    /// Writes the GitHub Actions workflow `.github/workflows/ci.yml` for the generated server.
     ///
-    /// - Parameter outDir: The root output directory path.
+    /// - Parameters:
+    ///   - outDir: The root output directory path.
+    ///   - repoName: The resolved GitHub repository name.
     /// - Throws: `CDDError` if creating directories or writing the workflow file fails.
-    private static func writeGithubWorkflow(outDir: String) throws {
+    private static func writeGithubWorkflow(outDir: String, repoName: String) throws {
         let workflowDir = URL(fileURLWithPath: outDir).appendingPathComponent(".github/workflows")
         try createDirRecursive(workflowDir.path)
-        let workflowUrl = workflowDir.appendingPathComponent("swift.yml")
-        let workflow = """
-        name: Swift
-        on: [push, pull_request]
-        jobs:
-          build:
-            runs-on: ubuntu-latest
-            steps:
-            - uses: actions/checkout@v6
-            - name: Set up Swift
-              uses: swift-actions/setup-swift@v2
-              with:
-                swift-version: "6.0.3"
-            - name: Build
-              run: swift build
-            - name: Run tests
-              run: swift test
-        """
+        let workflowUrl = workflowDir.appendingPathComponent("ci.yml")
+        let workflow = emitGithubActionsWorkflow(packageName: "GeneratedServer", repoName: repoName)
         try WASIFileHelpers.writeString(workflow, to: workflowUrl.path)
     }
 
@@ -329,6 +317,10 @@ extension ToServer {
                     let modelUrl = srcDir.appendingPathComponent("Models").appendingPathComponent("\(schemaName).swift")
                     try WASIFileHelpers.writeString(modelCode, to: modelUrl.path)
                 }
+            }
+            if options.mcp {
+                let mcpUrl = srcDir.appendingPathComponent("MCPServer.swift")
+                try WASIFileHelpers.writeString(emitMCPServerFile(document: doc, includeAdapter: false), to: mcpUrl.path)
             }
         }
     }

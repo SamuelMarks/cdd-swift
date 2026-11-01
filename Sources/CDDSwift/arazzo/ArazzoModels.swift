@@ -1,7 +1,7 @@
 /// Data models representing Arazzo 1.1.0 workflow specifications, steps, criteria, and actions.
 
 /// Defines the source type for target APIs linked in an Arazzo document.
-public enum ArazzoSourceType: String, Codable, Sendable, Equatable {
+public enum ArazzoSourceType: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// OpenAPI document reference.
     case openapi
     /// AsyncAPI document reference.
@@ -11,7 +11,7 @@ public enum ArazzoSourceType: String, Codable, Sendable, Equatable {
 }
 
 /// Defines parameter placement locations supported by Arazzo 1.1.0.
-public enum ArazzoParameterLocation: String, Codable, Sendable, Equatable {
+public enum ArazzoParameterLocation: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// Path variable replacement.
     case path
     /// URL query parameter.
@@ -23,7 +23,7 @@ public enum ArazzoParameterLocation: String, Codable, Sendable, Equatable {
 }
 
 /// Defines the condition evaluation dialect for Arazzo criteria.
-public enum ArazzoCriterionType: String, Codable, Sendable, Equatable {
+public enum ArazzoCriterionType: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// Simple equality or standard comparison.
     case simple
     /// Regular expression pattern matching.
@@ -35,7 +35,7 @@ public enum ArazzoCriterionType: String, Codable, Sendable, Equatable {
 }
 
 /// Defines flow primitive actions triggered upon successful step execution.
-public enum ArazzoSuccessActionType: String, Codable, Sendable, Equatable {
+public enum ArazzoSuccessActionType: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// Concludes the workflow or sequence.
     case end
     /// Directs execution flow to jump to a specific step or workflow.
@@ -43,7 +43,7 @@ public enum ArazzoSuccessActionType: String, Codable, Sendable, Equatable {
 }
 
 /// Defines recovery and flow actions triggered upon step execution failure.
-public enum ArazzoFailureActionType: String, Codable, Sendable, Equatable {
+public enum ArazzoFailureActionType: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// Terminates execution reporting a failure.
     case end
     /// Retries the current step under specified backoff rules.
@@ -53,7 +53,7 @@ public enum ArazzoFailureActionType: String, Codable, Sendable, Equatable {
 }
 
 /// Defines asynchronous message operations in Arazzo workflows.
-public enum ArazzoAsyncAction: String, Codable, Sendable, Equatable {
+public enum ArazzoAsyncAction: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// Publishes a message to a channel.
     case send
     /// Waits for and receives a message from a channel.
@@ -61,7 +61,7 @@ public enum ArazzoAsyncAction: String, Codable, Sendable, Equatable {
 }
 
 /// Defines dialect selectors for payload replacements.
-public enum ArazzoTargetSelectorType: String, Codable, Sendable, Equatable {
+public enum ArazzoTargetSelectorType: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     /// RFC 6901 JSON Pointer.
     case jsonpointer
     /// RFC 9535 JSONPath.

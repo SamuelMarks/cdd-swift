@@ -287,24 +287,22 @@ public struct XML: Codable, Equatable, Sendable {
 /// etc.).
 public struct SchemaItem: Codable, Equatable, Sendable {
     /// Primitive JSON Schema type name (e.g. `"string"`, `"integer"`).
-    public let type: String?
+    public let type: SchemaType?
     /// `$ref` pointer to a reusable schema component.
     public let ref: String?
     /// Optional format modifier (e.g. `"int32"`, `"int64"`, `"date-time"`, `"uuid"`).
-    public let format: String?
+    public let format: OpenAPIFormat?
     /// Legacy Swagger 2.0 collection format (`"csv"`, `"ssv"`, `"tsv"`, `"pipes"`, `"multi"`) for array items.
     public let collectionFormat: CollectionFormat?
 
     /// Strongly-typed `SchemaType` enum derived from `type`.
     public var schemaType: SchemaType? {
-        guard let t = type else { return nil }
-        return SchemaType(rawValue: t)
+        type
     }
 
     /// Strongly-typed `OpenAPIFormat` enum derived from `format`.
     public var openAPIFormat: OpenAPIFormat? {
-        guard let f = format else { return nil }
-        return OpenAPIFormat(rawValue: f)
+        format
     }
 
     /// Coding keys mapping OpenAPI JSON properties to `SchemaItem` fields.
@@ -322,11 +320,11 @@ public struct SchemaItem: Codable, Equatable, Sendable {
     /// Initializes a `SchemaItem`.
     ///
     /// - Parameters:
-    ///   - type: Optional JSON Schema type string.
+    ///   - type: Optional JSON Schema type.
     ///   - ref: Optional `$ref` pointer string.
-    ///   - format: Optional format string.
+    ///   - format: Optional format modifier.
     ///   - collectionFormat: Optional legacy Swagger 2.0 `CollectionFormat`.
-    public init(type: String? = nil, ref: String? = nil, format: String? = nil, collectionFormat: CollectionFormat? = nil) {
+    public init(type: SchemaType? = nil, ref: String? = nil, format: OpenAPIFormat? = nil, collectionFormat: CollectionFormat? = nil) {
         self.type = type
         self.ref = ref
         self.format = format

@@ -138,7 +138,7 @@ public class CliVisitor: SyntaxVisitor {
                         in: .query,
                         description: nil,
                         required: !isOptional,
-                        schema: Schema(type: schemaType.rawValue)
+                        schema: Schema(type: schemaType)
                     )
                 )
             }

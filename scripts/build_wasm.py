@@ -136,6 +136,15 @@ def main() -> None:
         build_env["PATH"] = os.pathsep.join([shim_dir] + filtered_dirs)
 
     success = False
+    wasm_prod_dir = os.path.join(".build", "out", "Products", "Release-webassembly-wasm32")
+    if os.path.isdir(wasm_prod_dir):
+        for entry in os.listdir(wasm_prod_dir):
+            if entry.endswith(".a"):
+                try:
+                    os.remove(os.path.join(wasm_prod_dir, entry))
+                except OSError:
+                    pass
+
     for sdk in available_sdks:
         print(f"Trying Swift SDK: {sdk}")
         result = subprocess.run(

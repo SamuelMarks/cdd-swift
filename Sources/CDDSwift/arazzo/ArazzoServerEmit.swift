@@ -69,6 +69,7 @@ public enum ArazzoServerEmitter {
     /// - Returns: Array of Swift source lines defining `WorkflowProbeReport`.
     private static func emitProbeReportStructLines() -> [String] {
         [
+            "/// Generated server-side synthetic workflow probe orchestrator.",
             "import Foundation",
             "",
             "/// Diagnostic status report for a synthetic workflow healthcheck probe.",
@@ -83,6 +84,12 @@ public enum ArazzoServerEmitter {
             "    public let outputs: [String: AnyCodable]",
             "",
             "    /// Initializes a new `WorkflowProbeReport`.",
+            "    ///",
+            "    /// - Parameters:",
+            "    ///   - workflowId: The identifier of the executed workflow.",
+            "    ///   - healthy: Indicates whether all steps in the workflow succeeded.",
+            "    ///   - executedSteps: Number of steps executed during the probe.",
+            "    ///   - outputs: Captured workflow output values.",
             "    public init(workflowId: String, healthy: Bool, executedSteps: Int, outputs: [String: AnyCodable]) {",
             "        self.workflowId = workflowId",
             "        self.healthy = healthy",
