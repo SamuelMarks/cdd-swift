@@ -29,10 +29,11 @@ final class ArazzoCliTests: XCTestCase {
     func testGenerateFromAndToArazzoCommands() async throws {
         let specPath = tempDir + "/sample_arazzo.json"
         let localOpenApiPath = tempDir + "/openapi.json"
-        try WASIFileHelpers.writeString(
-            #"{"openapi":"3.2.0","info":{"title":"Local","version":"1.0"},"paths":{"/users":{"post":{"operationId":"createUser","responses":{"200":{"description":"OK"}}}}}}"#,
-            to: localOpenApiPath
-        )
+        let sampleOpenAPI = """
+        {"openapi":"3.2.0","info":{"title":"Local","version":"1.0"},\
+        "paths":{"/users":{"post":{"operationId":"createUser","responses":{"200":{"description":"OK"}}}}}}
+        """
+        try WASIFileHelpers.writeString(sampleOpenAPI, to: localOpenApiPath)
 
         // 1. GenerateArazzo to file and stdout
         var genFileCmd = try GenerateArazzo.parse(["-o", specPath])
@@ -65,6 +66,31 @@ final class ArazzoCliTests: XCTestCase {
 
         let optsDefault = try BaseFromArazzoOptions.parse(["-i", specPath])
         XCTAssertEqual(optsDefault.resolveOutputDir(), ".")
+        let badUtf8Path = tempDir + "/bad_utf8.json"
+        try WASIFileHelpers.writeFile(data: Data([0xFF, 0xFE]), to: badUtf8Path)
+        let badJsonPath = tempDir + "/bad_openapi.json"
+        try WASIFileHelpers.writeString("{invalid", to: badJsonPath)
+        let multiSourceSpec = ArazzoSpecification(
+            info: ArazzoInfo(title: "Multi", version: "1.0.0"),
+            sourceDescriptions: [
+                ArazzoSourceDescription(name: "missing", url: "./non_existent_api.json", type: .openapi),
+                ArazzoSourceDescription(name: "badUtf8", url: "./bad_utf8.json", type: .openapi),
+                ArazzoSourceDescription(name: "badJson", url: "./bad_openapi.json", type: .openapi),
+                ArazzoSourceDescription(name: "nestedArazzo", url: "./sample_arazzo.json", type: .arazzo),
+                ArazzoSourceDescription(name: "validApi", url: "./openapi.json", type: .openapi)
+            ],
+            workflows: []
+        )
+        let resolvedDocs = optsDefault.resolveSourceDocuments(for: multiSourceSpec)
+        XCTAssertEqual(resolvedDocs.count, 1)
+        XCTAssertNotNil(resolvedDocs["validApi"])
+    }
+
+    /// Verifies `ArazzoToSDKCLI`, `ArazzoToTest`, and `ArazzoToServer` subcommands.
+    func testFromArazzoCliTestAndServerSubcommands() async throws {
+        let specPath = tempDir + "/sample_arazzo.json"
+        var genFileCmd = try GenerateArazzo.parse(["-o", specPath])
+        try await genFileCmd.run()
 
         // 3. FromArazzo -> to_sdk_cli (with and without package scaffolding)
         let cliDir = tempDir + "/cli_out"

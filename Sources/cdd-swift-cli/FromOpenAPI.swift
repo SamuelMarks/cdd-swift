@@ -49,6 +49,15 @@ func emitSpiYml(documentationTargets: [String]) -> String {
 ///   - repoName: The resolved GitHub repository name used for `--hosting-base-path`.
 /// - Returns: Formatted GitHub Actions YAML workflow string.
 func emitGithubActionsWorkflow(packageName: String, repoName: String) -> String {
+    emitGithubActionsBuildAndReleaseJobs(repoName: repoName) + "\n\n" +
+        emitGithubActionsDocsJob(packageName: packageName, repoName: repoName)
+}
+
+/// Emits the workflow header, `build` job, and `release` job for `.github/workflows/ci.yml`.
+///
+/// - Parameter repoName: The resolved GitHub repository name used for release archive naming.
+/// - Returns: Formatted YAML string for the `build` and `release` jobs.
+private func emitGithubActionsBuildAndReleaseJobs(repoName: String) -> String {
     """
     name: CI
 
@@ -97,7 +106,17 @@ func emitGithubActionsWorkflow(packageName: String, repoName: String) -> String 
               *.tar.gz
               *.sha256
               *.asc
+    """
+}
 
+/// Emits the `docs` job for `.github/workflows/ci.yml`.
+///
+/// - Parameters:
+///   - packageName: The primary Swift Package target name.
+///   - repoName: The resolved GitHub repository name used for `--hosting-base-path`.
+/// - Returns: Formatted YAML string for the `docs` job.
+private func emitGithubActionsDocsJob(packageName: String, repoName: String) -> String {
+    """
       docs:
         needs: build
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')

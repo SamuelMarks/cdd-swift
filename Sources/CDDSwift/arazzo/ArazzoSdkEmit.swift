@@ -76,12 +76,14 @@ public enum ArazzoSdkEmitter {
 
         """
     }
+}
 
+private extension ArazzoSdkEmitter {
     /// Emits input and output DTO struct models for a specific workflow.
     ///
     /// - Parameter workflow: The workflow to emit models for.
     /// - Returns: Generated Swift structs.
-    private static func emitWorkflowDTOs(workflow: ArazzoWorkflow) -> String {
+    static func emitWorkflowDTOs(workflow: ArazzoWorkflow) -> String {
         let baseName = pascalCase(workflow.workflowId)
         var code = ""
         code += "/// Input arguments container for workflow `" + workflow.workflowId + "`.\n"
@@ -146,7 +148,7 @@ public enum ArazzoSdkEmitter {
     ///   - clientClassName: Underlying client class name.
     ///   - sourceDocuments: Resolved `OpenAPIDocument` models keyed by `sourceDescription.name`.
     /// - Returns: Swift class definition.
-    private static func emitWorkflowClientClass(
+    static func emitWorkflowClientClass(
         specification: ArazzoSpecification,
         clientClassName: String,
         sourceDocuments: [String: OpenAPIDocument]
@@ -198,7 +200,7 @@ public enum ArazzoSdkEmitter {
     ///
     /// - Parameter sourceDocuments: Dictionary mapping source names to `OpenAPIDocument` models.
     /// - Returns: Set of discovered `operationId` identifiers (including `<sourceName>.<operationId>` qualified forms).
-    private static func collectResolvedOperationIds(from sourceDocuments: [String: OpenAPIDocument]) -> Set<String> {
+    static func collectResolvedOperationIds(from sourceDocuments: [String: OpenAPIDocument]) -> Set<String> {
         var ids: Set<String> = []
         for (sourceName, doc) in sourceDocuments {
             for (_, item) in doc.paths ?? [:] {
@@ -219,7 +221,7 @@ public enum ArazzoSdkEmitter {
     ///   - workflow: Workflow to generate.
     ///   - resolvedOperations: Known `operationId` values from linked OpenAPI source documents.
     /// - Returns: Swift async method string.
-    private static func emitWorkflowMethod(workflow: ArazzoWorkflow, resolvedOperations: Set<String>) -> String {
+    static func emitWorkflowMethod(workflow: ArazzoWorkflow, resolvedOperations: Set<String>) -> String {
         let methodName = sanitizeIdentifier(workflow.workflowId)
         let baseName = pascalCase(workflow.workflowId)
 
@@ -257,7 +259,7 @@ public enum ArazzoSdkEmitter {
     ///   - step: The step definition.
     ///   - resolvedOperations: Known `operationId` values from linked OpenAPI source documents.
     /// - Returns: Generated step invocation code.
-    private static func emitStepExecution(step: ArazzoStep, resolvedOperations: Set<String>) -> String {
+    static func emitStepExecution(step: ArazzoStep, resolvedOperations: Set<String>) -> String {
         let opId = step.operationId ?? sanitizeIdentifier(step.stepId)
         let maxRetries = step.onFailure?.compactMap(\.retryLimit).max() ?? 0
         let retryDelay = step.onFailure?.compactMap(\.retryAfter).max() ?? 1.0
@@ -320,7 +322,7 @@ public enum ArazzoSdkEmitter {
     ///
     /// - Parameter schema: The schema definition.
     /// - Returns: Swift type name.
-    private static func mapSchemaType(_ schema: Schema) -> String {
+    static func mapSchemaType(_ schema: Schema) -> String {
         switch schema.type {
         case "string":
             "String"

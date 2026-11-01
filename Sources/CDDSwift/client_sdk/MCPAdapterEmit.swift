@@ -52,6 +52,13 @@ public func emitMCPServerFile(document: OpenAPIDocument, includeAdapter: Bool = 
 ///
 /// - Returns: Generated Swift tool type definitions inside `MCPAdapter`.
 private func emitMCPAdapterToolTypes() -> String {
+    emitMCPAdapterSchemaAndToolTypes() + emitMCPAdapterCallToolResultType()
+}
+
+/// Emits the struct header and nested `ToolInputSchema` and `Tool` types for `MCPAdapter`.
+///
+/// - Returns: Generated Swift `ToolInputSchema` and `Tool` definitions.
+private func emitMCPAdapterSchemaAndToolTypes() -> String {
     """
     /// Model Context Protocol (MCP) adapter exposing API client operations as tools and resources.
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
@@ -100,6 +107,15 @@ private func emitMCPAdapterToolTypes() -> String {
             }
         }
 
+    """
+}
+
+/// Emits the nested `CallToolResult` type for `MCPAdapter`.
+///
+/// - Returns: Generated Swift `CallToolResult` definition.
+private func emitMCPAdapterCallToolResultType() -> String {
+    """
+
         /// Result payload returned from an MCP tool invocation.
         public struct CallToolResult: Codable, Equatable, Sendable {
             /// Array of content items returned by the tool.
@@ -126,6 +142,13 @@ private func emitMCPAdapterToolTypes() -> String {
 ///
 /// - Returns: Generated Swift resource type definitions inside `MCPAdapter`.
 private func emitMCPAdapterResourceTypes() -> String {
+    emitMCPAdapterResourceDescriptorTypes() + emitMCPAdapterResourceResultAndErrorTypes()
+}
+
+/// Emits the nested `Resource` and `TextResourceContents` types for `MCPAdapter`.
+///
+/// - Returns: Generated Swift `Resource` and `TextResourceContents` definitions.
+private func emitMCPAdapterResourceDescriptorTypes() -> String {
     """
 
         /// Metadata descriptor for an exposed MCP resource.
@@ -175,6 +198,15 @@ private func emitMCPAdapterResourceTypes() -> String {
                 self.text = text
             }
         }
+
+    """
+}
+
+/// Emits the nested `ResourceContents`, `ReadResourceResult`, `AdapterError`, and initializer for `MCPAdapter`.
+///
+/// - Returns: Generated Swift `ResourceContents`, `ReadResourceResult`, `AdapterError`, and `init(client:)` definitions.
+private func emitMCPAdapterResourceResultAndErrorTypes() -> String {
+    """
 
         /// Union of MCP resource content representations.
         public enum ResourceContents: Codable, Equatable, Sendable {

@@ -181,7 +181,11 @@ final class CDDSwiftCliTests: XCTestCase {
         var cmdCliNoPkg = try ToSDKCLI.parse(["--input", emptyJson, "-o", cliNoPkgOut, "--no-installable-package"])
         try await cmdCliNoPkg.run()
         XCTAssertTrue(WASIFileHelpers.fileExists(at: cliNoPkgOut + "/cdd_test_empty.swift"))
+    }
 
+    /// Verifies `--mcp`, `--github-org`, `--repo-name`, and `--monorepo` flags on `ToSDK` and `ToSDKCLI`.
+    func testFromOpenAPIRepoAndMcpOptions() async throws {
+        let emptyJson = tempPath("cdd_test_empty.json")
         let noPkgOut = tempPath("cdd-test-no-pkg")
         var cmdNoInstallable = try ToSDK.parse([
             "--input", emptyJson,
@@ -219,6 +223,11 @@ final class CDDSwiftCliTests: XCTestCase {
         try await cmdCustomRepo.run()
         let customCi = try WASIFileHelpers.readString(at: customRepoOut + "/.github/workflows/ci.yml")
         XCTAssertTrue(customCi.contains("explicit-repo-name"))
+
+        XCTAssertEqual(
+            resolveRepositoryName(repoName: "", githubOrg: "", monorepo: false, defaultName: "FallbackPkg"),
+            "FallbackPkg"
+        )
     }
 
     /// Verifies `ToSDK --tests` and `ToServer` commands across single files, directories, and flags.
@@ -276,7 +285,9 @@ final class CDDSwiftCliTests: XCTestCase {
         let routesSource = try WASIFileHelpers.readString(at: "\(outDir)/Sources/GeneratedServer/Routes/Routes.swift")
         XCTAssertFalse(Parser.parse(source: routesSource).hasError)
     }
+}
 
+extension CDDSwiftCliTests {
     /// Verifies `ServeJsonRpc`, `InProcessCommandExecutor`, and `DefaultCommandExecutor` handling of valid requests.
     func testServeJsonRpc() async throws {
         let procExec = DefaultCommandExecutor(executablePathOverride: "/bin/echo")
@@ -350,9 +361,7 @@ final class CDDSwiftCliTests: XCTestCase {
         XCTAssertNil(startErr)
         server.stop()
     }
-}
 
-extension CDDSwiftCliTests {
     /// Verifies `ToDocsJson` command execution from local files, directories, Arazzo specs, and HTTP URLs.
     func testToDocsJson() async throws {
         let emptyJson = tempPath("cdd_test_empty.json")

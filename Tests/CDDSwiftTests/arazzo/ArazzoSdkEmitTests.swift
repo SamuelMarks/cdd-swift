@@ -91,7 +91,12 @@ final class ArazzoSdkEmitTests: XCTestCase {
         let openAPIDoc = OpenAPIDocument(
             openapi: "3.2.0",
             info: Info(title: "API", version: "1.0"),
-            paths: ["/users": PathItem(post: Operation(operationId: "createUser"))]
+            paths: [
+                "/users": PathItem(
+                    get: Operation(operationId: nil),
+                    post: Operation(operationId: "createUser")
+                )
+            ]
         )
         let emptyOpenAPIDoc = OpenAPIDocument(
             openapi: "3.2.0",
