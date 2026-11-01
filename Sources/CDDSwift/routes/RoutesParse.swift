@@ -117,10 +117,7 @@ public class RouteVisitor: SyntaxVisitor {
     /// - Returns: The inferred lowercase HTTP method (`"get"`, `"post"`, `"put"`, `"delete"`, `"patch"`, or `"unknown"`).
     private func inferHTTPMethod(fromFunctionName name: String) -> String {
         let lower = name.lowercased()
-        for prefix in ["get", "post", "put", "delete", "patch"] where lower.hasPrefix(prefix) {
-            return prefix
-        }
-        return "unknown"
+        return ["get", "post", "put", "delete", "patch"].first { lower.hasPrefix($0) } ?? "unknown"
     }
 
     /// Metadata parsed from a route function docstring (`@link` and `@Route` directives).

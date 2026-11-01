@@ -43,11 +43,9 @@ public class CliVisitor: SyntaxVisitor {
     /// - Returns: `true` if `AsyncParsableCommand` is in the inheritance clause.
     private func isAsyncParsableCommand(_ node: StructDeclSyntax) -> Bool {
         guard let inheritanceClause = node.inheritanceClause else { return false }
-        for type in inheritanceClause.inheritedTypes
-            where type.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "AsyncParsableCommand" {
-            return true
+        return inheritanceClause.inheritedTypes.contains {
+            $0.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "AsyncParsableCommand"
         }
-        return false
     }
 
     /// Extracts `infoTitle` and `infoVersion` from the `CommandConfiguration` initializer inside `APIClientCLI`.
@@ -164,9 +162,6 @@ public class CliVisitor: SyntaxVisitor {
     /// - Parameter opId: The camelCase operation identifier.
     /// - Returns: Lowercase HTTP method string.
     private func inferCLICommandHTTPMethod(forOperationId opId: String) -> String {
-        for prefix in ["get", "put", "delete", "patch"] where opId.hasPrefix(prefix) {
-            return prefix
-        }
-        return "post"
+        ["get", "put", "delete", "patch"].first { opId.hasPrefix($0) } ?? "post"
     }
 }

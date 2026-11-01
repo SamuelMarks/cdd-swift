@@ -161,10 +161,7 @@ public class ModelVisitor: SyntaxVisitor {
     /// - Returns: `true` if at least one inherited type matches `targetTypes`.
     private func hasInheritedType(_ clause: InheritanceClauseSyntax?, matching targetTypes: Set<String>) -> Bool {
         guard let clause else { return false }
-        for inherited in clause.inheritedTypes where targetTypes.contains(inherited.type.trimmedDescription) {
-            return true
-        }
-        return false
+        return clause.inheritedTypes.contains { targetTypes.contains($0.type.trimmedDescription) }
     }
 
     /// Applies docstring description and validation property wrapper attributes (`@Minimum`, `@Maximum`, `@MinLength`, `@MaxLength`,

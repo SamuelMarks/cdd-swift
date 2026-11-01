@@ -43,7 +43,7 @@ extension ArazzoExpressionEvaluator {
             let expected = condition.dropFirst(2).trimmingCharacters(in: .whitespacesAndNewlines)
             return !compareEquality(value: value, expected: expected)
         }
-        for op in ["<=", ">=", "<", ">"] where condition.hasPrefix(op) {
+        if let op = ["<=", ">=", "<", ">"].first(where: { condition.hasPrefix($0) }) {
             let expected = condition.dropFirst(op.count).trimmingCharacters(in: .whitespacesAndNewlines)
             return compareNumeric(value: value.jsonValue, expected: expected, op: op)
         }
