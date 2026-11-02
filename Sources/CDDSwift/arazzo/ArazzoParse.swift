@@ -155,7 +155,7 @@ public final class WorkflowASTVisitor: SyntaxVisitor {
     /// - Parameter node: The `InitializerDeclSyntax` node.
     /// - Returns: `.visitChildren` to continue traversal.
     override public func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-        for param in node.signature.parameterClause.parameters where param.firstName.text == "sourceDescriptions" {
+        for param in node.signature.parameterClause.parameters.filter({ $0.firstName.text == "sourceDescriptions" }) {
             if let defaultVal = param.defaultValue?.value.as(DictionaryExprSyntax.self),
                case let .elements(elements) = defaultVal.content {
                 for elem in elements {

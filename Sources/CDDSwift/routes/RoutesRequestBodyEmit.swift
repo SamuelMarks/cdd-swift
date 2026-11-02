@@ -81,11 +81,9 @@ private func extractRequestBodyConfig(from operation: Operation) -> ([String], R
             isOctetStream = true
             bodyArgs.append("fileData: \(type)\(optionalSuffix)\(defaultSuffix)")
         }
-    } else if let params = operation.parameters {
-        for param in params where param.in == .body && param.schema != nil {
-            bodyParamName = param.name ?? "body"
-            break
-        }
+    } else if let params = operation.parameters,
+              let param = params.first(where: { $0.in == .body && $0.schema != nil }) {
+        bodyParamName = param.name ?? "body"
     }
 
     return (
@@ -134,7 +132,7 @@ private func emitBinaryFormDataBody(formDataParams: [RouteParamDescriptor], body
         "        request.setValue(\(q)multipart/form-data; boundary=\(bs)(boundary)\(q), forHTTPHeaderField: \(q)Content-Type\(q))"
     )
     lines.append("        var bodyData = Data()")
-    for fp in formDataParams where !fp.isBinary {
+    for fp in formDataParams.filter({ !$0.isBinary }) {
         lines.append("        if let val = \(fp.swiftName) as Any? {")
         let dispHeader = "--\(bs)(boundary)\(bs)r\(bs)nContent-Disposition: form-data; name=\(bs)\(q)\(fp.name)\(bs)\(q)"
         lines.append(

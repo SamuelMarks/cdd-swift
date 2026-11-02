@@ -169,6 +169,18 @@ def get_test_coverage() -> float:
 
     cov = run_llvm_cov_report(llvm_cov_cmd, profdata, test_bins)
     if cov is None or cov < 100.0:
+        for stale_profdata in glob.glob(
+            os.path.join(".build", "**", "codecov"), recursive=True
+        ):
+            shutil.rmtree(stale_profdata, ignore_errors=True)
+        for stale_xctest in glob.glob(
+            os.path.join(".build", "**", "*.xctest"), recursive=True
+        ):
+            if os.path.isdir(stale_xctest):
+                shutil.rmtree(stale_xctest, ignore_errors=True)
+            elif os.path.exists(stale_xctest):
+                os.remove(stale_xctest)
+
         test_run = subprocess.run(
             [swift_bin, "test", "--enable-code-coverage"],
             capture_output=True,

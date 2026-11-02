@@ -230,7 +230,7 @@ struct BaseFromOpenAPIOptions: ParsableArguments {
             results.append((name, document))
         } else if let inputDir {
             let files = try WASIFileHelpers.listDirectory(at: inputDir)
-            for filePath in files where filePath.hasSuffix(".json") {
+            for filePath in files.filter({ $0.hasSuffix(".json") }) {
                 let data = try WASIFileHelpers.readFile(at: filePath)
                 let json = String(decoding: data, as: UTF8.self)
                 let doc = try OpenAPIParser.parse(json: json)

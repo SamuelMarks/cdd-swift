@@ -69,7 +69,7 @@ struct BaseFromArazzoOptions: ParsableArguments {
     func resolveSourceDocuments(for spec: ArazzoSpecification) -> [String: OpenAPIDocument] {
         let baseDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent()
         var resolved: [String: OpenAPIDocument] = [:]
-        for src in spec.sourceDescriptions where src.type == .openapi {
+        for src in spec.sourceDescriptions.filter({ $0.type == .openapi }) {
             let candidatePath = URL(fileURLWithPath: src.url, relativeTo: baseDir).path
             if WASIFileHelpers.fileExists(at: candidatePath),
                let content = try? WASIFileHelpers.readString(at: candidatePath),

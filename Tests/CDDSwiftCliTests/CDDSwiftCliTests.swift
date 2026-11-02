@@ -406,6 +406,10 @@ extension CDDSwiftCliTests {
         let invalidUrlRes: Void? = try? await cmdInvalidURL.run()
         XCTAssertNil(invalidUrlRes)
 
+        var cmdInvalidHttpsURL = try ToDocsJson.parse(["--input", "https://inv alid"])
+        let invalidHttpsRes: Void? = try? await cmdInvalidHttpsURL.run()
+        XCTAssertNil(invalidHttpsRes)
+
         #if !os(WASI)
             let server = Swifter.HttpServer()
             let validJSON = """

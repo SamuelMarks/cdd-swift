@@ -275,7 +275,7 @@ private func emitTestsClassHeader(document: OpenAPIDocument?) -> String {
 
     let securitySchemes = document?.components?.securitySchemes ?? document?.securityDefinitions ?? [:]
     var tokenArgs = ""
-    for (key, scheme) in securitySchemes where scheme.type != nil {
+    for (key, _) in securitySchemes.filter({ $0.value.type != nil }) {
         let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
         let envName = key.uppercased() + "_TOKEN"
         tokenArgs += ", \(propName): ProcessInfo.processInfo.environment[\"\(envName)\"] ?? \"test_token\""
@@ -349,7 +349,7 @@ private func emitOperationTestMethod(
 private func buildParameterTestCallArgs(from parameters: [Parameter]?) -> [String] {
     guard let params = parameters else { return [] }
     var callArgs: [String] = []
-    for param in params where param.in != "body" {
+    for param in params.filter({ $0.in != "body" }) {
         let pName = param.name ?? (param.ref?.components(separatedBy: "/").last ?? "unknown")
         let safePName = pName.replacingOccurrences(of: "-", with: "_")
         let type = param.schema.map { mapType(schema: $0) } ?? "String"
@@ -433,12 +433,10 @@ private func resolveTestBodyDescriptor(for op: Operation) -> TestBodyDescriptor?
             return TestBodyDescriptor(paramName: "fileData", swiftType: "Data", schema: schema)
         }
     }
-    if let globalParams = op.parameters {
-        for param in globalParams where param.in == "body" {
-            if let schema = param.schema {
-                return TestBodyDescriptor(paramName: param.name ?? "body", swiftType: mapType(schema: schema), schema: schema)
-            }
-        }
+    if let globalParams = op.parameters,
+       let param = globalParams.first(where: { $0.in == "body" && $0.schema != nil }),
+       let schema = param.schema {
+        return TestBodyDescriptor(paramName: param.name ?? "body", swiftType: mapType(schema: schema), schema: schema)
     }
     return nil
 }

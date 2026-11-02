@@ -32,19 +32,10 @@ struct ToDocsJson: AsyncParsableCommand {
     ///
     /// - Throws: `ExitCode.failure` or `CDDError` if loading or parsing the OpenAPI document fails.
     mutating func run() async throws {
-        let inputURL: URL
-        if input.starts(with: "http://") || input.starts(with: "https://") {
-            guard let url = URL(string: input) else {
-                print("❌ Invalid URL: \(input)")
-                throw ExitCode.failure
-            }
-            inputURL = url
-        } else {
-            inputURL = URL(fileURLWithPath: input)
-        }
-
         let data: Data
-        if inputURL.scheme == "http" || inputURL.scheme == "https" {
+        if input.starts(with: "http://") || input.starts(with: "https://"),
+           let inputURL = URL(string: input),
+           !input.contains(" ") {
             #if os(WASI)
                 print("❌ HTTP/HTTPS is not supported in WASI")
                 throw ExitCode.failure
@@ -52,8 +43,11 @@ struct ToDocsJson: AsyncParsableCommand {
                 let (fetchedData, _) = try await URLSession.shared.data(from: inputURL)
                 data = fetchedData
             #endif
+        } else if input.starts(with: "http://") || input.starts(with: "https://") {
+            print("❌ Invalid URL: \(input)")
+            throw ExitCode.failure
         } else {
-            data = try WASIFileHelpers.readFile(at: inputURL.path)
+            data = try WASIFileHelpers.readFile(at: URL(fileURLWithPath: input).path)
         }
 
         do {

@@ -38,13 +38,13 @@ public enum ArazzoCodeMerger {
         let rewritten = rewriter.rewrite(destFile)
         var finalSource = rewritten.description
 
-        for (name, decl) in generatedStructs.sorted(by: { $0.key < $1.key }) where !rewriter.visitedNames.contains(name) {
+        for (_, decl) in generatedStructs.sorted(by: { $0.key < $1.key }).filter({ !rewriter.visitedNames.contains($0.key) }) {
             appendDeclaration(decl.description, to: &finalSource)
         }
-        for (name, decl) in generatedClasses.sorted(by: { $0.key < $1.key }) where !rewriter.visitedNames.contains(name) {
+        for (_, decl) in generatedClasses.sorted(by: { $0.key < $1.key }).filter({ !rewriter.visitedNames.contains($0.key) }) {
             appendDeclaration(decl.description, to: &finalSource)
         }
-        for (name, decl) in generatedEnums.sorted(by: { $0.key < $1.key }) where !rewriter.visitedNames.contains(name) {
+        for (_, decl) in generatedEnums.sorted(by: { $0.key < $1.key }).filter({ !rewriter.visitedNames.contains($0.key) }) {
             appendDeclaration(decl.description, to: &finalSource)
         }
 

@@ -30,7 +30,7 @@ public enum SwiftCodeMerger {
         let mergedFile = rewriter.rewrite(destFile)
         var finalSource = mergedFile.description
 
-        for (name, decl) in generatedDecls where !rewriter.visitedDecls.contains(name) {
+        for (_, decl) in generatedDecls.filter({ !rewriter.visitedDecls.contains($0.key) }) {
             if !finalSource.hasSuffix("\n") {
                 finalSource += "\n\n"
             } else if !finalSource.hasSuffix("\n\n") {

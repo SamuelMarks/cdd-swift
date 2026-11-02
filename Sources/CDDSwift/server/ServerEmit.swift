@@ -75,7 +75,7 @@ public func emitDatabaseSeeder(for schemas: [String: Schema]) -> String {
     for (schemaName, schema) in sortedSchemas {
         seederContent += "\n        for _ in 0..<10 {\n            let item = Fluent\(schemaName)()\n"
         if let properties = schema.properties {
-            for (propName, propSchema) in properties where propName.lowercased() != "id" {
+            for (propName, propSchema) in properties.filter({ $0.key.lowercased() != "id" }) {
                 let initVal = mapFakeryInitializer(schema: propSchema)
                 seederContent += "            item.\(propName) = \(initVal)\n"
             }
@@ -107,7 +107,7 @@ public func emitFluentModel(name: String, schema: Schema) -> String {
 
     let sortedProps = (schema.properties ?? [:]).sorted(by: { $0.key < $1.key })
     let requiredProps = Set(schema.required ?? [])
-    for (propName, propSchema) in sortedProps where propName.lowercased() != "id" {
+    for (propName, propSchema) in sortedProps.filter({ $0.key.lowercased() != "id" }) {
         let swiftType = mapFluentFieldType(schema: propSchema)
         let isRequired = requiredProps.contains(propName)
         if isRequired {
@@ -202,7 +202,7 @@ private func emitModelDAOAssignments(schema: Schema) -> String {
     let sortedProps = (schema.properties ?? [:]).sorted(by: { $0.key < $1.key })
     let requiredProps = Set(schema.required ?? [])
     var assignLines = ""
-    for (propName, propSchema) in sortedProps where propName.lowercased() != "id" {
+    for (propName, propSchema) in sortedProps.filter({ $0.key.lowercased() != "id" }) {
         let swiftType = mapFluentFieldType(schema: propSchema)
         let modelType = mapType(schema: propSchema)
         let isRequired = requiredProps.contains(propName)
@@ -318,7 +318,7 @@ public func emitModelMigration(name: String, schema: Schema) -> String {
     ].joined(separator: "\n")
 
     if let properties = schema.properties {
-        for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }) where propName.lowercased() != "id" {
+        for (propName, propSchema) in properties.sorted(by: { $0.key < $1.key }).filter({ $0.key.lowercased() != "id" }) {
             let swiftType = mapFluentFieldType(schema: propSchema)
             let fieldType = mapMigrationDataType(for: swiftType)
             let reqSuffix = requiredProps.contains(propName) ? ", .required" : ""

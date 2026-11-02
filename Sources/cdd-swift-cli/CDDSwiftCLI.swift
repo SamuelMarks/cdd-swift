@@ -13,10 +13,7 @@ struct CDDSwiftCLI: AsyncParsableCommand {
     /// - Returns: The combined array of explicit arguments and environment-derived flags.
     static func buildArgs(from arguments: [String], env: [String: String]) -> [String] {
         var args = arguments
-        for (key, value) in env where key.hasPrefix("CDD_") {
-            if key == "CDD_COMMAND" || key == "CDD_ARGS" {
-                continue
-            }
+        for (key, value) in env.filter({ $0.key.hasPrefix("CDD_") && $0.key != "CDD_COMMAND" && $0.key != "CDD_ARGS" }) {
             let argName = key.dropFirst("CDD_".count).lowercased().replacingOccurrences(of: "_", with: "-")
             let flag = "--\(argName)"
             if !args.contains(flag), !args.contains(where: { $0.starts(with: "\(flag)=") }) {
@@ -152,7 +149,7 @@ struct ToOpenAPI: AsyncParsableCommand {
             let parentDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent().path
             if WASIFileHelpers.fileExists(at: parentDir) {
                 let files = try WASIFileHelpers.listDirectory(at: parentDir)
-                for file in files where file.hasSuffix(".swift") {
+                for file in files.filter({ $0.hasSuffix(".swift") }) {
                     let content = try WASIFileHelpers.readString(at: file)
                     sourceCode += String(UnicodeScalar(10)) + content
                 }
@@ -381,7 +378,7 @@ struct SyncOpenAPI: AsyncParsableCommand {
             let parentDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent().path
             if WASIFileHelpers.fileExists(at: parentDir) {
                 let files = try WASIFileHelpers.listDirectory(at: parentDir)
-                for file in files where file.hasSuffix(".swift") {
+                for file in files.filter({ $0.hasSuffix(".swift") }) {
                     let content = try WASIFileHelpers.readString(at: file)
                     sourceCode += String(UnicodeScalar(10)) + content
                 }

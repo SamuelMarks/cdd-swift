@@ -193,20 +193,21 @@ public enum OpenAPIToSwiftGenerator {
                 "    }\n\n"
         }
         var output = ""
-        for (key, scheme) in securitySchemes where scheme.type != nil {
+        let typedSchemes = securitySchemes.filter { $0.value.type != nil }
+        for (key, _) in typedSchemes {
             let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
             output += "    public let \(propName): String?\n"
         }
         output += "\n"
         var initParams = "baseURL: URL, session: URLSession = .shared"
-        for (key, scheme) in securitySchemes where scheme.type != nil {
+        for (key, _) in typedSchemes {
             let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
             initParams += ", \(propName): String? = nil"
         }
         output += "    public init(\(initParams)) {\n"
         output += "        self.baseURL = baseURL\n"
         output += "        self.session = session\n"
-        for (key, scheme) in securitySchemes where scheme.type != nil {
+        for (key, _) in typedSchemes {
             let propName = key.prefix(1).lowercased() + key.dropFirst() + "Token"
             output += "        self.\(propName) = \(propName)\n"
         }

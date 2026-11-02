@@ -104,7 +104,7 @@ public class SwiftASTParser {
         for (path, cliItem) in cliPaths {
             finalPaths[path] = cliItem
         }
-        for (path, serverItem) in serverPaths where finalPaths[path] == nil {
+        for (path, serverItem) in serverPaths.filter({ finalPaths[$0.key] == nil }) {
             finalPaths[path] = serverItem
         }
         for (path, mockItem) in mockPaths {
