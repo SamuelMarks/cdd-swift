@@ -65,6 +65,50 @@ final class FaultyInputStream: InputStream {
     }
 }
 
+/// Mock `InputStream` that serves an initial `Data` payload and then reports `hasBytesAvailable == false` across both Darwin and Linux
+/// Foundation.
+final class SuspendingInputStream: InputStream {
+    /// Underlying byte buffer to serve before suspending.
+    private let payload: [UInt8]
+    /// Current read cursor within `payload`.
+    private var cursor: Int = 0
+
+    /// Initializes the stream with the given `Data` payload.
+    ///
+    /// - Parameter data: Bytes to serve before `hasBytesAvailable` becomes `false`.
+    override init(data: Data) {
+        payload = Array(data)
+        super.init(data: data)
+    }
+
+    /// No-op stream open.
+    override func open() {}
+
+    /// No-op stream close.
+    override func close() {}
+
+    /// Returns `true` only while unread bytes remain in `payload`.
+    override var hasBytesAvailable: Bool {
+        cursor < payload.count
+    }
+
+    /// Copies up to `len` unread bytes from `payload` into `buffer`.
+    ///
+    /// - Parameters:
+    ///   - buffer: Destination buffer pointer.
+    ///   - len: Maximum bytes to read.
+    /// - Returns: Number of bytes copied.
+    override func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
+        let remaining = payload.count - cursor
+        let count = min(remaining, len)
+        for idx in 0 ..< count {
+            buffer[idx] = payload[cursor + idx]
+        }
+        cursor += count
+        return count
+    }
+}
+
 /// No-op message handler used in `MCPStdioTransportTests`.
 ///
 /// - Parameter data: Incoming message bytes.
@@ -120,7 +164,7 @@ final class MCPStdioTransportTests: XCTestCase {
 
         """
         let data = try XCTUnwrap(json.data(using: .utf8))
-        let transport = MCPStdioTransport(inputStream: InputStream(data: data), outputStream: OutputStream(toMemory: ()))
+        let transport = MCPStdioTransport(inputStream: SuspendingInputStream(data: data), outputStream: OutputStream(toMemory: ()))
         let firstMessageReceived = XCTestExpectation(description: "First start receives message")
         let task1 = Task {
             try await transport.start { _ in
@@ -142,7 +186,7 @@ final class MCPStdioTransportTests: XCTestCase {
 
         """
         let data = try XCTUnwrap(json.data(using: .utf8))
-        let inputStream = InputStream(data: data)
+        let inputStream = SuspendingInputStream(data: data)
         let transport = MCPStdioTransport(inputStream: inputStream, outputStream: OutputStream(toMemory: ()))
 
         let expectation = XCTestExpectation(description: "Receive message")
@@ -168,10 +212,19 @@ final class MCPStdioTransportTests: XCTestCase {
 
     /// Verifies task cancellation while suspended waiting for stream close.
     func testStartTaskCancellation() async throws {
-        let transport = MCPStdioTransport(inputStream: InputStream(data: Data()), outputStream: OutputStream(toMemory: ()))
+        let json = """
+        {"jsonrpc":"2.0","id":1,"method":"test"}
+
+        """
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let transport = MCPStdioTransport(inputStream: SuspendingInputStream(data: data), outputStream: OutputStream(toMemory: ()))
+        let received = XCTestExpectation(description: "Message received before suspending")
         let task = Task {
-            try await transport.start(onMessage: noopStdioHandler)
+            try await transport.start { _ in
+                received.fulfill()
+            }
         }
+        await fulfillment(of: [received], timeout: 1.0)
         task.cancel()
         try await task.value
     }

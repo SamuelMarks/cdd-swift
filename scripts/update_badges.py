@@ -101,7 +101,10 @@ def parse_llvm_cov_total(stdout: str) -> Optional[float]:
 
 
 def run_llvm_cov_report(
-    llvm_cov_cmd: List[str], profdata: str, test_bins: List[str]
+    llvm_cov_cmd: List[str],
+    profdata: str,
+    test_bins: List[str],
+    print_missed: bool = False,
 ) -> Optional[float]:
     """Execute `llvm-cov report` across all test binaries and return the total coverage.
 
@@ -109,6 +112,7 @@ def run_llvm_cov_report(
         llvm_cov_cmd: The base command list for `llvm-cov`.
         profdata: Path to `default.profdata`.
         test_bins: List of test executable paths.
+        print_missed: Whether to print rows with less than 100% coverage when total < 100%.
 
     Returns:
         The calculated coverage percentage, or `None` if execution fails.
@@ -134,7 +138,18 @@ def run_llvm_cov_report(
     if report.returncode != 0:
         return None
 
-    return parse_llvm_cov_total(report.stdout)
+    total = parse_llvm_cov_total(report.stdout)
+    if print_missed and total is not None and total < 100.0:
+        for line in report.stdout.splitlines():
+            pcts = [float(x) for x in re.findall(r"([0-9]+\.[0-9]+)%", line)]
+            if (
+                line.startswith("Filename")
+                or line.startswith("---")
+                or line.startswith("TOTAL")
+                or (pcts and min(pcts) < 100.0)
+            ):
+                print(line)
+    return total
 
 
 def get_test_coverage() -> float:
@@ -196,7 +211,9 @@ def get_test_coverage() -> float:
             bin_path = result.stdout.strip()
         test_bins = resolve_test_binaries(bin_path)
         profdata = os.path.join(bin_path, "codecov", "default.profdata")
-        cov = run_llvm_cov_report(llvm_cov_cmd, profdata, test_bins)
+        cov = run_llvm_cov_report(
+            llvm_cov_cmd, profdata, test_bins, print_missed=True
+        )
 
     return cov if cov is not None else 0.0
 

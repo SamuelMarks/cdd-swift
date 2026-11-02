@@ -22,6 +22,8 @@ final class ValidationPropertyWrappersTests: XCTestCase {
     /// Verifies `Codable` round-tripping and boundary validation of all validation property wrappers.
     func testValidationWrappers() throws {
         let model = TestModel()
+        let explicitModel = TestModel(minVal: 15, maxVal: 50, minLen: "hello", maxLen: "world", pat: "abc")
+        XCTAssertEqual(model, explicitModel)
         XCTAssertEqual(model.minVal, 15)
         XCTAssertEqual(model.maxVal, 50)
         XCTAssertEqual(model.minLen, "hello")
