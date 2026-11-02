@@ -119,12 +119,12 @@ final class ModelsTests: XCTestCase {
         for st in SchemaType.allCases + [.custom("x-type"), "string"] {
             let decoded = try decoder.decode(SchemaType.self, from: encoder.encode(st))
             XCTAssertEqual(decoded, st)
-            XCTAssertEqual(decoded.rawValue, st.rawValue)
+            XCTAssertEqual(decoded.description, st.rawValue)
         }
         for fmt in OpenAPIFormat.allCases + [.custom("x-fmt"), "uuid"] {
             let decoded = try decoder.decode(OpenAPIFormat.self, from: encoder.encode(fmt))
             XCTAssertEqual(decoded, fmt)
-            XCTAssertEqual(decoded.rawValue, fmt.rawValue)
+            XCTAssertEqual(decoded.description, fmt.rawValue)
         }
         for loc in ParameterLocation.allCases + [.custom("x-loc"), "query"] {
             let decoded = try decoder.decode(ParameterLocation.self, from: encoder.encode(loc))

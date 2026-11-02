@@ -14,7 +14,7 @@ final class AnyCodableTests: XCTestCase {
         let arrayValue = AnyCodable([1, 2, 3])
         let strArrayValue = AnyCodable(["a", "b"])
         let dictValue = AnyCodable(["key": "value"])
-        let intDictValue = AnyCodable(["count": 5])
+        let intDictValue = AnyCodable(["b": 2, "a": 1])
 
         XCTAssertEqual(stringValue.stringValue, "test")
         XCTAssertNil(stringValue.intValue)
@@ -38,7 +38,8 @@ final class AnyCodableTests: XCTestCase {
         XCTAssertEqual(strArrayValue.arrayValue, [.string("a"), .string("b")])
         XCTAssertEqual(dictValue.objectValue, ["key": .string("value")])
         XCTAssertEqual(dictValue.description, "{key: value}")
-        XCTAssertEqual(intDictValue.objectValue, ["count": .int(5)])
+        XCTAssertEqual(intDictValue.objectValue, ["a": .int(1), "b": .int(2)])
+        XCTAssertEqual(intDictValue.description, "{a: 1, b: 2}")
 
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
